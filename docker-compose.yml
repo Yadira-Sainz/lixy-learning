@@ -3,7 +3,7 @@ version: '3.8'
 services:
   frontend:
     build: ./frontend
-    container_name: lexilearn-frontend
+    container_name: lixylearning-frontend
     ports:
       - "3000:3000"
     restart: always
@@ -12,7 +12,7 @@ services:
 
   backend:
     build: ./backend
-    container_name: lexilearn-backend
+    container_name: lixylearning-backend
     ports:
       - "5000:5000"
     env_file:
@@ -21,7 +21,7 @@ services:
 
   postgres:
     build: ./db
-    container_name: lexilearn-postgres-db
+    container_name: lixylearning-postgres-db
     ports:
       - "5432:5432"
     env_file:
