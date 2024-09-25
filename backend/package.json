@@ -1,0 +1,17 @@
+{
+  "name": "lexilearn",
+  "version": "1.0.0",
+  "description": "A Node.js app that uses Google Generative AI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "axios": "^1.4.0",
+    "@google/generative-ai": "^0.17.2",
+    "dotenv": "^16.4.5",
+    "cors": "^2.8.5"
+  }
+}
+

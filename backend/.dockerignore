@@ -1,0 +1,10 @@
+# .gitignore
+node_modules
+npm-debug.log
+Dockerfile
+.dockerignore
+.env
+build
+dist
+*.tar
+*.img
