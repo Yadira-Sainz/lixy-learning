@@ -77,6 +77,6 @@ jobs:
       - name: Docker build and push postgres
         uses: docker/build-push-action@v4
         with:
-          context: ./postgres
+          context: ./db
           push: true
           tags: marioarellano/lixylearning-postgres-db:latest
