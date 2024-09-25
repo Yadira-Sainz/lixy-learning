@@ -21,7 +21,7 @@ function App() {
   return (
     <div className="App">
       <h1>100 Most Used Words</h1>
-      <button onClick={fetchWords} className="fetch-button">Show Flashcards</button>
+      <button onClick={fetchWords} className="fetch-button">Show</button>
       {showFlashcards && (
         <div className="flashcards-container">
           {words.map((word, index) => (
