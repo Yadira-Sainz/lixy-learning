@@ -10,6 +10,7 @@ module.exports = {
       '@typescript-eslint/no-empty-interface': 'off',
       'react-hooks/exhaustive-deps': 'warn',
       'next/no-img-element': 'off', // Disable the rule here
+      '@typescript-eslint/no-empty-object-type': 'off', // Disable the rule here
     },
   };
   
