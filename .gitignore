@@ -20,10 +20,6 @@ yarn-error.log*
 node_modules
 npm-debug.log
 
-# Docker
-Dockerfile
-.dockerignore
-.env
 
 # Build artifacts
 frontend/build
