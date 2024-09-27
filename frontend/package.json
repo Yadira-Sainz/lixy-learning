@@ -34,16 +34,17 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7"
   },
-  "devDependencies": {
+"devDependencies": {
   "@types/node": "^20",
   "@types/react": "^18",
   "@types/react-dom": "^18",
   "eslint": "^8.57.1",
   "eslint-config-next": "14.2.12",
-  "eslint-plugin-next": "^12.0.0",
+  "@next/eslint-plugin-next": "^14.2.4",
   "@typescript-eslint/eslint-plugin": "^8.5.0",
   "postcss": "^8",
   "tailwindcss": "^3.4.1",
   "typescript": "^5"
 }
+
 }
