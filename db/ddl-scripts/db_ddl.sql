@@ -19,7 +19,7 @@ CREATE TABLE loginAttempts (
 -- Crear la tabla de Idiomas
 CREATE TABLE Language (
     Language_id SERIAL PRIMARY KEY,
-    Language_name VARCHAR(50) NOT NULL,
+    Language_name VARCHAR(50) NOT NULL
 );
 
 -- Crear la tabla de Palabras
@@ -76,7 +76,7 @@ CREATE TABLE StoryTranslations (
     Language_id INT,
     TranslatedContent TEXT,
     FOREIGN KEY (Story_id) REFERENCES Stories(Story_id),
-    FOREIGN KEY (Language_id) REFERENCES Languages(Language_id)
+    FOREIGN KEY (Language_id) REFERENCES Language(Language_id)
 );
 
 -- Crear la tabla de Preguntas de Cuentos
@@ -115,7 +115,7 @@ CREATE TABLE Flashcards (
     Part_Speech_id INT,
     Audio_word_id INT,
     Audio_sentence_id INT,
-    FOREIGN KEY (Word_id) REFERENCES Words(Word_id),
+    FOREIGN KEY (Word_id) REFERENCES Word(Word_id),
     FOREIGN KEY (Sentence_id) REFERENCES Sentences(Sentence_id),
     FOREIGN KEY (Theme_id) REFERENCES Themes(Theme_id),
     FOREIGN KEY (Part_Speech_id) REFERENCES PartsOfSpeech(Part_Speech_id),
