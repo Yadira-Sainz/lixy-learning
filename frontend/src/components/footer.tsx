@@ -9,8 +9,8 @@ export function FooterComponent() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">LexiLearn</h2>
-            <p className="mt-2 text-sm text-gray-600">© 2024 LexiLearn. Todos los derechos reservados.</p>
+            <h2 className="text-lg font-semibold text-gray-900">LixyLearning</h2>
+            <p className="mt-2 text-sm text-gray-600">© 2024 LixyLearning. Todos los derechos reservados.</p>
           </div>
           <div>
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Redes sociales</h3>
