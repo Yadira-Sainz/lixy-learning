@@ -15,7 +15,7 @@ RUN npm install --production
 COPY . .
  
 # Use a custom ESLint configuration
-COPY .eslintrc.docker.js .eslintrc.js
+COPY .eslintrc.js .eslintrc.js
 
 # Build your Next.js application
 RUN npm run build
