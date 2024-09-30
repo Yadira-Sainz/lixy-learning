@@ -9,11 +9,11 @@ require('dotenv').config();
 
 const app = express();
 const port = 5000;
-const backendHost = process.env.REACT_APP_BACKEND_HOST
+const hostname = process.env.REACT_APP_HOSTNAME
 
 // Use the cors middleware
 app.use(cors({
-  origin: 'http://' + backendHost + ':3000', // Allow requests from this origin
+  origin: 'http://' + hostname + ':3000', // Allow requests from this origin
   methods: 'GET,POST,PUT,DELETE,OPTIONS', // Allow these HTTP methods
   credentials: true // Allow cookies to be sent with requests
 }));
