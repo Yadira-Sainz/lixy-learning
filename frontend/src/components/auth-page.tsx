@@ -22,6 +22,7 @@ export function AuthPageComponent() {
   const [signupError, setSignupError] = useState('') // State for signup error message
   const searchParams = useSearchParams()
   const router = useRouter() // Use router for redirection
+  const hostname = process.env.REACT_APP_HOSTNAME
 
   useEffect(() => {
     const tab = searchParams.get('tab')
@@ -35,7 +36,7 @@ export function AuthPageComponent() {
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post('http://localhost:5001/login', { email, password })
+      const response = await axios.post('http://' + hostname + ':5001/login', { email, password })
       localStorage.setItem('token', response.data.token)
       setLoginError('') // Clear any previous error messages
       router.push('/tablero') // Redirect to tablero page on success
@@ -46,7 +47,7 @@ export function AuthPageComponent() {
 
   const handleSignup = async () => {
     try {
-      const response = await axios.post('http://localhost:5001/register', { username: name, email, password })
+      const response = await axios.post('http://' + hostname + ':5001/register', { username: name, email, password })
       localStorage.setItem('token', response.data.token)
       setSignupError('') // Clear any previous error messages
       router.push('/tablero') // Redirect to tablero page on success

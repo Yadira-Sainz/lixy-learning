@@ -8,6 +8,8 @@ import { Settings, User, LogOut } from "lucide-react";
 import axios from "axios";
 import { useRouter } from 'next/navigation';
 
+const hostname = process.env.REACT_APP_HOSTNAME;
+
 export default function UserMenu() {
   const [userDetails, setUserDetails] = React.useState({ username: '', email: '' });
   const router = useRouter(); // Use router for redirection
@@ -16,7 +18,7 @@ export default function UserMenu() {
     const fetchUserDetails = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:5001/user-details', {
+        const response = await axios.get('http://' + hostname + ':5001/user-details', {
           headers: {
             Authorization: `Bearer ${token}`
           }
