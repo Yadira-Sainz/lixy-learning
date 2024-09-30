@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
-import Logo from '@/assets/Logo.png'
+import Logo from '@/assets/Logo.png';
 import UserMenu from '@/hooks/user-menu';
 
 type NavbarProps = {
@@ -17,6 +17,7 @@ export default function NavbarComponent({ isLandingPage = false }: NavbarProps) 
   const [activeItem, setActiveItem] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // State for login status
   const observerRef = useRef<IntersectionObserver | null>(null);
   const router = useRouter();
   const pathname = usePathname();
@@ -87,6 +88,12 @@ export default function NavbarComponent({ isLandingPage = false }: NavbarProps) 
       if (matchingItem) {
         setActiveItem(currentPath);
       }
+    }
+
+    // Check if user is logged in
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsLoggedIn(true);
     }
 
     return () => {

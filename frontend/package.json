@@ -21,6 +21,7 @@
     "@radix-ui/react-tabs": "^1.1.0",
     "@radix-ui/react-tooltip": "^1.1.2",
     "@svgr/webpack": "^8.1.0",
+    "axios": "^1.7.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
@@ -34,17 +35,16 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7"
   },
-"devDependencies": {
-  "@types/node": "^20",
-  "@types/react": "^18",
-  "@types/react-dom": "^18",
-  "eslint": "^8.57.1",
-  "eslint-config-next": "14.2.12",
-  "@next/eslint-plugin-next": "^14.2.4",
-  "@typescript-eslint/eslint-plugin": "^8.5.0",
-  "postcss": "^8",
-  "tailwindcss": "^3.4.1",
-  "typescript": "^5"
-}
-
+  "devDependencies": {
+    "@next/eslint-plugin-next": "^14.2.4",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@typescript-eslint/eslint-plugin": "^8.5.0",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "14.2.12",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
 }
