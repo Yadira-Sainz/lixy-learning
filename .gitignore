@@ -27,6 +27,10 @@ frontend/dist
 backend/build
 backend/dist
 
+# node modules
+backend/node_modules
+frontend/node_modules
+
 # Logs
 logs
 *.log
