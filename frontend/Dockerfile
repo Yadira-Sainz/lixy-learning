@@ -17,8 +17,8 @@ COPY . .
 # Use a custom ESLint configuration
 COPY .eslintrc.js .eslintrc.js
 
-ARG NEXT_PUBLIC_API_URL=http://localhost:5001
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ARG BACKEND_URL=http://localhost:5001
+ENV BACKEND_URL=$BACKEND_URL
 
 # Build your Next.js application
 RUN npm run build

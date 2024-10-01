@@ -3,7 +3,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-ARG NEXT_PUBLIC_FRONTEND=http://localhost:3000
-ENV NEXT_PUBLIC_FRONTEND=$NEXT_PUBLIC_FRONTEND
+ARG FRONTEND_URL=http://localhost:3000
+ENV FRONTEND_URL=$FRONTEND_URL
 EXPOSE 5000
 CMD ["node", "server.js"]
