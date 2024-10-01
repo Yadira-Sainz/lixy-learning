@@ -36,7 +36,7 @@ export function AuthPageComponent() {
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post(process.env.BACKEND_URL + '/login', { email, password })
+      const response = await axios.post(process.env.NEXT_PUBLIC_BACKEND_URL + '/login', { email, password })
       localStorage.setItem('token', response.data.token)
       setLoginError('') // Clear any previous error messages
       router.push('/tablero') // Redirect to tablero page on success
@@ -47,7 +47,7 @@ export function AuthPageComponent() {
 
   const handleSignup = async () => {
     try {
-      const response = await axios.post(process.env.BACKEND_URL + '/register', { username: name, email, password })
+      const response = await axios.post(process.env.NEXT_PUBLIC_BACKEND_URL + '/register', { username: name, email, password })
       localStorage.setItem('token', response.data.token)
       setSignupError('') // Clear any previous error messages
       router.push('/tablero') // Redirect to tablero page on success
