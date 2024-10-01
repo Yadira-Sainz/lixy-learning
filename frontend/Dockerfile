@@ -17,11 +17,14 @@ COPY . .
 # Use a custom ESLint configuration
 COPY .eslintrc.js .eslintrc.js
 
+ARG NEXT_PUBLIC_API_URL=http://localhost:5001
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 # Build your Next.js application
 RUN npm run build
  
 # Expose the port the app runs on
 EXPOSE 3000
- 
+
 # Command to run your app
 CMD ["npm", "start"]
