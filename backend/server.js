@@ -15,7 +15,8 @@ const allowedOrigins = process.env.NEXT_PUBLIC_FRONTEND_URLS.split(',');
 
 // Use the cors middleware
 app.use(cors({
-  origin: allowedOrigins, // Allow requests from these origins
+  //origin: allowedOrigins, // Allow requests from these origins
+  origin: true,
   methods: 'GET,POST,PUT,DELETE,OPTIONS', // Allow these HTTP methods
   credentials: true // Allow cookies to be sent with requests
 }));
