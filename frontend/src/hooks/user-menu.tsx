@@ -16,7 +16,7 @@ export default function UserMenu() {
     const fetchUserDetails = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get(process.env.BACKEND_URL + '/user-details', {
+        const response = await axios.get(process.env.NEXT_PUBLIC_BACKEND_URL + '/user-details', {
           headers: {
             Authorization: `Bearer ${token}`
           }

@@ -12,7 +12,7 @@ const port = 5000;
 
 // Use the cors middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL, // Allow requests from this origin
+  origin: process.env.NEXT_PUBLIC_FRONTEND_URL, // Allow requests from this origin
   methods: 'GET,POST,PUT,DELETE,OPTIONS', // Allow these HTTP methods
   credentials: true // Allow cookies to be sent with requests
 }));
