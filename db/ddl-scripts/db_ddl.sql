@@ -129,8 +129,8 @@ CREATE TABLE FlashcardTranslations (
     Flashcard_id INT,
     Language_id INT,
     Translated_sentence TEXT,
-    FOREIGN KEY (Flashcard_id) REFERENCES Flashcards(FlashcaFlashcard_id),
-    FOREIGN KEY (Language_id) REFERENCES Languages(Language_id)
+    FOREIGN KEY (Flashcard_id) REFERENCES Flashcards(Flashcard_id),
+    FOREIGN KEY (Language_id) REFERENCES Language(Language_id)
 );
 
 -- Crear la tabla de Progreso de Flashcards del Usuario
