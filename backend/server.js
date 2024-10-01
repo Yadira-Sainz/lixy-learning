@@ -10,9 +10,12 @@ require('dotenv').config();
 const app = express();
 const port = 5000;
 
+// Parse the environment variable and split it into an array
+const allowedOrigins = process.env.NEXT_PUBLIC_FRONTEND_URLS.split(',');
+
 // Use the cors middleware
 app.use(cors({
-  origin: process.env.NEXT_PUBLIC_FRONTEND_URL, // Allow requests from this origin
+  origin: allowedOrigins, // Allow requests from these origins
   methods: 'GET,POST,PUT,DELETE,OPTIONS', // Allow these HTTP methods
   credentials: true // Allow cookies to be sent with requests
 }));
@@ -94,7 +97,6 @@ app.get('/user-details', authenticateToken, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 // Start the server
 app.listen(port, () => {
