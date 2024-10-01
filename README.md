@@ -55,10 +55,10 @@ lixylearning aims to provide a comprehensive platform for learning English vocab
 
 2. Create a .env file in the root directory and add the following environment variables:
    GEMINI_API_KEY=your_gemini_api_key
-   DATABASE_URL=postgres://lizylearning:lizylearning@localhost:5432/lizylearningdb
-   POSTGRES_USER=lizylearning
-   POSTGRES_PASSWORD=lizylearning
-   POSTGRES_DB=lizylearning
+   DATABASE_URL=postgres://lixylearning:lixylearning@localhost:5432/lixylearningdb
+   POSTGRES_USER=lixylearning
+   POSTGRES_PASSWORD=lixylearning
+   POSTGRES_DB=lixylearning
    REACT_APP_BACKEND_HOST=localhost
 
 ### Running the Application
