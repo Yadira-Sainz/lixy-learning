@@ -64,7 +64,7 @@ jobs:
           push: true
           tags: marioarellano/lixylearning-backend:latest
           build-args: |
-            NEXT_PUBLIC_FRONTEND_URL=${{ vars.NEXT_PUBLIC_FRONTEND_URLS }}
+            NEXT_PUBLIC_FRONTEND_URLS=${{ vars.NEXT_PUBLIC_FRONTEND_URLS }}
 
   build-postgres:
     runs-on: ubuntu-latest
