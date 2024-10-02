@@ -10,21 +10,16 @@ require('dotenv').config();
 const app = express();
 const port = 5000;
 
-// Parse the environment variable and split it into an array
+// CORS configuration
 const allowedOrigins = process.env.NEXT_PUBLIC_FRONTEND_URLS.split(',');
-
-// Use the cors middleware
 app.use(cors({
-  //origin: allowedOrigins, // Allow requests from these origins
   origin: true,
-  methods: 'GET,POST,PUT,DELETE,OPTIONS', // Allow these HTTP methods
-  credentials: true // Allow cookies to be sent with requests
+  methods: 'GET,POST,PUT,DELETE,OPTIONS',
+  credentials: true
 }));
-
-// Explicitly handle preflight requests
 app.options('*', cors());
 
-app.use(bodyParser.json()); // Parse JSON bodies
+app.use(bodyParser.json());
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -33,38 +28,92 @@ const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  if (token == null) return res.sendStatus(401); // If no token, return Unauthorized
+  if (!token) return res.sendStatus(401);
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403); // If token is invalid, return Forbidden
+    if (err) return res.sendStatus(403);
     req.user = user;
-    next(); // If token is valid, proceed to the next middleware/route handler
+    next();
   });
 };
 
-// Protected route for fetching most used words
-app.get('/api/english/most-used-words', authenticateToken, async (req, res) => {
-  try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const result = await model.generateContent(['provide 100 words in english, only the list separated by commas and no other text']);
-    res.json(result.response.text());
-  } catch (error) {
-    console.error('Error fetching data from Gemini API:', error);
-    res.status(500).send('Error fetching data from Gemini API');
-  }
-});
-
 // User registration route
 app.post('/register', async (req, res) => {
-  const { username, email, password } = req.body;
+  const { first_name, last_name, username, email, password, age, gender, country, native_language, learning_language } = req.body;
   const hashedPassword = await bcrypt.hash(password, 10);
 
   try {
     const result = await pool.query(
-      'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING *',
-      [username, email, hashedPassword]
+      'INSERT INTO users (first_name, last_name, username, email, password_hash, age, gender, country, native_language_id, learning_language_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+      [first_name, last_name, username, email, hashedPassword, age, gender, country, native_language, learning_language]
     );
-    res.status(201).json(result.rows[0]);
+    const token = jwt.sign({ userId: result.rows[0].user_id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.status(201).json({ token });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// User profile details route
+app.get('/api/user/profile', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT user_id, email, first_name, last_name, username, age, gender, country, native_language_id, learning_language_id FROM users WHERE user_id = $1',
+      [req.user.userId]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// User details route
+// User details route
+app.get('/user-details', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT username, email FROM users WHERE user_id = $1', [req.user.userId]);
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// User update route
+app.put('/api/update-user', authenticateToken, async (req, res) => {
+  const { first_name, last_name, username, email, password, age, gender, country, native_language_id, learning_language_id } = req.body;
+
+  try {
+    let hashedPassword = null;
+    if (password) {
+      hashedPassword = await bcrypt.hash(password, 10);
+    }
+
+    const query = `
+      UPDATE users 
+      SET email = $1, first_name = $2, last_name = $3, age = $4, gender = $5, country = $6, 
+          native_language_id = $7, learning_language_id = $8, 
+          password_hash = COALESCE($9, password_hash), username = $10
+      WHERE user_id = $11
+      RETURNING *;
+    `;
+    const values = [
+      email, first_name, last_name, age, gender, country, 
+      native_language_id, learning_language_id, hashedPassword, username, req.user.userId
+    ];
+
+    const result = await pool.query(query, values);
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Route to fetch available languages
+app.get('/languages', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT language_id, language_name FROM languages');
+    res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -89,17 +138,7 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// User details route
-app.get('/user-details', authenticateToken, async (req, res) => {
-  try {
-    const result = await pool.query('SELECT username, email FROM users WHERE user_id = $1', [req.user.userId]);
-    res.json(result.rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // Start the server
 app.listen(port, () => {
-  console.log(`Server is running on http://lixylearning-backend` + `:${port}`);
+  console.log(`Server is running on http://localhost:${port}`);
 });
