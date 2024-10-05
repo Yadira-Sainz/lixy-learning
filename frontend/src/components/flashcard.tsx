@@ -5,7 +5,7 @@ import { Play, Eye, EyeOff, X, Check } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import imagePlaceholder from '@/assets/image-placeholder.svg'
+import imagePlaceholder from '@/assets/image-placeholder.png'
 
 interface Word {
   text: string
@@ -20,7 +20,7 @@ interface Flashcard {
 }
 
 const sampleFlashcard: Flashcard = {
-  image: imagePlaceholder,
+  image: imagePlaceholder.src,
   sentence: [
     { text: "The", meaning: "Definite article" },
     { text: "quick", meaning: "Moving fast" },
