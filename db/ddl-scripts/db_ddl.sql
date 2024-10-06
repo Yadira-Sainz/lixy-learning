@@ -34,3 +34,13 @@ CREATE TABLE user_logins (
     login_date DATE NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
+
+CREATE TABLE vocabulary (
+    id SERIAL PRIMARY KEY,
+    word VARCHAR(255),
+    type VARCHAR(255),
+    cefr VARCHAR(10),
+    definition TEXT,
+    example TEXT,
+    category VARCHAR(255)
+);
