@@ -1,5 +1,5 @@
 -- Create the languages table first
-CREATE TABLE languages (
+CREATE TABLE IF NOT exists languages (
     language_id SERIAL PRIMARY KEY,
     language_name VARCHAR(50) NOT NULL
 );
@@ -10,7 +10,7 @@ INSERT INTO languages (language_name) VALUES ('Spanish');
 INSERT INTO languages (language_name) VALUES ('French');
 
 -- Create the users table
-CREATE TABLE users (
+CREATE TABLE IF NOT exists users (
     user_id SERIAL PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
@@ -28,14 +28,14 @@ CREATE TABLE users (
 );
 
 -- Create the user_logins table
-CREATE TABLE user_logins (
+CREATE TABLE IF NOT exists user_logins (
     login_id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
     login_date DATE NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
-CREATE TABLE categories (
+CREATE TABLE IF NOT exists categories (
     category_id SERIAL PRIMARY KEY,
     category_name VARCHAR(255) NOT NULL
 );
@@ -54,7 +54,13 @@ VALUES
 ('Nature/Environment'),
 ('Grammar/Function Word');
 
+-- Create the categories table first
+CREATE TABLE IF NOT EXISTS categories (
+    category_id SERIAL PRIMARY KEY,
+    category_name VARCHAR(255) NOT NULL
+);
 
+-- Create the vocabulary table
 CREATE TABLE IF NOT EXISTS vocabulary (
     id SERIAL PRIMARY KEY,
     word VARCHAR(255) NOT NULL,
@@ -62,19 +68,19 @@ CREATE TABLE IF NOT EXISTS vocabulary (
     cefr VARCHAR(10),
     definition TEXT,
     example TEXT,
-    category_id INT,  -- Clave foránea que referencia a 'categories'
+    category_id INT,  -- Foreign key referencing 'categories'
     FOREIGN KEY (category_id) REFERENCES categories(category_id)
 );
 
--- Crear el tipo ENUM para los niveles de familiaridad
-CREATE TYPE familiarity_level AS ENUM ('New', 'Recognized', 'Familiar', 'Learned', 'Known');
- 
--- Crear tabla para almacenar los niveles de familiaridad
-CREATE TABLE familiarity (
+-- Create the familiarity enum type
+CREATE type familiarity_level AS ENUM ('New', 'Recognized', 'Familiar', 'Learned', 'Known');
+
+-- Create the familiarity table
+CREATE TABLE IF NOT EXISTS familiarity (
     familiarity_id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
     word_id INT NOT NULL,
-    familiarity familiarity_level NOT NULL, -- Usando el ENUM recién creado
+    familiarity familiarity_level NOT NULL,
     last_reviewed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (word_id) REFERENCES vocabulary(id)
