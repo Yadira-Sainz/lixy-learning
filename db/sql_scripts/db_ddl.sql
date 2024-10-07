@@ -55,7 +55,7 @@ VALUES
 ('Grammar/Function Word');
 
 
-CREATE TABLE vocabulary (
+CREATE TABLE IF NOT EXISTS vocabulary (
     id SERIAL PRIMARY KEY,
     word VARCHAR(255) NOT NULL,
     type VARCHAR(255),
@@ -67,14 +67,14 @@ CREATE TABLE vocabulary (
 );
 
 -- Crear el tipo ENUM para los niveles de familiaridad
-CREATE TYPE familiarity AS ENUM ('New', 'Recognized', 'Familiar', 'Learned', 'Known');
+CREATE TYPE familiarity_level AS ENUM ('New', 'Recognized', 'Familiar', 'Learned', 'Known');
  
 -- Crear tabla para almacenar los niveles de familiaridad
 CREATE TABLE familiarity (
     familiarity_id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
     word_id INT NOT NULL,
-    familiarity familiarity NOT NULL, -- Usando el ENUM recién creado
+    familiarity familiarity_level NOT NULL, -- Usando el ENUM recién creado
     last_reviewed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (word_id) REFERENCES vocabulary(id)

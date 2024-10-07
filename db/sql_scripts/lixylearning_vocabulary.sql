@@ -25,7 +25,7 @@ SET default_table_access_method = heap;
 -- Name: vocabulary; Type: TABLE; Schema: public; Owner: lixylearning
 --
 
-CREATE TABLE public.vocabulary (
+CREATE TABLE IF NOT EXISTS public.vocabulary (
     id integer NOT NULL,
     word character varying(255) NOT NULL,
     type character varying(255),
