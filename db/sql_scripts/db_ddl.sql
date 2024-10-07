@@ -35,12 +35,47 @@ CREATE TABLE user_logins (
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
-CREATE TABLE vocabulary (
+CREATE TABLE categories (
+    category_id SERIAL PRIMARY KEY,
+    category_name VARCHAR(255) NOT NULL
+);
+
+-- Insertar las categorías iniciales en la tabla 'categories'
+INSERT INTO categories (category_name)
+VALUES
+('Family'),
+('Work/Business'),
+('Education'),
+('Food'),
+('Travel/Places'),
+('Health'),
+('Hobbies/Leisure'),
+('Technology'),
+('Nature/Environment'),
+('Grammar/Function Word');
+
+
+CREATE TABLE IF NOT EXISTS vocabulary (
     id SERIAL PRIMARY KEY,
-    word VARCHAR(255),
+    word VARCHAR(255) NOT NULL,
     type VARCHAR(255),
     cefr VARCHAR(10),
     definition TEXT,
     example TEXT,
-    category VARCHAR(255)
+    category_id INT,  -- Clave foránea que referencia a 'categories'
+    FOREIGN KEY (category_id) REFERENCES categories(category_id)
+);
+
+-- Crear el tipo ENUM para los niveles de familiaridad
+CREATE TYPE familiarity_level AS ENUM ('New', 'Recognized', 'Familiar', 'Learned', 'Known');
+ 
+-- Crear tabla para almacenar los niveles de familiaridad
+CREATE TABLE familiarity (
+    familiarity_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    word_id INT NOT NULL,
+    familiarity familiarity_level NOT NULL, -- Usando el ENUM recién creado
+    last_reviewed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (word_id) REFERENCES vocabulary(id)
 );

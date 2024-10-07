@@ -138,6 +138,31 @@ app.post('/login', async (req, res) => {
   }
 });
 
+// Route to fetch categories
+app.get('/api/categories', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT category_id, category_name FROM categories');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Route to fetch vocabulary by category
+app.get('/api/vocabulary/:categoryId', authenticateToken, async (req, res) => {
+  const { categoryId } = req.params;
+  
+  try {
+    const result = await pool.query(
+      'SELECT * FROM vocabulary WHERE category_id = $1',
+      [categoryId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Start the server
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
