@@ -95,4 +95,5 @@ jobs:
         with:
           context: ./db
           push: true
+          no-cache: true
           tags: marioarellano/lixylearning-postgres-db:latest
