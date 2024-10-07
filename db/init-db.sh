@@ -1,14 +1,21 @@
 #!/bin/bash
 set -e
 
-# Wait for PostgreSQL to be ready
-until pg_isready -h localhost -p 5432; do
-    echo "Waiting for PostgreSQL..."
-    sleep 2
+echo "Starting init-db.sh script..."
+
+# Debug: check for environment variables
+echo "POSTGRES_USER: $POSTGRES_USER"
+echo "POSTGRES_DB: $POSTGRES_DB"
+
+echo "Applying SQL scripts in /docker-entrypoint-initdb.d/"
+
+# Apply all SQL scripts
+for f in /docker-entrypoint-initdb.d/*.sql; do
+    echo "Applying $f"
+    psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f "$f"
 done
 
-# Import data from the dump file
-psql -U $POSTGRES_USER -d $POSTGRES_DB -f /docker-entrypoint-initdb.d/lixylearning_vocabulary.sql
+# Load CSV data
+/docker-entrypoint-initdb.d/load-data.sh
 
-# Run the SQL script to set up the database schema
-psql -U $POSTGRES_USER -d $POSTGRES_DB -f /docker-entrypoint-initdb.d/ddl-scripts/*.sql
+echo "Finished running init-db.sh script."
