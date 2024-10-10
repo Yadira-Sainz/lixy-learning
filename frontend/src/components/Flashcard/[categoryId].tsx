@@ -1,59 +1,54 @@
-"use client"
+"use client";
 
-import { useState } from 'react'
-import { Play, Eye, EyeOff, X, Check } from 'lucide-react'
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import imagePlaceholder from '@/assets/image-placeholder.png'
+import React, { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Play, Eye, EyeOff, X, Check } from 'lucide-react';
 
-interface Word {
-  text: string
-  meaning: string
-}
+type Word = {
+  text: string;
+  meaning: string;
+};
 
-interface Flashcard {
-  image: string
-  sentence: Word[]
-  translation: string
-  audio: string
-}
+type FlashcardType = {
+  image: string;
+  sentence: Word[];
+  translation: string;
+};
 
-const sampleFlashcard: Flashcard = {
-  image: imagePlaceholder.src,
-  sentence: [
-    { text: "The", meaning: "Definite article" },
-    { text: "quick", meaning: "Moving fast" },
-    { text: "brown", meaning: "Color of coffee" },
-    { text: "fox", meaning: "A wild canine" },
-    { text: "jumps", meaning: "Leaps" },
-    { text: "over", meaning: "Above" },
-    { text: "the", meaning: "Definite article" },
-    { text: "lazy", meaning: "Not eager to work" },
-    { text: "dog", meaning: "A domesticated canine" },
-  ],
-  translation: "El rápido zorro marrón salta sobre el perro perezoso",
-  audio: "/sample-audio.mp3",
-}
+const FlashcardComponent: React.FC = () => {
+  const searchParams = useSearchParams();
+  const categoryId = searchParams.get('categoryId');
+  const [flashcard, setFlashcard] = useState<FlashcardType | null>(null);
+  const [showTranslation, setShowTranslation] = useState(false);
 
-export default function Flashcard() {
-  const [flashcard, setFlashcard] = useState<Flashcard>(sampleFlashcard)
-  const [showTranslation, setShowTranslation] = useState(true)
-  const [selectedWord, setSelectedWord] = useState<Word | null>(null)
+  useEffect(() => {
+    if (categoryId) {
+      fetch(`/api/vocabulary/${categoryId}`)
+        .then((response) => response.json())
+        .then((data: FlashcardType) => setFlashcard(data))
+        .catch((error) => console.error('Error fetching data:', error));
+    }
+  }, [categoryId]);
+
+  if (!categoryId || !flashcard) {
+    return <div>Loading...</div>;
+  }
 
   const playAudio = () => {
-    const audio = new Audio(flashcard.audio)
-    audio.play()
-  }
-
+    // Lógica para reproducir audio
+  };
   const toggleTranslation = () => {
-    setShowTranslation(!showTranslation)
-  }
-
-  const nextCard = (correct: boolean) => {
-    // In a real app, you'd fetch the next flashcard here
-    console.log(correct ? "Marked as correct" : "Marked as incorrect")
-  }
+    setShowTranslation(!showTranslation);
+  };
+  const setSelectedWord = (word: Word) => {
+    // Lógica para seleccionar una palabra
+  };
+  const nextCard = (isCorrect: boolean) => {
+    // Lógica para pasar a la siguiente tarjeta
+  };
 
   return (
     <TooltipProvider>
@@ -69,7 +64,7 @@ export default function Flashcard() {
                 </Button>
                 <Button variant="outline" size="icon" onClick={toggleTranslation}>
                   {showTranslation ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  <span className="sr-only">{showTranslation ? "Hide translation" : "Show translation"}</span>
+                  <span className="sr-only">{showTranslation ? 'Hide translation' : 'Show translation'}</span>
                 </Button>
               </div>
             </div>
@@ -78,7 +73,7 @@ export default function Flashcard() {
                 {flashcard.sentence.map((word, index) => (
                   <Tooltip key={index}>
                     <TooltipTrigger asChild>
-                      <span 
+                      <span
                         className="cursor-pointer hover:bg-gray-100 rounded px-1"
                         onClick={() => setSelectedWord(word)}
                       >
@@ -109,5 +104,13 @@ export default function Flashcard() {
         </div>
       </div>
     </TooltipProvider>
-  )
-}
+  );
+};
+
+const FlashcardPage: React.FC = () => (
+  <Suspense fallback={<div>Loading...</div>}>
+    <FlashcardComponent />
+  </Suspense>
+);
+
+export default FlashcardPage;

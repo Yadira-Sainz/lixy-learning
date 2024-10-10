@@ -30,9 +30,11 @@ export function FlashcardCenter() {
     fetchCategories();
   }, []);
 
-  const handleFlashcardClick = () => {
-    router.push('/flashcard')
-  }
+
+  const handleCategoryClick = (categoryId: number) => {
+      // Navigate to the flashcard page with the category ID
+      router.push(`/flashcard/${categoryId}`);
+    };
 
   const fetchCategories = async () => {
     const token = localStorage.getItem('token'); // Obtener el token almacenado
@@ -93,7 +95,7 @@ export function FlashcardCenter() {
           <h2 className="text-3xl font-bold mb-4">Categorías</h2>
           <div className="grid md:grid-cols-3 gap-4">
             {categories.map((category) => (
-              <Card key={category.category_id} className="h-40" onClick={handleFlashcardClick}>
+              <Card key={category.category_id} className="h-40" onClick={() => handleCategoryClick(category.category_id)}>
                 <CardHeader>
                   <CardTitle>{category.category_name}</CardTitle>
                 </CardHeader>

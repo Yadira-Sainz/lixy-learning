@@ -1,5 +1,5 @@
-import FlashcardComponent from "@/components/flashcard";
+import Flashcard from '@/components/Flashcard/[categoryId]';
 
-export default function Flashcard(){
-    return <FlashcardComponent/>
+export default function FlashcardDash() {
+  return <Flashcard />;
 }
