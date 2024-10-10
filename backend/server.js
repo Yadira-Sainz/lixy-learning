@@ -68,7 +68,6 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
 });
 
 // User details route
-// User details route
 app.get('/user-details', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query('SELECT username, email FROM users WHERE user_id = $1', [req.user.userId]);
