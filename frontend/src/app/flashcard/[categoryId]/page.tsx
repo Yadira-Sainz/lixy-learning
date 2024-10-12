@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Eye, EyeOff, X, Check } from 'lucide-react';
+import { Play, Eye, EyeOff, X, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 
 type Word = {
   id: number;
@@ -24,6 +24,7 @@ const FlashcardComponent = () => {
   const { categoryId } = useParams(); // Obtiene el parámetro categoryId de la URL
   const [flashcards, setFlashcards] = useState<FlashcardType[]>([]);
   const [showTranslation, setShowTranslation] = useState(false);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0); // Índice de la tarjeta actual
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -66,12 +67,21 @@ const FlashcardComponent = () => {
     setShowTranslation(!showTranslation);
   };
 
-  const setSelectedWord = (word: Word) => {
-    // Lógica para seleccionar una palabra
+  const nextCard = (isCorrect: boolean) => {
+    // Lógica para manejar si el usuario responde correctamente o no
+    const newIndex = currentCardIndex < flashcards.length - 1 ? currentCardIndex + 1 : 0;
+    setCurrentCardIndex(newIndex);
   };
 
-  const nextCard = (isCorrect: boolean) => {
-    // Lógica para pasar a la siguiente tarjeta
+  const setSelectedWord = (word: Word) => {
+    console.log("Palabra seleccionada:", word);
+    // Aquí puedes agregar la lógica que quieras para cuando se seleccione una palabra.
+  };  
+
+  const previousCard = () => {
+    // Retroceder a la tarjeta anterior
+    const newIndex = currentCardIndex > 0 ? currentCardIndex - 1 : flashcards.length - 1;
+    setCurrentCardIndex(newIndex);
   };
 
   // Aseguramos que no se renderice en el servidor
@@ -82,11 +92,11 @@ const FlashcardComponent = () => {
   return (
     <TooltipProvider>
       <div className="w-full max-w-4xl mx-auto space-y-6">
-        {flashcards.map((flashcard) => (
-          <Card key={flashcard.id} className="p-6">
+        {flashcards.length > 0 && (
+          <Card key={flashcards[currentCardIndex].id} className="p-6">
             <div className="flex flex-col md:flex-row md:space-x-6 space-y-6 md:space-y-0">
               <div className="w-full md:w-1/3 flex flex-col items-center md:items-start">
-                <img src={flashcard.image} alt="Flashcard image" className="w-full max-w-[200px] h-auto object-cover rounded-lg mb-4" />
+                <img src={flashcards[currentCardIndex].image} alt="Flashcard image" className="w-full max-w-[200px] h-auto object-cover rounded-lg mb-4" />
                 <div className="flex space-x-2 justify-center md:justify-start">
                   <Button variant="outline" size="icon" onClick={playAudio}>
                     <Play className="h-4 w-4" />
@@ -100,7 +110,7 @@ const FlashcardComponent = () => {
               </div>
               <div className="w-full md:w-2/3 space-y-4">
                 <h2 className="text-2xl font-bold break-words">
-                  {flashcard.sentence.map((word, index) => (
+                  {flashcards[currentCardIndex].sentence.map((word, index) => (
                     <Tooltip key={index}>
                       <TooltipTrigger asChild>
                         <span
@@ -117,12 +127,12 @@ const FlashcardComponent = () => {
                   ))}
                 </h2>
                 {showTranslation && (
-                  <p className="text-gray-600 break-words">{flashcard.translation}</p>
+                  <p className="text-gray-600 break-words">{flashcards[currentCardIndex].translation}</p>
                 )}
               </div>
             </div>
           </Card>
-        ))}
+        )}
         <div className="flex justify-center space-x-4">
           <Button variant="outline" size="icon" onClick={() => nextCard(false)}>
             <X className="h-6 w-6" />
