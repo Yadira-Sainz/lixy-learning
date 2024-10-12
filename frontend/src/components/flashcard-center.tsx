@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter } from 'next/navigation';
 
 // Definición de tipos para las categorías y vocabulario
 interface Category {
@@ -23,10 +24,17 @@ export function FlashcardCenter() {
   const [currentCategory, setCurrentCategory] = useState<number | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const setsToShow = 2;
+  const router = useRouter()
 
   useEffect(() => {
     fetchCategories();
   }, []);
+
+
+  const handleCategoryClick = (categoryId: number) => {
+      // Navigate to the flashcard page with the category ID
+      router.push(`/flashcard/${categoryId}`);
+    };
 
   const fetchCategories = async () => {
     const token = localStorage.getItem('token'); // Obtener el token almacenado
@@ -87,7 +95,7 @@ export function FlashcardCenter() {
           <h2 className="text-3xl font-bold mb-4">Categorías</h2>
           <div className="grid md:grid-cols-3 gap-4">
             {categories.map((category) => (
-              <Card key={category.category_id} className="h-40" onClick={() => fetchVocabularyByCategory(category.category_id)}>
+              <Card key={category.category_id} className="h-40" onClick={() => handleCategoryClick(category.category_id)}>
                 <CardHeader>
                   <CardTitle>{category.category_name}</CardTitle>
                 </CardHeader>
