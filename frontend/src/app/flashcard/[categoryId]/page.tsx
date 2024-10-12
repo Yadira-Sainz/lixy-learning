@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Eye, EyeOff, X, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, Eye, EyeOff, X, Check } from 'lucide-react';
+import axios from 'axios';
 
 type Word = {
   id: number;
@@ -26,6 +27,7 @@ const FlashcardComponent = () => {
   const [showTranslation, setShowTranslation] = useState(false);
   const [currentCardIndex, setCurrentCardIndex] = useState(0); // Índice de la tarjeta actual
   const [isClient, setIsClient] = useState(false);
+  const [generatedSentence, setGeneratedSentence] = useState<string | null>(null);
 
   useEffect(() => {
     setIsClient(true); // Marca que estamos en el cliente
@@ -59,6 +61,14 @@ const FlashcardComponent = () => {
     }
   }, [categoryId]);
 
+  // Generar una frase cuando la tarjeta cambie
+  useEffect(() => {
+    if (flashcards.length > 0) {
+      const currentWord = flashcards[currentCardIndex].sentence[0].word;
+      generateSentence(currentWord); // Generar frase automáticamente
+    }
+  }, [currentCardIndex, flashcards]);
+
   const playAudio = () => {
     // Lógica para reproducir audio
   };
@@ -73,21 +83,47 @@ const FlashcardComponent = () => {
     setCurrentCardIndex(newIndex);
   };
 
-  const setSelectedWord = (word: Word) => {
-    console.log("Palabra seleccionada:", word);
-    // Aquí puedes agregar la lógica que quieras para cuando se seleccione una palabra.
-  };  
-
   const previousCard = () => {
     // Retroceder a la tarjeta anterior
     const newIndex = currentCardIndex > 0 ? currentCardIndex - 1 : flashcards.length - 1;
     setCurrentCardIndex(newIndex);
   };
 
+  const generateSentence = async (word: string) => {
+    try {
+      const token = localStorage.getItem('token'); // Obtén el token del almacenamiento local
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate-sentence`, 
+        { word }, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      setGeneratedSentence(response.data.sentence);
+    } catch (error) {
+      console.error('Error generating sentence:', error);
+    }
+  };
+
   // Aseguramos que no se renderice en el servidor
   if (!isClient) {
     return null;
   }
+
+  // Función para resaltar la palabra en negritas dentro de la frase generada
+  const highlightWordInSentence = (sentence: string, word: string, definition: string) => {
+    const regex = new RegExp(`(${word})`, 'gi'); // Crear una expresión regular para buscar la palabra
+    return sentence.split(regex).map((part, index) => 
+      regex.test(part) ? (
+        <Tooltip key={index}>
+          <TooltipTrigger>
+            <strong className="text-blue-600 cursor-pointer">{part}</strong>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{definition}</p>
+          </TooltipContent>
+        </Tooltip>
+      ) : part
+    );
+  };
 
   return (
     <TooltipProvider>
@@ -109,23 +145,13 @@ const FlashcardComponent = () => {
                 </div>
               </div>
               <div className="w-full md:w-2/3 space-y-4">
-                <h2 className="text-2xl font-bold break-words">
-                  {flashcards[currentCardIndex].sentence.map((word, index) => (
-                    <Tooltip key={index}>
-                      <TooltipTrigger asChild>
-                        <span
-                          className="cursor-pointer hover:bg-gray-100 rounded px-1"
-                          onClick={() => setSelectedWord(word)}
-                        >
-                          {word.word}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{word.definition}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  ))}
-                </h2>
+                {/* Mostrar solo la frase generada automáticamente */}
+                {generatedSentence && (
+                  <p className="text-2xl mt-2">
+                    {highlightWordInSentence(generatedSentence, flashcards[currentCardIndex].sentence[0].word, flashcards[currentCardIndex].sentence[0].definition)}
+                  </p>
+                )}
+
                 {showTranslation && (
                   <p className="text-gray-600 break-words">{flashcards[currentCardIndex].translation}</p>
                 )}

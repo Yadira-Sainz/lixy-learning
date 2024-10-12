@@ -5,10 +5,16 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('./db');
+const OpenAI = require('openai');
 require('dotenv').config();
 
 const app = express();
 const port = 5000;
+
+// Inicialización de OpenAI
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY, // Asegúrate de tener tu clave en .env
+});
 
 // CORS configuration
 const allowedOrigins = process.env.NEXT_PUBLIC_FRONTEND_URLS.split(',');
@@ -36,6 +42,31 @@ const authenticateToken = (req, res, next) => {
     next();
   });
 };
+
+
+// Nueva ruta para generar una frase simple
+app.post('/api/generate-sentence', authenticateToken, async (req, res) => {
+  const { word } = req.body;
+
+  if (!word) {
+    return res.status(400).json({ error: 'Word is required' });
+  }
+
+  try {
+    // Solicitud a OpenAI para generar la frase
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo", // modelo especificado
+      messages: [{ role: "user", content: `Generate a simple sentence using the word "${word}" in English.` }],
+    });
+
+    const generatedSentence = completion.choices[0].message.content;
+    res.json({ sentence: generatedSentence });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error generating sentence' });
+  }
+});
+
 
 // User registration route
 app.post('/register', async (req, res) => {
