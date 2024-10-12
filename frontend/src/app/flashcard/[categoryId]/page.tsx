@@ -1,37 +1,50 @@
 "use client";
 
-import React, { useEffect, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation'; // Usa useParams para obtener el ID de la categoría
+import { useEffect, useState } from 'react';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Play, Eye, EyeOff, X, Check } from 'lucide-react';
 
 type Word = {
-  id: number;            // Include id for word
-  word: string;         // Corresponding to 'word' column
-  definition: string;   // Corresponding to 'definition' column
+  id: number;
+  word: string;
+  definition: string;
 };
 
 type FlashcardType = {
-  id: number;           // Add id to the FlashcardType
-  image: string;        // Add an appropriate image URL if needed
-  sentence: Word[];     // An array of Word objects
-  translation: string;  // This should be defined appropriately
+  id: number;
+  image: string;
+  sentence: Word[];
+  translation: string;
 };
 
-const FlashcardComponent: React.FC = () => {
-  const searchParams = useSearchParams();
-  const categoryId = searchParams.get('categoryId');
+const FlashcardComponent = () => {
+  const { categoryId } = useParams(); // Obtiene el parámetro categoryId de la URL
   const [flashcards, setFlashcards] = useState<FlashcardType[]>([]);
   const [showTranslation, setShowTranslation] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    console.log('Category ID:', categoryId); // Agrega esta línea para verificar el ID de categoría
-  
-    if (categoryId) {
-      fetch(process.env.NEXT_PUBLIC_BACKEND_URL + `/api/vocabulary/${categoryId}`)
-        .then((response) => response.json())
+    setIsClient(true); // Marca que estamos en el cliente
+    const token = localStorage.getItem('token'); // O donde sea que almacenes el token
+
+    if (categoryId && token) {
+      // Realizamos la petición de datos cuando ya tenemos el categoryId y el token
+      fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vocabulary/${categoryId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`, // Enviar el token en la cabecera
+          'Content-Type': 'application/json',
+        },
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error('Error fetching data');
+          }
+          return response.json();
+        })
         .then((data: Word[]) => {
           const formattedData: FlashcardType[] = data.map((item) => ({
             id: item.id,
@@ -43,10 +56,10 @@ const FlashcardComponent: React.FC = () => {
         })
         .catch((error) => console.error('Error fetching data:', error));
     }
-  }, [categoryId]);  
+  }, [categoryId]);
 
   const playAudio = () => {
-    // Logic to play audio
+    // Lógica para reproducir audio
   };
 
   const toggleTranslation = () => {
@@ -54,12 +67,17 @@ const FlashcardComponent: React.FC = () => {
   };
 
   const setSelectedWord = (word: Word) => {
-    // Logic for selecting a word
+    // Lógica para seleccionar una palabra
   };
 
   const nextCard = (isCorrect: boolean) => {
-    // Logic to move to the next card
+    // Lógica para pasar a la siguiente tarjeta
   };
+
+  // Aseguramos que no se renderice en el servidor
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <TooltipProvider>
@@ -120,10 +138,4 @@ const FlashcardComponent: React.FC = () => {
   );
 };
 
-const FlashcardPage: React.FC = () => (
-  <Suspense fallback={<div>Loading...</div>}>
-    <FlashcardComponent />
-  </Suspense>
-);
-
-export default FlashcardPage;
+export default FlashcardComponent;
