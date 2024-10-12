@@ -62,13 +62,14 @@ CREATE TABLE IF NOT EXISTS categories (
 
 -- Create the vocabulary table
 CREATE TABLE IF NOT EXISTS vocabulary (
-    id SERIAL PRIMARY KEY,
+    vocabulary_id SERIAL PRIMARY KEY,
     word VARCHAR(255) NOT NULL,
     type VARCHAR(255),
     cefr VARCHAR(10),
     definition TEXT,
     example TEXT,
     category_id INT,  -- Foreign key referencing 'categories'
+    image_url TEXT
     FOREIGN KEY (category_id) REFERENCES categories(category_id)
 );
 

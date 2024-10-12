@@ -1,4 +1,4 @@
-"id","word","type","cefr","definition","example","category_id"
+"vocabulary_id","word","type","cefr","definition","example","category_id"
 1,a,indefinite article,a1,used before countable or singular nouns referring to people or things that have not already been mentioned,a man/horse/unit,10
 2,abandon,verb,b2,"to leave somebody, especially somebody you are responsible for, with no intention of returning","abandon somebody, The baby had been abandoned by its mother.",9
 3,ability,noun,a2,the fact that somebody/something is able to do something,People with the disease may lose their ability to communicate.,3
