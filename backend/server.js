@@ -13,7 +13,7 @@ const port = 5000;
 
 // Inicialización de OpenAI
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // Asegúrate de tener tu clave en .env
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 // CORS configuration
@@ -44,7 +44,7 @@ const authenticateToken = (req, res, next) => {
 };
 
 
-// Nueva ruta para generar una frase simple
+// Generate a simple sentence
 app.post('/api/generate-sentence', authenticateToken, async (req, res) => {
   const { word } = req.body;
 
@@ -53,9 +53,9 @@ app.post('/api/generate-sentence', authenticateToken, async (req, res) => {
   }
 
   try {
-    // Solicitud a OpenAI para generar la frase
+    // Request to OpenAI to generate the sentence
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", // modelo especificado
+      model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: `Generate a simple sentence using the word "${word}" in English.` }],
     });
 
@@ -67,6 +67,28 @@ app.post('/api/generate-sentence', authenticateToken, async (req, res) => {
   }
 });
 
+// Translate a sentence from English to Spanish
+app.post('/api/translate-sentence', authenticateToken, async (req, res) => {
+  const { sentence } = req.body;
+
+  if (!sentence) {
+    return res.status(400).json({ error: 'Sentence is required' });
+  }
+
+  try {
+    // Request to OpenAI to translate the sentence
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: `Translate the following sentence to Spanish: "${sentence}"` }],
+    });
+
+    const translatedSentence = completion.choices[0].message.content;
+    res.json({ translatedSentence });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error translating sentence' });
+  }
+});
 
 // User registration route
 app.post('/register', async (req, res) => {
