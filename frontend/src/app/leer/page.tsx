@@ -1,5 +1,10 @@
+import { Suspense } from 'react'
 import ReadingPage from "@/components/reading-page";
 
 export default function Reading(){
-    return <ReadingPage/>
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+          <ReadingPage />
+        </Suspense>
+      )
 }

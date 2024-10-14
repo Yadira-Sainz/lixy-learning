@@ -1,82 +1,154 @@
 "use client"
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
-import { PlayIcon, EyeOffIcon, ChevronRightIcon } from 'lucide-react'
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { PlayIcon, EyeOffIcon, ChevronRightIcon } from 'lucide-react'
 
-const readingData = {
-  title: "The Importance of Reading",
-  content: "Reading is a fundamental skill that enhances our knowledge and imagination. It allows us to explore new worlds and ideas without leaving our homes. Through reading, we can improve our vocabulary, critical thinking, and empathy. Regular reading has been shown to reduce stress and improve mental health. Whether it's fiction or non-fiction, every book offers a unique perspective and learning opportunity.",
-  highlightedWords: {
-    "fundamental": { meaning: "forming a necessary base or core; of central importance", familiarity: 1 },
-    "enhances": { meaning: "intensify, increase, or further improve the quality, value, or extent of", familiarity: 2 },
-    "imagination": { meaning: "the faculty or action of forming new ideas, or images or concepts of external objects not present to the senses", familiarity: 3 },
-    "vocabulary": { meaning: "the body of words used in a particular language", familiarity: 2 },
-    "empathy": { meaning: "the ability to understand and share the feelings of another", familiarity: 1 },
-  },
-  questions: [
-    {
-      question: "What is one benefit of reading mentioned in the passage?",
-      options: ["Improved physical health", "Reduced stress", "Better eyesight", "Increased wealth"],
-      correctAnswer: "Reduced stress"
-    },
-    {
-      question: "According to the passage, reading allows us to:",
-      options: ["Travel physically", "Explore new worlds", "Meet famous authors", "Cook better meals"],
-      correctAnswer: "Explore new worlds"
-    }
-  ]
-}
+type Word = { id: number; word: string; definition: string; };
 
-export default function Component() {
+export default function ReadingPage() {
+  const [token, setToken] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const [categoryId, setCategoryId] = useState<string | null>(null)
+  const [readingIndex, setReadingIndex] = useState<number>(0)
+  const [vocabulary, setVocabulary] = useState<Word[]>([])
+  const [generatedStory, setGeneratedStory] = useState<{ title: string; content: string } | null>(null)
   const [highlightsVisible, setHighlightsVisible] = useState(true)
-  const [selectedWord, setSelectedWord] = useState(null)
+  const [selectedWord, setSelectedWord] = useState<Word | null>(null)
   const [quizAnswers, setQuizAnswers] = useState({})
   const [quizSubmitted, setQuizSubmitted] = useState(false)
-  const audioRef = useRef(null)
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const handleWordClick = (word: string | React.SetStateAction<null>) => {
-    //setSelectedWord(word)
+  useEffect(() => {
+    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    setToken(storedToken)
+
+    const catId = searchParams.get('categoryId')
+    const readingIdx = searchParams.get('readingIndex')
+    
+    console.log('Received params:', { categoryId: catId, readingIndex: readingIdx })
+    
+    setCategoryId(catId)
+    setReadingIndex(readingIdx ? parseInt(readingIdx) : 0)
+
+    if (catId && storedToken) {
+      fetchVocabulary(catId, storedToken)
+    } else {
+      setError('Missing categoryId or token')
+      setIsLoading(false)
+    }
+  }, [searchParams])
+
+  useEffect(() => {
+    if (vocabulary.length > 0 && token && categoryId) {
+      generateStory()
+    } else if (!isLoading && vocabulary.length === 0) {
+      setError('No vocabulary found for this category')
+    }
+  }, [vocabulary, token, categoryId, isLoading])
+
+  const fetchVocabulary = async (categoryId: string, token: string) => {
+    try {
+      console.log(`Fetching vocabulary for category ${categoryId}`)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vocabulary/${categoryId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Fetched vocabulary:', data)
+        if (Array.isArray(data) && data.length > 0) {
+          setVocabulary(data)
+        } else {
+          setError('No vocabulary found for this category')
+        }
+      } else {
+        console.error('Failed to fetch vocabulary')
+        setError('Failed to fetch vocabulary')
+      }
+    } catch (error) {
+      console.error('Error fetching vocabulary:', error)
+      setError('Error fetching vocabulary')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  // const handleFamiliarityChange = (word, familiarity) => {
-  //   console.log(`Updating familiarity for ${word} to ${familiarity}`)
-  // }
+  const generateStory = async () => {
+    if (!token || !categoryId) {
+      console.error('Missing token or categoryId')
+      setError('Missing token or categoryId')
+      setIsLoading(false)
+      return;
+    }
+    const selectedWords = vocabulary.sort(() => 0.5 - Math.random()).slice(0, 5)
+    const words = selectedWords.map(w => w.word).join(',')
+    try {
+      console.log('Generating story with words:', words)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate-content?words=${words}&categoryId=${categoryId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Generated story:', data)
+        if (data.stories && data.stories.length > 0) {
+          setGeneratedStory(data.stories[0])
+        } else {
+          setError('Loading...')
+        }
+      } else {
+        console.error('Failed to generate story')
+        setError('Failed to generate story')
+      }
+    } catch (error) {
+      console.error('Error generating story:', error)
+      setError('Error generating story')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleWordClick = (word: Word) => {
+    setSelectedWord(word)
+  }
 
   const handleQuizSubmit = () => {
     setQuizSubmitted(true)
   }
 
   const renderContent = () => {
-    return readingData.content.split(' ').map((word, index) => {
-      //const cleanWord = word.replace(/[^a-zA-Z]/g, '').toLowerCase()  
-      const cleanWord = ""
-      //const highlightInfo = readingData.highlightedWords[cleanWord]
-      const highlightInfo = ""
+    if (!generatedStory) return <p>Loading...</p>
+    return generatedStory.content.split(' ').map((word, index) => {
+      const cleanWord = word.replace(/[^a-zA-Z]/g, '').toLowerCase()
+      const highlightInfo = vocabulary.find(v => v.word.toLowerCase() === cleanWord)
       if (highlightInfo && highlightsVisible) {
         return (
           <TooltipProvider key={index}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <span 
-                  className={`cursor-pointer px-1 rounded ${
-                    //highlightInfo.familiarity === 1 ? 'bg-red-200' :
-                    //highlightInfo.familiarity === 2 ? 'bg-yellow-200' :
-                    'bg-green-200'
-                  }`}
-                  onClick={() => handleWordClick(cleanWord)}
+                  className="cursor-pointer px-1 rounded bg-yellow-200"
+                  onClick={() => handleWordClick(highlightInfo)}
                 >
                   {word}
                 </span>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{/*highlightInfo.meaning8*/}</p>
+                <p>{highlightInfo.definition}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -86,9 +158,17 @@ export default function Component() {
     })
   }
 
+  if (error) {
+    return <div className="text-red-500">Error: {error}</div>
+  }
+
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
+
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-4">{readingData.title}</h1>
+      <h1 className="text-3xl font-bold mb-4">{generatedStory?.title || 'Loading'}</h1>
       <div className="flex flex-col lg:flex-row gap-4">
         <Card className="w-full lg:w-2/3 p-4 mb-4">
           <ScrollArea className="h-[300px] lg:h-[400px] mb-4">
@@ -115,14 +195,14 @@ export default function Component() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
-                      //onClick={() => audioRef.current.play()}
+                      onClick={() => audioRef.current?.play()}
                       aria-label="Play Audio"
                     >
                       <PlayIcon className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Play Audio</p>
+                    <p>Reproducir Audio</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -135,7 +215,7 @@ export default function Component() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Next Page</p>
+                  <p>Siguiente Página</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -145,29 +225,18 @@ export default function Component() {
         <Card className="w-full lg:w-1/3 p-4">
           <Tabs defaultValue="words" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="words">Words</TabsTrigger>
-              <TabsTrigger value="quiz">Quiz</TabsTrigger>
+              <TabsTrigger value="words">Palabras</TabsTrigger>
+              <TabsTrigger value="quiz">Cuestionario</TabsTrigger>
             </TabsList>
             <TabsContent value="words">
               <ScrollArea className="h-[300px] lg:h-[400px]">
                 {selectedWord ? (
                   <div>
-                    <h2 className="text-xl font-bold mb-2">Word: {selectedWord}</h2>                    
-                    <h3 className="font-bold mb-2">Set Familiarity:</h3>
-                    <div className="flex gap-2">
-                      {[1, 2, 3].map((level) => (
-                        <Button 
-                          key={level}
-                          //onClick={() => handleFamiliarityChange(selectedWord, level)}
-                          //variant={readingData.highlightedWords[selectedWord].familiarity === level ? 'default' : 'outline'}
-                        >
-                          {level}
-                        </Button>
-                      ))}
-                    </div>
+                    <h2 className="text-xl font-bold mb-2">{selectedWord.word}</h2>
+                    <p className="mb-4">{selectedWord.definition}</p>
                   </div>
                 ) : (
-                  <p className="text-center mt-4">Click on a highlighted word to see its details.</p>
+                  <p className="text-center mt-4">Haz click en una palabra resaltada para ver sus detalles.</p>
                 )}
               </ScrollArea>
             </TabsContent>
@@ -175,28 +244,8 @@ export default function Component() {
               <ScrollArea className="h-[300px] lg:h-[400px]">
                 <div>
                   <h2 className="text-xl font-bold mb-4">Quiz</h2>
-                  {readingData.questions.map((q, index) => (
-                    <div key={index} className="mb-4">
-                      <p className="font-bold mb-2">{q.question}</p>
-                      <RadioGroup
-                        onValueChange={(value) => setQuizAnswers({...quizAnswers, [index]: value})}
-                        //value={quizAnswers[index]}
-                      >
-                        {q.options.map((option, optionIndex) => (
-                          <div key={optionIndex} className="flex items-center space-x-2">
-                            <RadioGroupItem value={option} id={`q${index}-option${optionIndex}`} />
-                            <Label htmlFor={`q${index}-option${optionIndex}`}>{option}</Label>
-                          </div>
-                        ))}
-                      </RadioGroup>
-                      {/* {quizSubmitted && (
-                        <p className={quizAnswers[index] === q.correctAnswer ? 'text-green-600' : 'text-red-600'}>
-                          {quizAnswers[index] === q.correctAnswer ? 'Correct!' : 'Incorrect'}
-                        </p>
-                      )} */}
-                    </div>
-                  ))}
-                  <Button onClick={handleQuizSubmit} className="w-full">Submit Answers</Button>
+                  {/* Implement quiz questions based on the generated story */}
+                  <Button onClick={handleQuizSubmit} className="w-full">Enviar Respuestas</Button>
                 </div>
               </ScrollArea>
             </TabsContent>
