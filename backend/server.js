@@ -4,10 +4,16 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('./db');
+const OpenAI = require('openai');
 require('dotenv').config();
 const { generateContent } = require('./storyGenerator'); 
 const app = express();
 const port = 5000;
+
+// Inicialización de OpenAI
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 // CORS configuration
 const allowedOrigins = process.env.NEXT_PUBLIC_FRONTEND_URLS;
@@ -34,6 +40,53 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+
+// Generate a simple sentence
+app.post('/api/generate-sentence', authenticateToken, async (req, res) => {
+  const { word } = req.body;
+
+  if (!word) {
+    return res.status(400).json({ error: 'Word is required' });
+  }
+
+  try {
+    // Request to OpenAI to generate the sentence
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: `Generate a simple sentence using the word "${word}" in English.` }],
+    });
+
+    const generatedSentence = completion.choices[0].message.content;
+    res.json({ sentence: generatedSentence });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error generating sentence' });
+  }
+});
+
+// Translate a sentence from English to Spanish
+app.post('/api/translate-sentence', authenticateToken, async (req, res) => {
+  const { sentence } = req.body;
+
+  if (!sentence) {
+    return res.status(400).json({ error: 'Sentence is required' });
+  }
+
+  try {
+    // Request to OpenAI to translate the sentence
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: `Translate the following sentence to Spanish: "${sentence}"` }],
+    });
+
+    const translatedSentence = completion.choices[0].message.content;
+    res.json({ translatedSentence });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error translating sentence' });
+  }
+});
+
 // User registration route
 app.post('/register', async (req, res) => {
   const { first_name, last_name, username, email, password, age, gender, country, native_language, learning_language } = req.body;
@@ -58,6 +111,16 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
       'SELECT user_id, email, first_name, last_name, username, age, gender, country, native_language_id, learning_language_id FROM users WHERE user_id = $1',
       [req.user.userId]
     );
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// User details route
+app.get('/user-details', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT username, email FROM users WHERE user_id = $1', [req.user.userId]);
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
