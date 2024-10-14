@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from 'next/navigation'; // Usa useParams para obtener el ID de la categoría
+import { useParams } from 'next/navigation'; // Uses useParams to get the category ID from the URL
 import { useEffect, useState } from 'react';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Card } from "@/components/ui/card";
@@ -22,23 +22,24 @@ type FlashcardType = {
 };
 
 const FlashcardComponent = () => {
-  const { categoryId } = useParams(); // Obtiene el parámetro categoryId de la URL
+  const { categoryId } = useParams(); // Gets the categoryId parameter from the URL
   const [flashcards, setFlashcards] = useState<FlashcardType[]>([]);
   const [showTranslation, setShowTranslation] = useState(false);
-  const [currentCardIndex, setCurrentCardIndex] = useState(0); // Índice de la tarjeta actual
+  const [currentCardIndex, setCurrentCardIndex] = useState(0); // Index of the current card
   const [isClient, setIsClient] = useState(false);
   const [generatedSentence, setGeneratedSentence] = useState<string | null>(null);
+  const [translatedSentence, setTranslatedSentence] = useState<string | null>(null); // State for translated sentence
 
   useEffect(() => {
-    setIsClient(true); // Marca que estamos en el cliente
-    const token = localStorage.getItem('token'); // O donde sea que almacenes el token
+    setIsClient(true); // Mark that we are on the client
+    const token = localStorage.getItem('token'); // Or wherever you store the token
 
     if (categoryId && token) {
-      // Realizamos la petición de datos cuando ya tenemos el categoryId y el token
+      // Fetch data when we have the categoryId and token
       fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vocabulary/${categoryId}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`, // Enviar el token en la cabecera
+          'Authorization': `Bearer ${token}`, // Send the token in the header
           'Content-Type': 'application/json',
         },
       })
@@ -51,9 +52,9 @@ const FlashcardComponent = () => {
         .then((data: Word[]) => {
           const formattedData: FlashcardType[] = data.map((item) => ({
             id: item.id,
-            image: '', // Proporciona lógica para obtener o generar URLs de imágenes
+            image: '', // Provide logic to get or generate image URLs
             sentence: [{ id: item.id, word: item.word, definition: item.definition }],
-            translation: '', // Establece la traducción adecuada si está disponible
+            translation: '', // Set the appropriate translation if available
           }));
           setFlashcards(formattedData);
         })
@@ -61,16 +62,48 @@ const FlashcardComponent = () => {
     }
   }, [categoryId]);
 
-  // Generar una frase cuando la tarjeta cambie
+  // Generate a sentence when the card changes
   useEffect(() => {
     if (flashcards.length > 0) {
       const currentWord = flashcards[currentCardIndex].sentence[0].word;
-      generateSentence(currentWord); // Generar frase automáticamente
+      generateSentence(currentWord); // Automatically generate sentence
     }
   }, [currentCardIndex, flashcards]);
 
+  // Generate a sentence and its translation
+  const generateSentence = async (word: string) => {
+    try {
+      const token = localStorage.getItem('token'); // Get the token from local storage
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate-sentence`, 
+        { word }, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const generated = response.data.sentence;
+      setGeneratedSentence(generated);
+      await translateSentence(generated); // Translate the generated sentence
+    } catch (error) {
+      console.error('Error generating sentence:', error);
+    }
+  };
+
+  // Translate the generated sentence
+  const translateSentence = async (sentence: string) => {
+    try {
+      const token = localStorage.getItem('token'); // Get the token from local storage
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/translate-sentence`, 
+        { sentence }, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setTranslatedSentence(response.data.translatedSentence); // Set the translated sentence
+    } catch (error) {
+      console.error('Error translating sentence:', error);
+    }
+  };
+
   const playAudio = () => {
-    // Lógica para reproducir audio
+    // Logic to play audio
   };
 
   const toggleTranslation = () => {
@@ -78,39 +111,25 @@ const FlashcardComponent = () => {
   };
 
   const nextCard = (isCorrect: boolean) => {
-    // Lógica para manejar si el usuario responde correctamente o no
+    // Logic to handle if the user answers correctly or not
     const newIndex = currentCardIndex < flashcards.length - 1 ? currentCardIndex + 1 : 0;
     setCurrentCardIndex(newIndex);
   };
 
   const previousCard = () => {
-    // Retroceder a la tarjeta anterior
+    // Go back to the previous card
     const newIndex = currentCardIndex > 0 ? currentCardIndex - 1 : flashcards.length - 1;
     setCurrentCardIndex(newIndex);
   };
 
-  const generateSentence = async (word: string) => {
-    try {
-      const token = localStorage.getItem('token'); // Obtén el token del almacenamiento local
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate-sentence`, 
-        { word }, 
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
-      setGeneratedSentence(response.data.sentence);
-    } catch (error) {
-      console.error('Error generating sentence:', error);
-    }
-  };
-
-  // Aseguramos que no se renderice en el servidor
+  // Ensure it does not render on the server
   if (!isClient) {
     return null;
   }
 
-  // Función para resaltar la palabra en negritas dentro de la frase generada
+  // Function to highlight the word in bold within the generated sentence
   const highlightWordInSentence = (sentence: string, word: string, definition: string) => {
-    const regex = new RegExp(`(${word})`, 'gi'); // Crear una expresión regular para buscar la palabra
+    const regex = new RegExp(`(${word})`, 'gi'); // Create a regex to search for the word
     return sentence.split(regex).map((part, index) => 
       regex.test(part) ? (
         <Tooltip key={index}>
@@ -145,15 +164,15 @@ const FlashcardComponent = () => {
                 </div>
               </div>
               <div className="w-full md:w-2/3 space-y-4">
-                {/* Mostrar solo la frase generada automáticamente */}
+                {/* Show only the generated sentence */}
                 {generatedSentence && (
                   <p className="text-2xl mt-2">
                     {highlightWordInSentence(generatedSentence, flashcards[currentCardIndex].sentence[0].word, flashcards[currentCardIndex].sentence[0].definition)}
                   </p>
                 )}
 
-                {showTranslation && (
-                  <p className="text-gray-600 break-words">{flashcards[currentCardIndex].translation}</p>
+                {showTranslation && translatedSentence && ( // Show the translated sentence when toggled
+                  <p className="text-gray-600 break-words">{translatedSentence}</p>
                 )}
               </div>
             </div>
