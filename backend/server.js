@@ -1,13 +1,12 @@
 const express = require('express');
 const cors = require('cors');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('./db');
 const OpenAI = require('openai');
 require('dotenv').config();
-
+const { generateContent } = require('./storyGenerator'); 
 const app = express();
 const port = 5000;
 
@@ -17,17 +16,15 @@ const openai = new OpenAI({
 });
 
 // CORS configuration
-const allowedOrigins = process.env.NEXT_PUBLIC_FRONTEND_URLS.split(',');
+const allowedOrigins = process.env.NEXT_PUBLIC_FRONTEND_URLS;
 app.use(cors({
-  origin: true,
+  origin: allowedOrigins,
   methods: 'GET,POST,PUT,DELETE,OPTIONS',
   credentials: true
 }));
 app.options('*', cors());
 
 app.use(bodyParser.json());
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
@@ -107,7 +104,7 @@ app.post('/register', async (req, res) => {
   }
 });
 
-// User profile details route
+// User profile route
 app.get('/api/user/profile', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
@@ -129,7 +126,6 @@ app.get('/user-details', authenticateToken, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 // User update route
 app.put('/api/update-user', authenticateToken, async (req, res) => {
@@ -161,16 +157,6 @@ app.put('/api/update-user', authenticateToken, async (req, res) => {
   }
 });
 
-// Route to fetch available languages
-app.get('/languages', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT language_id, language_name FROM languages');
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // User login route
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -190,10 +176,10 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// Route to fetch categories
-app.get('/api/categories', authenticateToken, async (req, res) => {
+// Route to fetch available languages
+app.get('/languages', async (req, res) => {
   try {
-    const result = await pool.query('SELECT category_id, category_name FROM categories');
+    const result = await pool.query('SELECT language_id, language_name FROM languages');
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -212,6 +198,60 @@ app.get('/api/vocabulary/:categoryId', authenticateToken, async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Route to fetch categories
+app.get('/api/categories', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT category_id, category_name FROM categories');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/vocabulary/:categoryId', authenticateToken, async (req, res) => {
+  const { categoryId } = req.params;
+  
+  try {
+    console.log(`Fetching vocabulary for category ${categoryId}`);
+    const result = await pool.query(
+      'SELECT * FROM vocabulary WHERE category_id = $1',
+      [categoryId]
+    );
+    console.log(`Fetched ${result.rows.length} vocabulary items`);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching vocabulary:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/generate-content', authenticateToken, async (req, res) => {
+  const { words, categoryId } = req.query;
+
+  try {
+    console.log(`Generating content for category ${categoryId} with words: ${words}`);
+    // Fetch the category name from the database
+    const categoryResult = await pool.query('SELECT category_name FROM categories WHERE category_id = $1', [categoryId]);
+    
+    if (categoryResult.rows.length === 0) {
+      console.error(`Category not found for id ${categoryId}`);
+      return res.status(404).json({ error: 'Category not found' });
+    }
+
+    const categoryName = categoryResult.rows[0].category_name;
+
+    // Split the words string into an array
+    const wordsArray = words.split(',');
+
+    const stories = await generateContent(wordsArray, categoryName);
+    console.log('Generated story:', stories[0]);
+    res.json({ stories });
+  } catch (error) {
+    console.error('Error generating content:', error);
+    res.status(500).json({ error: 'Error generating content' });
   }
 });
 
