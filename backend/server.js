@@ -16,9 +16,8 @@ const openai = new OpenAI({
 });
 
 // CORS configuration
-const allowedOrigins = process.env.NEXT_PUBLIC_FRONTEND_URLS;
 app.use(cors({
-  origin: allowedOrigins,
+  origin: true,
   methods: 'GET,POST,PUT,DELETE,OPTIONS',
   credentials: true
 }));
@@ -39,7 +38,6 @@ const authenticateToken = (req, res, next) => {
     next();
   });
 };
-
 
 // Generate a simple sentence
 app.post('/api/generate-sentence', authenticateToken, async (req, res) => {
@@ -191,12 +189,15 @@ app.get('/api/vocabulary/:categoryId', authenticateToken, async (req, res) => {
   const { categoryId } = req.params;
   
   try {
+    console.log(`Fetching vocabulary for category ${categoryId}`);
     const result = await pool.query(
       'SELECT * FROM vocabulary WHERE category_id = $1',
       [categoryId]
     );
+    console.log(`Fetched ${result.rows.length} vocabulary items`);
     res.json(result.rows);
   } catch (err) {
+    console.error('Error fetching vocabulary:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -211,23 +212,7 @@ app.get('/api/categories', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/vocabulary/:categoryId', authenticateToken, async (req, res) => {
-  const { categoryId } = req.params;
-  
-  try {
-    console.log(`Fetching vocabulary for category ${categoryId}`);
-    const result = await pool.query(
-      'SELECT * FROM vocabulary WHERE category_id = $1',
-      [categoryId]
-    );
-    console.log(`Fetched ${result.rows.length} vocabulary items`);
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error fetching vocabulary:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
+// Generate a story
 app.get('/api/generate-content', authenticateToken, async (req, res) => {
   const { words, categoryId } = req.query;
 
