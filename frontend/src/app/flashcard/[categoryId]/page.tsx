@@ -12,11 +12,11 @@ type Word = {
   id: number;
   word: string;
   definition: string;
+  image_url: string;
 };
 
 type FlashcardType = {
   id: number;
-  image: string;
   sentence: Word[];
   translation: string;
 };
@@ -29,17 +29,17 @@ const FlashcardComponent = () => {
   const [isClient, setIsClient] = useState(false);
   const [generatedSentence, setGeneratedSentence] = useState<string | null>(null);
   const [translatedSentence, setTranslatedSentence] = useState<string | null>(null); // State for translated sentence
+  const [currentImageUrl, setCurrentImageUrl] = useState<string>(''); // State for the current image URL
 
   useEffect(() => {
-    setIsClient(true); // Mark that we are on the client
-    const token = localStorage.getItem('token'); // Or wherever you store the token
+    setIsClient(true);
+    const token = localStorage.getItem('token');
 
     if (categoryId && token) {
-      // Fetch data when we have the categoryId and token
       fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vocabulary/${categoryId}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`, // Send the token in the header
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       })
@@ -52,9 +52,8 @@ const FlashcardComponent = () => {
         .then((data: Word[]) => {
           const formattedData: FlashcardType[] = data.map((item) => ({
             id: item.id,
-            image: '', // Provide logic to get or generate image URLs
-            sentence: [{ id: item.id, word: item.word, definition: item.definition }],
-            translation: '', // Set the appropriate translation if available
+            sentence: [{ id: item.id, word: item.word, definition: item.definition, image_url: item.image_url }],
+            translation: '',
           }));
           setFlashcards(formattedData);
         })
@@ -62,15 +61,32 @@ const FlashcardComponent = () => {
     }
   }, [categoryId]);
 
+  const fetchImageUrl = async (word: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/get-image-url`, 
+        { word }, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      return response.data.imageUrl; // Return the image URL
+    } catch (error) {
+      console.error('Error fetching image URL:', error);
+      return ''; // Return an empty string or handle the error accordingly
+    }
+  };
+
   // Generate a sentence when the card changes
   useEffect(() => {
     if (flashcards.length > 0) {
       const currentWord = flashcards[currentCardIndex].sentence[0].word;
       generateSentence(currentWord); // Automatically generate sentence
+
+      // Fetch the image for the current word
+      fetchImageUrl(currentWord).then((imageUrl) => setCurrentImageUrl(imageUrl)); // Fetch and set the image URL for the current word
     }
   }, [currentCardIndex, flashcards]);
 
-  // Generate a sentence and its translation
   const generateSentence = async (word: string) => {
     try {
       const token = localStorage.getItem('token'); // Get the token from local storage
@@ -87,7 +103,6 @@ const FlashcardComponent = () => {
     }
   };
 
-  // Translate the generated sentence
   const translateSentence = async (sentence: string) => {
     try {
       const token = localStorage.getItem('token'); // Get the token from local storage
@@ -111,26 +126,22 @@ const FlashcardComponent = () => {
   };
 
   const nextCard = (isCorrect: boolean) => {
-    // Logic to handle if the user answers correctly or not
     const newIndex = currentCardIndex < flashcards.length - 1 ? currentCardIndex + 1 : 0;
     setCurrentCardIndex(newIndex);
   };
 
   const previousCard = () => {
-    // Go back to the previous card
     const newIndex = currentCardIndex > 0 ? currentCardIndex - 1 : flashcards.length - 1;
     setCurrentCardIndex(newIndex);
   };
 
-  // Ensure it does not render on the server
   if (!isClient) {
     return null;
   }
 
-  // Function to highlight the word in bold within the generated sentence
   const highlightWordInSentence = (sentence: string, word: string, definition: string) => {
-    const regex = new RegExp(`(${word})`, 'gi'); // Create a regex to search for the word
-    return sentence.split(regex).map((part, index) => 
+    const regex = new RegExp(`(${word})`, 'gi');
+    return sentence.split(regex).map((part, index) =>
       regex.test(part) ? (
         <Tooltip key={index}>
           <TooltipTrigger>
@@ -151,7 +162,7 @@ const FlashcardComponent = () => {
           <Card key={flashcards[currentCardIndex].id} className="p-6">
             <div className="flex flex-col md:flex-row md:space-x-6 space-y-6 md:space-y-0">
               <div className="w-full md:w-1/3 flex flex-col items-center md:items-start">
-                <img src={flashcards[currentCardIndex].image} alt="Flashcard image" className="w-full max-w-[200px] h-auto object-cover rounded-lg mb-4" />
+                <img src={currentImageUrl} alt="Flashcard image" className="w-full max-w-[200px] h-auto object-cover rounded-lg mb-4" />
                 <div className="flex space-x-2 justify-center md:justify-start">
                   <Button variant="outline" size="icon" onClick={playAudio}>
                     <Play className="h-4 w-4" />
@@ -164,14 +175,12 @@ const FlashcardComponent = () => {
                 </div>
               </div>
               <div className="w-full md:w-2/3 space-y-4">
-                {/* Show only the generated sentence */}
                 {generatedSentence && (
                   <p className="text-2xl mt-2">
                     {highlightWordInSentence(generatedSentence, flashcards[currentCardIndex].sentence[0].word, flashcards[currentCardIndex].sentence[0].definition)}
                   </p>
                 )}
-
-                {showTranslation && translatedSentence && ( // Show the translated sentence when toggled
+                {showTranslation && translatedSentence && (
                   <p className="text-gray-600 break-words">{translatedSentence}</p>
                 )}
               </div>
