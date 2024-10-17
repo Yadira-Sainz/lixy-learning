@@ -50,8 +50,8 @@ VALUES
 ('Travel/Places'),
 ('Health'),
 ('Hobbies/Leisure'),
-('Technology'),
 ('Nature/Environment'),
+('Technology'),
 ('Grammar/Function Word');
 
 -- Create the categories table first

@@ -9,6 +9,7 @@ require('dotenv').config();
 const { generateContent } = require('./storyGenerator'); 
 const app = express();
 const port = 5000;
+const { google } = require('googleapis');
 
 // Inicialización de OpenAI
 const openai = new OpenAI({
@@ -239,6 +240,79 @@ app.get('/api/generate-content', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Error generating content' });
   }
 });
+
+const fetch = require('node-fetch'); // Ensure 'node-fetch' is required if not already
+
+// Function to check if an image URL is valid
+const checkImageUrl = async (url) => {
+  try {
+    const response = await fetch(url, { method: 'HEAD' });
+    // If response is OK (200), the image exists
+    return response.ok;
+  } catch (error) {
+    console.error('Error checking image URL:', error);
+    return false; // URL is not valid
+  }
+};
+
+app.post('/api/get-image-url', authenticateToken, async (req, res) => {
+  const { word } = req.body;
+
+  if (!word) {
+    return res.status(400).json({ error: 'Word is required' });
+  }
+
+  try {
+    // Check if the word already has an image URL in the database
+    const result = await pool.query(
+      'SELECT image_url FROM vocabulary WHERE word = $1',
+      [word]
+    );
+
+    // If an image URL exists, check if it's still valid
+    if (result.rows.length > 0 && result.rows[0].image_url) {
+      const existingImageUrl = result.rows[0].image_url;
+
+      // Check if the image URL is still valid
+      const isValid = await checkImageUrl(existingImageUrl);
+
+      if (isValid) {
+        return res.json({ imageUrl: existingImageUrl });
+      } else {
+        console.log(`Image URL '${existingImageUrl}' is no longer valid, fetching a new one...`);
+      }
+    }
+
+    // Fetch a new image URL if no valid URL is found
+    const query = encodeURIComponent(word + ' animated');
+    const url = `https://www.googleapis.com/customsearch/v1?q=${query}&cx=${process.env.SEARCH_ENGINE_ID}&searchType=image&key=${process.env.GOOGLE_API_KEY}&num=1`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    console.log('Google Custom Search API Response:', data);
+
+    if (data.items && data.items.length > 0) {
+      const newImageUrl = data.items[0].link;
+
+      // Update the database with the new image URL
+      await pool.query(
+        'UPDATE vocabulary SET image_url = $1 WHERE word = $2',
+        [newImageUrl, word]
+      );
+
+      return res.json({ imageUrl: newImageUrl });
+    } else {
+      return res.status(404).json({ error: 'No image found for the word' });
+    }
+  } catch (err) {
+    console.error('Error fetching image URL:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+
 
 // Start the server
 app.listen(port, () => {
