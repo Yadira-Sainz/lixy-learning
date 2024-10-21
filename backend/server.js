@@ -311,8 +311,164 @@ app.post('/api/get-image-url', authenticateToken, async (req, res) => {
   }
 });
 
+// Función para calcular la próxima fecha de revisión
+function calculateNextReviewDate(familiarity_level_id) {
+  const now = new Date();
+  switch (familiarity_level_id) {
+    case 1: // New
+      return now.setDate(now.getDate() + 1);
+    case 2: // Recognized
+      return now.setDate(now.getDate() + 2);
+    case 3: // Familiar
+      return now.setDate(now.getDate() + 5);
+    case 4: // Learned
+      return now.setDate(now.getDate() + 7);
+    case 5: // Known
+      return now.setDate(now.getDate() + 14);
+    default:
+      return now;
+  }
+}
 
+// Siguiente sesión (palabras a revisar)
+app.get('/api/next-session', authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
 
+  try {
+    const result = await pool.query(`
+      SELECT v.word, f.familiarity_level_id, f.next_review_date
+      FROM vocabulary v
+      JOIN familiarity f ON v.vocabulary_id = f.word_id
+      WHERE f.user_id = $1 AND f.next_review_date <= NOW()
+      ORDER BY f.next_review_date ASC
+      LIMIT 10
+    `, [userId]);
+
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Error fetching next session words' });
+  }
+});
+
+//Update progress
+app.post('/api/update-progress', authenticateToken, async (req, res) => {
+  const { wordId, correct } = req.body;
+  const userId = req.user.userId;
+
+  try {
+    const progress = await pool.query(`
+      SELECT familiarity_level_id, correct_answers, incorrect_answers
+      FROM familiarity
+      WHERE user_id = $1 AND word_id = $2
+    `, [userId, wordId]);
+
+    if (progress.rows.length === 0) {
+      // Insert new progress record if it doesn't exist
+      const familiarity_level_id = 1;
+      const correct_answers = correct ? 1 : 0;
+      const incorrect_answers = correct ? 0 : 1;
+      const next_review_date = new Date(calculateNextReviewDate(familiarity_level_id)).toISOString();
+
+      await pool.query(`
+        INSERT INTO familiarity (user_id, word_id, familiarity_level_id, correct_answers, incorrect_answers, last_reviewed, next_review_date)
+        VALUES ($1, $2, $3, $4, $5, NOW(), $6)
+      `, [userId, wordId, familiarity_level_id, correct_answers, incorrect_answers, next_review_date]);
+
+      return res.json({ message: 'Progress created successfully' });
+    }
+
+    let { familiarity_level_id, correct_answers, incorrect_answers } = progress.rows[0];
+
+    if (correct) {
+      correct_answers += 1;
+      if (familiarity_level_id === 1 && correct_answers >= 1) familiarity_level_id = 2; // New → Recognized
+      else if (familiarity_level_id === 2 && correct_answers >= 3) familiarity_level_id = 3; // Recognized → Familiar
+      else if (familiarity_level_id === 3 && correct_answers >= 5) familiarity_level_id = 4; // Familiar → Learned
+      else if (familiarity_level_id === 4 && correct_answers >= 7) familiarity_level_id = 5; // Learned → Known
+    } else {
+      incorrect_answers += 1;
+      if (familiarity_level_id > 1) familiarity_level_id = 2; // Regresar a Recognized si es incorrecto
+    }
+
+    const nextReviewDate = new Date(calculateNextReviewDate(familiarity_level_id)).toISOString();
+
+    await pool.query(`
+      UPDATE familiarity
+      SET familiarity_level_id = $1, correct_answers = $2, incorrect_answers = $3, last_reviewed = NOW(), next_review_date = $4
+      WHERE user_id = $5 AND word_id = $6
+    `, [familiarity_level_id, correct_answers, incorrect_answers, nextReviewDate, userId, wordId]);
+
+    res.json({ message: 'Progress updated successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error updating progress' });
+  }
+});
+
+// Update user progress by word
+app.post('/api/update-progress', authenticateToken, async (req, res) => {
+  const { wordId, correct } = req.body;
+  const userId = req.user.userId;
+
+  try {
+    const result = await pool.query(
+      `UPDATE familiarity
+       SET correct_answers = correct_answers + $1,
+           incorrect_answers = incorrect_answers + $2,
+           last_reviewed = NOW(),
+           next_review_date = CASE
+                               WHEN $1 = 1 THEN NOW() + INTERVAL '1 day' -- Ejemplo de cómo podrías actualizar la fecha
+                               ELSE NOW() + INTERVAL '1 hour'
+                             END
+       WHERE user_id = $3 AND word_id = $4
+       RETURNING *`,
+      [correct ? 1 : 0, correct ? 0 : 1, userId, wordId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Progress not found' });
+    }
+
+    res.json({ message: 'Progress updated successfully', progress: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: 'Error updating progress' });
+  }
+});
+
+// Route to fetch the daily words for a user based on their familiarity and spaced repetition algorithm
+app.get('/api/daily-words/:categoryId', authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
+  const { categoryId } = req.params;
+
+  try {
+    // Fetch words to be reviewed today based on familiarity level and next review date
+    const result = await pool.query(`
+      SELECT v.*
+      FROM vocabulary v
+      JOIN familiarity f ON v.vocabulary_id = f.word_id
+      WHERE f.user_id = $1 AND v.category_id = $2 AND f.next_review_date <= NOW()
+      ORDER BY f.next_review_date ASC
+      LIMIT 20
+    `, [userId, categoryId]);
+
+    // If less than 20 words are available, fetch additional new words to fill up the list
+    if (result.rows.length < 20) {
+      const additionalWords = await pool.query(`
+        SELECT v.*
+        FROM vocabulary v
+        LEFT JOIN familiarity f ON v.vocabulary_id = f.word_id AND f.user_id = $1
+        WHERE v.category_id = $2 AND f.word_id IS NULL
+        LIMIT $3
+      `, [userId, categoryId, 20 - result.rows.length]);
+
+      result.rows.push(...additionalWords.rows);
+    }
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching daily words:', err);
+    res.status(500).json({ error: 'Error fetching daily words' });
+  }
+});
 
 // Start the server
 app.listen(port, () => {

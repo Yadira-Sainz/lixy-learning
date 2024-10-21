@@ -73,16 +73,27 @@ CREATE TABLE IF NOT EXISTS vocabulary (
     FOREIGN KEY (category_id) REFERENCES categories(category_id)
 );
 
--- Create the familiarity enum type
-CREATE type familiarity_level AS ENUM ('New', 'Recognized', 'Familiar', 'Learned', 'Known');
+-- Familiarity_levels
+CREATE TABLE IF NOT EXISTS familiarity_levels (
+    familiarity_level_id SERIAL PRIMARY KEY,
+    familiarity_name VARCHAR(50) NOT NULL
+);
+
+-- Insertar los niveles de familiaridad
+INSERT INTO familiarity_levels (familiarity_name) 
+VALUES ('New'), ('Recognized'), ('Familiar'), ('Learned'), ('Known');
 
 -- Create the familiarity table
 CREATE TABLE IF NOT EXISTS familiarity (
     familiarity_id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
     word_id INT NOT NULL,
-    familiarity familiarity_level NOT NULL,
+    familiarity_level_id INT NOT NULL, -- Referencia a la tabla de niveles de familiaridad
+    correct_answers INT DEFAULT 0,
+    incorrect_answers INT DEFAULT 0,
     last_reviewed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    next_review_date TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (word_id) REFERENCES vocabulary(vocabulary_id)
+    FOREIGN KEY (word_id) REFERENCES vocabulary(vocabulary_id),
+    FOREIGN KEY (familiarity_level_id) REFERENCES familiarity_levels(familiarity_level_id)
 );

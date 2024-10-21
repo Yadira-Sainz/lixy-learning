@@ -7,9 +7,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Play, Eye, EyeOff, X, Check } from 'lucide-react';
 import axios from 'axios';
+import FlashcardDash from '../page';
 
 type Word = {
-  id: number;
+  vocabulary_id: number;
   word: string;
   definition: string;
   image_url: string;
@@ -21,12 +22,12 @@ type FlashcardType = {
   translation: string;
 };
 
-const FlashcardComponent = () => {
-  const { categoryId } = useParams(); // Gets the categoryId parameter from the URL
+const FlashcardComponent: React.FC = () => {
+  const { categoryId } = useParams<{ categoryId: string }>(); // Gets the categoryId parameter from the URL
   const [flashcards, setFlashcards] = useState<FlashcardType[]>([]);
-  const [showTranslation, setShowTranslation] = useState(false);
-  const [currentCardIndex, setCurrentCardIndex] = useState(0); // Index of the current card
-  const [isClient, setIsClient] = useState(false);
+  const [showTranslation, setShowTranslation] = useState<boolean>(false);
+  const [currentCardIndex, setCurrentCardIndex] = useState<number>(0); // Index of the current card
+  const [isClient, setIsClient] = useState<boolean>(false);
   const [generatedSentence, setGeneratedSentence] = useState<string | null>(null);
   const [translatedSentence, setTranslatedSentence] = useState<string | null>(null); // State for translated sentence
   const [currentImageUrl, setCurrentImageUrl] = useState<string>(''); // State for the current image URL
@@ -34,9 +35,9 @@ const FlashcardComponent = () => {
   useEffect(() => {
     setIsClient(true);
     const token = localStorage.getItem('token');
-
+  
     if (categoryId && token) {
-      fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vocabulary/${categoryId}`, {
+      fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/daily-words/${categoryId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -50,18 +51,18 @@ const FlashcardComponent = () => {
           return response.json();
         })
         .then((data: Word[]) => {
-          const formattedData: FlashcardType[] = data.map((item) => ({
-            id: item.id,
-            sentence: [{ id: item.id, word: item.word, definition: item.definition, image_url: item.image_url }],
+          const formattedData: FlashcardType[] = data.map((item: Word) => ({
+            id: item.vocabulary_id,
+            sentence: [{ vocabulary_id: item.vocabulary_id, word: item.word, definition: item.definition, image_url: item.image_url }],
             translation: '',
           }));
           setFlashcards(formattedData);
         })
         .catch((error) => console.error('Error fetching data:', error));
     }
-  }, [categoryId]);
+  }, [categoryId]);  
 
-  const fetchImageUrl = async (word: string) => {
+  const fetchImageUrl = async (word: string): Promise<string> => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/get-image-url`, 
@@ -79,15 +80,18 @@ const FlashcardComponent = () => {
   // Generate a sentence when the card changes
   useEffect(() => {
     if (flashcards.length > 0) {
-      const currentWord = flashcards[currentCardIndex].sentence[0].word;
-      generateSentence(currentWord); // Automatically generate sentence
-
-      // Fetch the image for the current word
-      fetchImageUrl(currentWord).then((imageUrl) => setCurrentImageUrl(imageUrl)); // Fetch and set the image URL for the current word
+      console.log(flashcards);    
+      const currentWord = flashcards[currentCardIndex]?.sentence[0]?.word;
+      console.log(currentWord);
+      if (currentWord) {
+        generateSentence(currentWord); // Automatically generate sentence
+        // Fetch the image for the current word
+        fetchImageUrl(currentWord).then((imageUrl) => setCurrentImageUrl(imageUrl)); // Fetch and set the image URL for the current word
+      }
     }
   }, [currentCardIndex, flashcards]);
 
-  const generateSentence = async (word: string) => {
+  const generateSentence = async (word: string): Promise<void> => {
     try {
       const token = localStorage.getItem('token'); // Get the token from local storage
       const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate-sentence`, 
@@ -103,7 +107,7 @@ const FlashcardComponent = () => {
     }
   };
 
-  const translateSentence = async (sentence: string) => {
+  const translateSentence = async (sentence: string): Promise<void> => {
     try {
       const token = localStorage.getItem('token'); // Get the token from local storage
       const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/translate-sentence`, 
@@ -117,28 +121,44 @@ const FlashcardComponent = () => {
     }
   };
 
-  const playAudio = () => {
+  const playAudio = (): void => {
     // Logic to play audio
   };
 
-  const toggleTranslation = () => {
+  const toggleTranslation = (): void => {
     setShowTranslation(!showTranslation);
   };
 
-  const nextCard = (isCorrect: boolean) => {
-    const newIndex = currentCardIndex < flashcards.length - 1 ? currentCardIndex + 1 : 0;
+  const nextCard = (isCorrect: boolean): void => {
+    const currentWordId = flashcards[currentCardIndex]?.sentence[0]?.vocabulary_id;
+    console.log(`WORD ID--> ${currentWordId}`)
+    console.log(`CARD --> ${currentCardIndex}`)
+    //console.log(flashcards)
+    if (currentWordId) {
+      updateProgress(currentWordId, isCorrect); // Update user progress
+    }
+    const newIndex = (currentCardIndex + 1) % flashcards.length;
     setCurrentCardIndex(newIndex);
   };
 
-  const previousCard = () => {
+  const previousCard = (): void => {
     const newIndex = currentCardIndex > 0 ? currentCardIndex - 1 : flashcards.length - 1;
     setCurrentCardIndex(newIndex);
   };
 
-  if (!isClient) {
-    return null;
-  }
-
+  const updateProgress = async (wordId: number, correct: boolean): Promise<void> => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/update-progress`,
+        { wordId, correct },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      console.log('Progress updated successfully');
+    } catch (error) {
+      console.error('Error updating progress:', error);
+    }
+  };
+  
   const highlightWordInSentence = (sentence: string, word: string, definition: string) => {
     const regex = new RegExp(`(${word})`, 'gi');
     return sentence.split(regex).map((part, index) =>
@@ -177,7 +197,7 @@ const FlashcardComponent = () => {
               <div className="w-full md:w-2/3 space-y-4">
                 {generatedSentence && (
                   <p className="text-2xl mt-2">
-                    {highlightWordInSentence(generatedSentence, flashcards[currentCardIndex].sentence[0].word, flashcards[currentCardIndex].sentence[0].definition)}
+                    {highlightWordInSentence(generatedSentence, flashcards[currentCardIndex]?.sentence[0]?.word || '', flashcards[currentCardIndex]?.sentence[0]?.definition || '')}
                   </p>
                 )}
                 {showTranslation && translatedSentence && (
