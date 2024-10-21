@@ -311,7 +311,7 @@ app.post('/api/get-image-url', authenticateToken, async (req, res) => {
   }
 });
 
-// Función para calcular la próxima fecha de revisión
+// Function for calculating the next revision date
 function calculateNextReviewDate(familiarity_level_id) {
   const now = new Date();
   switch (familiarity_level_id) {
@@ -330,7 +330,7 @@ function calculateNextReviewDate(familiarity_level_id) {
   }
 }
 
-// Siguiente sesión (palabras a revisar)
+// Next session (words to review)
 app.get('/api/next-session', authenticateToken, async (req, res) => {
   const userId = req.user.userId;
 
@@ -469,6 +469,68 @@ app.get('/api/daily-words/:categoryId', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Error fetching daily words' });
   }
 });
+
+//Daily streak
+app.post('/api/daily-streak', authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
+
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0];
+
+    // Get yesterday's streak, if any
+    const yesterdayResult = await pool.query(
+      'SELECT current_streak FROM daily_streaks WHERE user_id = $1 AND streak_date = $2',
+      [userId, yesterday]
+    );
+
+    let newCurrentStreak = 1; // If yesterday's streak does not exist, we start a new streak.
+
+    if (yesterdayResult.rows.length > 0) {
+      // If the user complied yesterday, increase the current streak.
+      newCurrentStreak = yesterdayResult.rows[0].current_streak + 1;
+    }
+
+    // Obtain the longest previous streak
+    const longestResult = await pool.query(
+      'SELECT longest_streak FROM daily_streaks WHERE user_id = $1 ORDER BY longest_streak DESC LIMIT 1',
+      [userId]
+    );
+
+    let newLongestStreak = longestResult.rows.length > 0 ? longestResult.rows[0].longest_streak : 0;
+
+    // If the current new streak is longer than the longest streak, update the longest streak.
+    if (newCurrentStreak > newLongestStreak) {
+      newLongestStreak = newCurrentStreak;
+    }
+
+    // Check if a registration already exists for today
+    const result = await pool.query(
+      'SELECT * FROM daily_streaks WHERE user_id = $1 AND streak_date = $2',
+      [userId, today]
+    );
+
+    if (result.rows.length > 0) {
+      // Update if a record already exists for today
+      await pool.query(
+        'UPDATE daily_streaks SET current_streak = $1, longest_streak = $2 WHERE user_id = $3 AND streak_date = $4',
+        [newCurrentStreak, newLongestStreak, userId, today]
+      );
+    } else {
+      // Insert a new record if it does not exist today
+      await pool.query(
+        'INSERT INTO daily_streaks (user_id, streak_date, current_streak, longest_streak) VALUES ($1, $2, $3, $4)',
+        [userId, today, newCurrentStreak, newLongestStreak]
+      );
+    }
+
+    return res.status(200).json({ message: 'Racha diaria actualizada', currentStreak: newCurrentStreak, longestStreak: newLongestStreak });
+  } catch (error) {
+    console.error('Error updating daily streak:', error);
+    return res.status(500).json({ error: 'Error updating daily streak' });
+  }
+});
+
 
 // Start the server
 app.listen(port, () => {

@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Play, Eye, EyeOff, X, Check } from 'lucide-react';
 import axios from 'axios';
 import FlashcardDash from '../page';
+import { useRouter } from 'next/navigation';
+import Modal from '@/components/ui/Modal';
 
 type Word = {
   vocabulary_id: number;
@@ -22,6 +24,8 @@ type FlashcardType = {
   translation: string;
 };
 
+let completedCardsCount = 0; // Global variable to keep track of completed cards
+
 const FlashcardComponent: React.FC = () => {
   const { categoryId } = useParams<{ categoryId: string }>(); // Gets the categoryId parameter from the URL
   const [flashcards, setFlashcards] = useState<FlashcardType[]>([]);
@@ -31,6 +35,8 @@ const FlashcardComponent: React.FC = () => {
   const [generatedSentence, setGeneratedSentence] = useState<string | null>(null);
   const [translatedSentence, setTranslatedSentence] = useState<string | null>(null); // State for translated sentence
   const [currentImageUrl, setCurrentImageUrl] = useState<string>(''); // State for the current image URL
+  const router = useRouter()
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -131,11 +137,16 @@ const FlashcardComponent: React.FC = () => {
 
   const nextCard = (isCorrect: boolean): void => {
     const currentWordId = flashcards[currentCardIndex]?.sentence[0]?.vocabulary_id;
-    console.log(`WORD ID--> ${currentWordId}`)
-    console.log(`CARD --> ${currentCardIndex}`)
+    //console.log(`WORD ID--> ${currentWordId}`)
+    //console.log(`CARD --> ${currentCardIndex}`)
     //console.log(flashcards)
     if (currentWordId) {
       updateProgress(currentWordId, isCorrect); // Update user progress
+      completedCardsCount++;
+      if (completedCardsCount >= 20) {
+        updateDailyStreak(); // Update the user's daily streak after completing 20 cards
+        completedCardsCount = 0; // Reset the count
+      }
     }
     const newIndex = (currentCardIndex + 1) % flashcards.length;
     setCurrentCardIndex(newIndex);
@@ -146,6 +157,7 @@ const FlashcardComponent: React.FC = () => {
     setCurrentCardIndex(newIndex);
   };
 
+  //Update progress
   const updateProgress = async (wordId: number, correct: boolean): Promise<void> => {
     try {
       const token = localStorage.getItem('token');
@@ -158,6 +170,32 @@ const FlashcardComponent: React.FC = () => {
       console.error('Error updating progress:', error);
     }
   };
+
+  //Update daily streak
+  const updateDailyStreak = async (): Promise<void> => {
+    try {
+      const token = localStorage.getItem('token'); // Obtén el token de autenticación desde el almacenamiento local
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/daily-streak`, // Endpoint URL
+        {}, // Empty body for the POST request
+        {
+          headers: { Authorization: `Bearer ${token}` } // Headers as the third argument
+        }
+      );
+      console.log('Daily streak updated successfully');
+
+      setIsModalOpen(true); // Abrir el modal
+
+    } catch (error) {
+      console.error('Error updating daily streak:', error);
+    }
+};
+
+const handleCloseModal = () => {
+  setIsModalOpen(false); // Cerrar el modal
+  router.push('/tablero'); // Redirigir al tablero
+};
+
   
   const highlightWordInSentence = (sentence: string, word: string, definition: string) => {
     const regex = new RegExp(`(${word})`, 'gi');
@@ -217,6 +255,7 @@ const FlashcardComponent: React.FC = () => {
             <span className="sr-only">Correct</span>
           </Button>
         </div>
+        <Modal isOpen={isModalOpen} onClose={handleCloseModal} />
       </div>
     </TooltipProvider>
   );

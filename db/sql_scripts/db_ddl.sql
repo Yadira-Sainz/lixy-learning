@@ -97,3 +97,13 @@ CREATE TABLE IF NOT EXISTS familiarity (
     FOREIGN KEY (word_id) REFERENCES vocabulary(vocabulary_id),
     FOREIGN KEY (familiarity_level_id) REFERENCES familiarity_levels(familiarity_level_id)
 );
+
+-- Create the daily_streaks table
+CREATE TABLE IF NOT EXISTS daily_streaks (
+    streak_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    streak_date DATE NOT NULL,
+    current_streak INT DEFAULT 0,
+    longest_streak INT DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
