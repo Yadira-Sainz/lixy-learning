@@ -23,7 +23,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
 
 const styles = {
   overlay: {
-    position: 'fixed' as 'fixed',
+    position: 'fixed' as const, // Cambiado a 'as const'
     top: 0,
     left: 0,
     right: 0,
@@ -37,10 +37,10 @@ const styles = {
     backgroundColor: '#fff',
     padding: '20px',
     borderRadius: '8px',
-    textAlign: 'center' as 'center',
+    textAlign: 'center' as const, // Cambiado a 'as const'
   },
   text: {
-    color: '#000', // Text to black color
+    color: '#000',
   },
   button: {
     marginTop: '20px',
