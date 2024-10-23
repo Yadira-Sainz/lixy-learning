@@ -7,6 +7,7 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@google-cloud/text-to-speech": "^5.5.0",
     "@google/generative-ai": "^0.17.2",
     "axios": "^1.4.0",
     "bcrypt": "^5.1.1",
