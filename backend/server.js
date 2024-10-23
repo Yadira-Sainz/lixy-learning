@@ -104,7 +104,11 @@ app.post('/api/generate-audio', authenticateToken, async (req, res) => {
 
     const requestBody = {
       input: { text: sentence },
-      voice: { languageCode: 'en-US', ssmlGender: 'NEUTRAL' },
+      voice: {
+        languageCode: 'en-US',
+        name: 'en-US-Standard-H',  // specific voice
+        ssmlGender: 'MALE'         // Voice gender
+      },
       audioConfig: { audioEncoding: 'MP3' }
     };
 
