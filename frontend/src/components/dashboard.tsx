@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "@/components/ui/button"
@@ -32,6 +32,20 @@ const weakWords = [
 export function DashboardComponent() {
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [currentWord, setCurrentWord] = useState(0)
+  const [streakDates, setStreakDates] = useState<Date[]>([]);// Para guardar las fechas de racha
+
+  useEffect(() => {
+    fetch('/api/streaks/1') // Reemplazar con el ID de usuario real
+      .then(res => res.json())
+      .then(data => {
+        setStreakDates(data.map((dateStr: string) => new Date(dateStr))); // Convertir las fechas a objetos Date
+      })
+      .catch(err => console.error("Error fetching streaks:", err));
+  }, []);
+
+  const isStreakDay = (date: Date) => {
+    return streakDates.some(streakDate => streakDate.toDateString() === date.toDateString());
+  };
 
   return (
     <section id="tablero">
@@ -47,6 +61,12 @@ export function DashboardComponent() {
               selected={date}
               onSelect={setDate}
               className="rounded-md border w-full"
+              modifiers={{
+                streakDay: isStreakDay, // Días con racha
+              }}
+              modifiersClassNames={{
+                streakDay: 'bg-green-500 text-white rounded-full', // Estilo para días de racha
+              }}
             />
           </CardContent>
         </Card>

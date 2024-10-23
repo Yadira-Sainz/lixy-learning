@@ -531,6 +531,21 @@ app.post('/api/daily-streak', authenticateToken, async (req, res) => {
   }
 });
 
+//actualizar racha 
+app.get('/api/streaks/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT streak_date FROM daily_streaks WHERE user_id = $1`,
+      [userId]
+    );
+    res.json(result.rows.map(row => row.streak_date));
+  } catch (error) {
+    console.error('Error fetching streaks:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // Start the server
 app.listen(port, () => {
