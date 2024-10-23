@@ -10,6 +10,7 @@ const { generateContent } = require('./storyGenerator');
 const app = express();
 const port = 5000;
 const { google } = require('googleapis');
+const textToSpeech = require('@google-cloud/text-to-speech');
 
 // Inicialización de OpenAI
 const openai = new OpenAI({
@@ -85,6 +86,80 @@ app.post('/api/translate-sentence', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Error translating sentence' });
   }
 });
+
+const path = require('path'); // To handle file paths correctly
+const fs = require('fs');
+const util = require('util');
+
+// Generate text to speech
+app.post('/api/generate-audio', authenticateToken, async (req, res) => {
+  const { sentence } = req.body;
+
+  if (!sentence) {
+    return res.status(400).json({ error: 'Sentence is required' });
+  }
+
+  try {
+    const url = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${process.env.GOOGLE_API_KEY}`;
+
+    const requestBody = {
+      input: { text: sentence },
+      voice: {
+        languageCode: 'en-US',
+        name: 'en-US-Standard-H',  // specific voice
+        ssmlGender: 'MALE'         // Voice gender
+      },
+      audioConfig: { audioEncoding: 'MP3' }
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    const data = await response.json();
+
+    if (data.audioContent) {
+      // Save the audio file on the server
+      const buffer = Buffer.from(data.audioContent, 'base64');
+      const fileName = `audio-${Date.now()}.mp3`;
+      const filePath = path.join(__dirname, 'audios', fileName); // Path where the file will be saved
+
+      // Directory “audios”.
+      if (!fs.existsSync(path.join(__dirname, 'audios'))) {
+        fs.mkdirSync(path.join(__dirname, 'audios'));
+      }
+
+      await util.promisify(fs.writeFile)(filePath, buffer);
+
+      // Send the URL of the audio file to the client
+      res.json({ audioUrl: `/audios/${fileName}` });
+
+      // Delete the file after a while (optional, if you want to clean the server after a while)
+      setTimeout(() => {
+        fs.unlink(filePath, (err) => {
+          if (err) {
+            console.error('Error deleting audio file:', err);
+          }
+        });
+      }, 60000); // Delete file after 60 seconds (optional)
+
+    } else {
+      res.status(500).json({ error: 'Error generating audio' });
+    }
+
+  } catch (err) {
+    console.error('Error generating audio:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Serves audio files
+app.use('/audios', express.static(path.join(__dirname, 'audios')));
+
 
 // User registration route
 app.post('/register', async (req, res) => {

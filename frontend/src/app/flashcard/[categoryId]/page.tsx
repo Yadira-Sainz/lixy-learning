@@ -127,9 +127,25 @@ const FlashcardComponent: React.FC = () => {
     }
   };
 
-  const playAudio = (): void => {
-    // Logic to play audio
-  };
+  const playAudio = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate-audio`, 
+        { sentence: generatedSentence }, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+  
+      const audioUrl = response.data.audioUrl;
+      const fullAudioUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}${audioUrl}`; // Full URL of the audio file
+  
+      console.log('Audio URL:', fullAudioUrl);  // Verify that it is correct
+  
+      const audio = new Audio(fullAudioUrl);
+      audio.play();
+    } catch (error) {
+      console.error('Error playing audio:', error);
+    }
+  };  
 
   const toggleTranslation = (): void => {
     setShowTranslation(!showTranslation);
@@ -184,7 +200,7 @@ const FlashcardComponent: React.FC = () => {
       );
       console.log('Daily streak updated successfully');
 
-      setIsModalOpen(true); // Abrir el modal
+      setIsModalOpen(true); // Open the modal
 
     } catch (error) {
       console.error('Error updating daily streak:', error);
@@ -192,8 +208,8 @@ const FlashcardComponent: React.FC = () => {
 };
 
 const handleCloseModal = () => {
-  setIsModalOpen(false); // Cerrar el modal
-  router.push('/tablero'); // Redirigir al tablero
+  setIsModalOpen(false); // Close the modal
+  router.push('/tablero');
 };
 
   
