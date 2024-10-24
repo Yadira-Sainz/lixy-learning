@@ -421,10 +421,11 @@ app.get('/api/generate-story', authenticateToken, async (req, res) => {
 const checkImageUrl = async (url) => {
   try {
     const response = await fetch(url, { method: 'HEAD' });
+    // If response is OK (200), the image exists
     return response.ok;
   } catch (error) {
     console.error('Error checking image URL:', error);
-    return false;
+    return false; // URL is not valid
   }
 };
 
@@ -436,13 +437,17 @@ app.post('/api/get-image-url', authenticateToken, async (req, res) => {
   }
 
   try {
+    // Check if the word already has an image URL in the database
     const result = await pool.query(
       'SELECT image_url FROM vocabulary WHERE word = $1',
       [word]
     );
 
+    // If an image URL exists, check if it's still valid
     if (result.rows.length > 0 && result.rows[0].image_url) {
       const existingImageUrl = result.rows[0].image_url;
+
+      // Check if the image URL is still valid
       const isValid = await checkImageUrl(existingImageUrl);
 
       if (isValid) {
@@ -452,6 +457,7 @@ app.post('/api/get-image-url', authenticateToken, async (req, res) => {
       }
     }
 
+    // Fetch a new image URL if no valid URL is found
     const query = encodeURIComponent(word + ' animated');
     const url = `https://www.googleapis.com/customsearch/v1?q=${query}&cx=${process.env.SEARCH_ENGINE_ID}&searchType=image&key=${process.env.GOOGLE_API_KEY}&num=1`;
 
@@ -463,6 +469,7 @@ app.post('/api/get-image-url', authenticateToken, async (req, res) => {
     if (data.items && data.items.length > 0) {
       const newImageUrl = data.items[0].link;
 
+      // Update the database with the new image URL
       await pool.query(
         'UPDATE vocabulary SET image_url = $1 WHERE word = $2',
         [newImageUrl, word]
@@ -482,12 +489,18 @@ app.post('/api/get-image-url', authenticateToken, async (req, res) => {
 function calculateNextReviewDate(familiarity_level_id) {
   const now = new Date();
   switch (familiarity_level_id) {
-    case 1: return now.setDate(now.getDate() + 1);
-    case 2: return now.setDate(now.getDate() + 2);
-    case 3: return now.setDate(now.getDate() + 5);
-    case 4: return now.setDate(now.getDate() + 7);
-    case 5: return now.setDate(now.getDate() + 14);
-    default: return now;
+    case 1: // New
+      return now.setDate(now.getDate() + 1);
+    case 2: // Recognized
+      return now.setDate(now.getDate() + 2);
+    case 3: // Familiar
+      return now.setDate(now.getDate() + 5);
+    case 4: // Learned
+      return now.setDate(now.getDate() + 7);
+    case 5: // Known
+      return now.setDate(now.getDate() + 14);
+    default:
+      return now;
   }
 }
 
@@ -524,6 +537,7 @@ app.post('/api/update-progress', authenticateToken, async (req, res) => {
     `, [userId, wordId]);
 
     if (progress.rows.length === 0) {
+      // Insert new progress record if it doesn't exist
       const familiarity_level_id = 1;
       const correct_answers = correct ? 1 : 0;
       const incorrect_answers = correct ? 0 : 1;
@@ -541,13 +555,13 @@ app.post('/api/update-progress', authenticateToken, async (req, res) => {
 
     if (correct) {
       correct_answers += 1;
-      if (familiarity_level_id === 1 && correct_answers >= 1) familiarity_level_id = 2;
-      else if (familiarity_level_id === 2 && correct_answers >= 3) familiarity_level_id = 3;
-      else if (familiarity_level_id === 3 && correct_answers >= 5) familiarity_level_id = 4;
-      else if (familiarity_level_id === 4 && correct_answers >= 7) familiarity_level_id = 5;
+      if (familiarity_level_id === 1 && correct_answers >= 1) familiarity_level_id = 2; // New → Recognized
+      else if (familiarity_level_id === 2 && correct_answers >= 3) familiarity_level_id = 3; // Recognized → Familiar
+      else if (familiarity_level_id === 3 && correct_answers >= 5) familiarity_level_id = 4; // Familiar → Learned
+      else if (familiarity_level_id === 4 && correct_answers >= 7) familiarity_level_id = 5; // Learned → Known
     } else {
       incorrect_answers += 1;
-      if (familiarity_level_id > 1) familiarity_level_id = 2;
+      if (familiarity_level_id > 1) familiarity_level_id = 2; // Regresar a Recognized si es incorrecto
     }
 
     const nextReviewDate = new Date(calculateNextReviewDate(familiarity_level_id)).toISOString();
@@ -564,12 +578,43 @@ app.post('/api/update-progress', authenticateToken, async (req, res) => {
   }
 });
 
+// Update user progress by word
+app.post('/api/update-progress', authenticateToken, async (req, res) => {
+  const { wordId, correct } = req.body;
+  const userId = req.user.userId;
+
+  try {
+    const result = await pool.query(
+      `UPDATE familiarity
+       SET correct_answers = correct_answers + $1,
+           incorrect_answers = incorrect_answers + $2,
+           last_reviewed = NOW(),
+           next_review_date = CASE
+                               WHEN $1 = 1 THEN NOW() + INTERVAL '1 day' -- Ejemplo de cómo podrías actualizar la fecha
+                               ELSE NOW() + INTERVAL '1 hour'
+                             END
+       WHERE user_id = $3 AND word_id = $4
+       RETURNING *`,
+      [correct ? 1 : 0, correct ? 0 : 1, userId, wordId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Progress not found' });
+    }
+
+    res.json({ message: 'Progress updated successfully', progress: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: 'Error updating progress' });
+  }
+});
+
 // Route to fetch the daily words for a user based on their familiarity and spaced repetition algorithm
 app.get('/api/daily-words/:categoryId', authenticateToken, async (req, res) => {
   const userId = req.user.userId;
   const { categoryId } = req.params;
 
   try {
+    // Fetch words to be reviewed today based on familiarity level and next review date
     const result = await pool.query(`
       SELECT v.*
       FROM vocabulary v
@@ -579,6 +624,7 @@ app.get('/api/daily-words/:categoryId', authenticateToken, async (req, res) => {
       LIMIT 20
     `, [userId, categoryId]);
 
+    // If less than 20 words are available, fetch additional new words to fill up the list
     if (result.rows.length < 20) {
       const additionalWords = await pool.query(`
         SELECT v.*
@@ -606,17 +652,20 @@ app.post('/api/daily-streak', authenticateToken, async (req, res) => {
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0];
 
+    // Get yesterday's streak, if any
     const yesterdayResult = await pool.query(
       'SELECT current_streak FROM daily_streaks WHERE user_id = $1 AND streak_date = $2',
       [userId, yesterday]
     );
 
-    let newCurrentStreak = 1;
+    let newCurrentStreak = 1; // If yesterday's streak does not exist, we start a new streak.
 
     if (yesterdayResult.rows.length > 0) {
+      // If the user complied yesterday, increase the current streak.
       newCurrentStreak = yesterdayResult.rows[0].current_streak + 1;
     }
 
+    // Obtain the longest previous streak
     const longestResult = await pool.query(
       'SELECT longest_streak FROM daily_streaks WHERE user_id = $1 ORDER BY longest_streak DESC LIMIT 1',
       [userId]
@@ -624,21 +673,25 @@ app.post('/api/daily-streak', authenticateToken, async (req, res) => {
 
     let newLongestStreak = longestResult.rows.length > 0 ? longestResult.rows[0].longest_streak : 0;
 
+    // If the current new streak is longer than the longest streak, update the longest streak.
     if (newCurrentStreak > newLongestStreak) {
       newLongestStreak = newCurrentStreak;
     }
 
+    // Check if a registration already exists for today
     const result = await pool.query(
       'SELECT * FROM daily_streaks WHERE user_id = $1 AND streak_date = $2',
       [userId, today]
     );
 
     if (result.rows.length > 0) {
+      // Update if a record already exists for today
       await pool.query(
         'UPDATE daily_streaks SET current_streak = $1, longest_streak = $2 WHERE user_id = $3 AND streak_date = $4',
         [newCurrentStreak, newLongestStreak, userId, today]
       );
     } else {
+      // Insert a new record if it does not exist today
       await pool.query(
         'INSERT INTO daily_streaks (user_id, streak_date, current_streak, longest_streak) VALUES ($1, $2, $3, $4)',
         [userId, today, newCurrentStreak, newLongestStreak]
@@ -651,6 +704,7 @@ app.post('/api/daily-streak', authenticateToken, async (req, res) => {
     return res.status(500).json({ error: 'Error updating daily streak' });
   }
 });
+
 
 // Start the server
 app.listen(port, () => {
