@@ -107,3 +107,23 @@ CREATE TABLE IF NOT EXISTS daily_streaks (
     longest_streak INT DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
+
+-- Table for difficulty levels 
+CREATE TABLE IF NOT EXISTS difficulty_levels ( 
+    difficulty_id SERIAL PRIMARY KEY, difficulty_name VARCHAR(50) NOT NULL 
+);
+
+-- Insert difficulty levels 
+INSERT INTO difficulty_levels (difficulty_name) 
+VALUES ('Beginner'), ('Intermediate'), ('Advanced');
+
+-- Table for stories 
+CREATE TABLE IF NOT EXISTS stories ( 
+    story_id SERIAL PRIMARY KEY, 
+    title VARCHAR(255) NOT NULL, 
+    content TEXT NOT NULL, 
+    category_id INT NOT NULL, 
+    difficulty_id INT NOT NULL, 
+    FOREIGN KEY (category_id) REFERENCES categories(category_id), 
+    FOREIGN KEY (difficulty_id) REFERENCES difficulty_levels(difficulty_id) 
+);
