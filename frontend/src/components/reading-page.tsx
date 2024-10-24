@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -11,16 +11,17 @@ import { PlayIcon, EyeOffIcon, ChevronRightIcon } from 'lucide-react'
 
 type Word = { id: number; word: string; definition: string; };
 
-export default function ReadingPage() {
+export default function Component() {
+  const router = useRouter()
   const [token, setToken] = useState<string | null>(null)
   const searchParams = useSearchParams()
   const [categoryId, setCategoryId] = useState<string | null>(null)
-  const [readingIndex, setReadingIndex] = useState<number>(0)
+  const [storyId, setStoryId] = useState<string | null>(null)
   const [vocabulary, setVocabulary] = useState<Word[]>([])
-  const [generatedStory, setGeneratedStory] = useState<{ title: string; content: string } | null>(null)
+  const [generatedStory, setGeneratedStory] = useState<{ title: string; content: string; story_id?: string } | null>(null)
   const [highlightsVisible, setHighlightsVisible] = useState(true)
   const [selectedWord, setSelectedWord] = useState<Word | null>(null)
-  const [quizAnswers, setQuizAnswers] = useState({})
+  const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({})
   const [quizSubmitted, setQuizSubmitted] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(null)
   const [error, setError] = useState<string | null>(null)
@@ -31,12 +32,12 @@ export default function ReadingPage() {
     setToken(storedToken)
 
     const catId = searchParams.get('categoryId')
-    const readingIdx = searchParams.get('readingIndex')
+    const sId = searchParams.get('storyId')
     
-    console.log('Received params:', { categoryId: catId, readingIndex: readingIdx })
+    console.log('Received params:', { categoryId: catId, storyId: sId })
     
     setCategoryId(catId)
-    setReadingIndex(readingIdx ? parseInt(readingIdx) : 0)
+    setStoryId(sId)
 
     if (catId && storedToken) {
       fetchVocabulary(catId, storedToken)
@@ -47,12 +48,12 @@ export default function ReadingPage() {
   }, [searchParams])
 
   useEffect(() => {
-    if (vocabulary.length > 0 && token && categoryId) {
-      generateStory()
+    if (vocabulary.length > 0 && token && categoryId && storyId) {
+      fetchStory(storyId, token, categoryId)
     } else if (!isLoading && vocabulary.length === 0) {
       setError('No vocabulary found for this category')
     }
-  }, [vocabulary, token, categoryId, isLoading])
+  }, [vocabulary, token, categoryId, storyId, isLoading])
 
   const fetchVocabulary = async (categoryId: string, token: string) => {
     try {
@@ -84,18 +85,9 @@ export default function ReadingPage() {
     }
   }
 
-  const generateStory = async () => {
-    if (!token || !categoryId) {
-      console.error('Missing token or categoryId')
-      setError('Missing token or categoryId')
-      setIsLoading(false)
-      return;
-    }
-    const selectedWords = vocabulary.sort(() => 0.5 - Math.random()).slice(0, 5)
-    const words = selectedWords.map(w => w.word).join(',')
+  const fetchStory = async (storyId: string, token: string, categoryId: string) => {
     try {
-      console.log('Generating story with words:', words)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate-content?words=${words}&categoryId=${categoryId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/story/${storyId}?categoryId=${categoryId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -104,19 +96,17 @@ export default function ReadingPage() {
       })
       if (response.ok) {
         const data = await response.json()
-        console.log('Generated story:', data)
-        if (data.stories && data.stories.length > 0) {
-          setGeneratedStory(data.stories[0])
-        } else {
-          setError('Loading...')
+        setGeneratedStory(data)
+        if (storyId.startsWith('placeholder-')) {
+          router.push(`/leer?categoryId=${categoryId}&storyId=${data.story_id}`)
         }
       } else {
-        console.error('Failed to generate story')
-        setError('Failed to generate story')
+        console.error('Failed to fetch story')
+        setError('Failed to fetch story')
       }
     } catch (error) {
-      console.error('Error generating story:', error)
-      setError('Error generating story')
+      console.error('Error fetching story:', error)
+      setError('Error fetching story')
     } finally {
       setIsLoading(false)
     }
@@ -128,6 +118,8 @@ export default function ReadingPage() {
 
   const handleQuizSubmit = () => {
     setQuizSubmitted(true)
+    // Here you would typically send the quiz answers to the backend for processing
+    console.log('Quiz submitted with answers:', quizAnswers)
   }
 
   const renderContent = () => {
@@ -244,8 +236,22 @@ export default function ReadingPage() {
               <ScrollArea className="h-[300px] lg:h-[400px]">
                 <div>
                   <h2 className="text-xl font-bold mb-4">Quiz</h2>
-                  {/* Implement quiz questions based on the generated story */}
-                  <Button onClick={handleQuizSubmit} className="w-full">Enviar Respuestas</Button>
+                  {vocabulary.slice(0, 5).map((word, index) => (
+                    <div key={word.id} className="mb-4">
+                      <p className="font-semibold mb-2">{index + 1}. What does &quot;{word.word}&quot; mean?</p>
+                      <input
+                        type="text"
+                        className="w-full p-2 border rounded"
+                        placeholder="Enter your answer"
+                        value={quizAnswers[word.id] || ''}
+                        onChange={(e) => setQuizAnswers({...quizAnswers, [word.id]: e.target.value})}
+                        disabled={quizSubmitted}
+                      />
+                    </div>
+                  ))}
+                  <Button onClick={handleQuizSubmit} className="w-full mt-4" disabled={quizSubmitted}>
+                    {quizSubmitted ? 'Quiz Submitted' : 'Submit Quiz'}
+                  </Button>
                 </div>
               </ScrollArea>
             </TabsContent>
