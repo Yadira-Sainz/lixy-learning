@@ -107,4 +107,3 @@ CREATE TABLE IF NOT EXISTS daily_streaks (
     longest_streak INT DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
-
