@@ -11,8 +11,12 @@ const app = express();
 const port = 5000;
 const { google } = require('googleapis');
 const textToSpeech = require('@google-cloud/text-to-speech');
+const path = require('path');
+const fs = require('fs');
+const util = require('util');
+const fetch = require('node-fetch');
 
-// Inicialización de OpenAI
+// Initialize OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -87,10 +91,6 @@ app.post('/api/translate-sentence', authenticateToken, async (req, res) => {
   }
 });
 
-const path = require('path'); // To handle file paths correctly
-const fs = require('fs');
-const util = require('util');
-
 // Generate text to speech
 app.post('/api/generate-audio', authenticateToken, async (req, res) => {
   const { sentence } = req.body;
@@ -126,9 +126,9 @@ app.post('/api/generate-audio', authenticateToken, async (req, res) => {
       // Save the audio file on the server
       const buffer = Buffer.from(data.audioContent, 'base64');
       const fileName = `audio-${Date.now()}.mp3`;
-      const filePath = path.join(__dirname, 'audios', fileName); // Path where the file will be saved
+      const filePath = path.join(__dirname, 'audios', fileName);
 
-      // Directory “audios”.
+      // Directory "audios".
       if (!fs.existsSync(path.join(__dirname, 'audios'))) {
         fs.mkdirSync(path.join(__dirname, 'audios'));
       }
@@ -159,7 +159,6 @@ app.post('/api/generate-audio', authenticateToken, async (req, res) => {
 
 // Serves audio files
 app.use('/audios', express.static(path.join(__dirname, 'audios')));
-
 
 // User registration route
 app.post('/register', async (req, res) => {
@@ -288,7 +287,6 @@ app.get('/api/categories', authenticateToken, async (req, res) => {
   }
 });
 
-// Generate a story
 app.get('/api/generate-content', authenticateToken, async (req, res) => {
   const { words, categoryId } = req.query;
 
@@ -307,16 +305,15 @@ app.get('/api/generate-content', authenticateToken, async (req, res) => {
     // Split the words string into an array
     const wordsArray = words.split(',');
 
-    const stories = await generateContent(wordsArray, categoryName);
-    console.log('Generated story:', stories[0]);
-    res.json({ stories });
+    const result = await generateContent(wordsArray, categoryName);
+    console.log('Generated story:', result.story);
+    console.log('Generated quiz questions:', result.quizQuestions);
+    res.json(result);
   } catch (error) {
     console.error('Error generating content:', error);
-    res.status(500).json({ error: 'Error generating content' });
+    res.status(500).json({ error: 'Error generating content', details: error.message });
   }
 });
-
-const fetch = require('node-fetch'); // Ensure 'node-fetch' is required if not already
 
 // Function to check if an image URL is valid
 const checkImageUrl = async (url) => {
@@ -378,7 +375,7 @@ app.post('/api/get-image-url', authenticateToken, async (req, res) => {
 
       return res.json({ imageUrl: newImageUrl });
     } else {
-      return res.status(404).json({ error: 'No image found for the word' });
+      return res.status(404).json({ error: 'No image  found for the word' });
     }
   } catch (err) {
     console.error('Error fetching image URL:', err);
@@ -396,7 +393,7 @@ function calculateNextReviewDate(familiarity_level_id) {
       return now.setDate(now.getDate() + 2);
     case 3: // Familiar
       return now.setDate(now.getDate() + 5);
-    case 4: // Learned
+    case 4:  // Learned
       return now.setDate(now.getDate() + 7);
     case 5: // Known
       return now.setDate(now.getDate() + 14);
@@ -606,21 +603,6 @@ app.post('/api/daily-streak', authenticateToken, async (req, res) => {
   }
 });
 
-//actualizar racha 
-app.get('/api/streaks/:userId', async (req, res) => {
-  const { userId } = req.params;
-
-  try {
-    const result = await pool.query(
-      `SELECT streak_date FROM daily_streaks WHERE user_id = $1`,
-      [userId]
-    );
-    res.json(result.rows.map(row => row.streak_date));
-  } catch (error) {
-    console.error('Error fetching streaks:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
 
 // Start the server
 app.listen(port, () => {
