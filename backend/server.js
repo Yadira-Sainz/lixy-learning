@@ -11,6 +11,10 @@ const app = express();
 const port = 5000;
 const { google } = require('googleapis');
 const textToSpeech = require('@google-cloud/text-to-speech');
+const path = require('path');
+const fs = require('fs');
+const util = require('util');
+const fetch = require('node-fetch');
 
 // Inicialización de OpenAI
 const openai = new OpenAI({
@@ -41,6 +45,24 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+// Helper function to insert a story into the database
+async function insertStoryIntoDatabase(story, categoryId) {
+  const result = await pool.query(
+    'INSERT INTO stories (title, content, category_id, difficulty_id) VALUES ($1, $2, $3, $4) RETURNING story_id',
+    [story.title, story.content, categoryId, 1] // Using difficulty_id 1 for "Not set"
+  );
+  return result.rows[0].story_id;
+}
+
+// Helper function to update a story in the database
+async function updateStoryInDatabase(storyId, story) {
+  await pool.query(
+    'UPDATE stories SET title = $1, content = $2 WHERE story_id = $3',
+    [story.title, story.content, storyId]
+  );
+  return storyId;
+}
+
 // Generate a simple sentence
 app.post('/api/generate-sentence', authenticateToken, async (req, res) => {
   const { word } = req.body;
@@ -50,7 +72,6 @@ app.post('/api/generate-sentence', authenticateToken, async (req, res) => {
   }
 
   try {
-    // Request to OpenAI to generate the sentence
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: `Generate a simple sentence using the word "${word}" in English.` }],
@@ -73,7 +94,6 @@ app.post('/api/translate-sentence', authenticateToken, async (req, res) => {
   }
 
   try {
-    // Request to OpenAI to translate the sentence
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: `Translate the following sentence to Spanish: "${sentence}"` }],
@@ -86,10 +106,6 @@ app.post('/api/translate-sentence', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Error translating sentence' });
   }
 });
-
-const path = require('path'); // To handle file paths correctly
-const fs = require('fs');
-const util = require('util');
 
 // Generate text to speech
 app.post('/api/generate-audio', authenticateToken, async (req, res) => {
@@ -106,8 +122,8 @@ app.post('/api/generate-audio', authenticateToken, async (req, res) => {
       input: { text: sentence },
       voice: {
         languageCode: 'en-US',
-        name: 'en-US-Standard-H',  // specific voice
-        ssmlGender: 'MALE'         // Voice gender
+        name: 'en-US-Standard-H',
+        ssmlGender: 'MALE'
       },
       audioConfig: { audioEncoding: 'MP3' }
     };
@@ -123,29 +139,25 @@ app.post('/api/generate-audio', authenticateToken, async (req, res) => {
     const data = await response.json();
 
     if (data.audioContent) {
-      // Save the audio file on the server
       const buffer = Buffer.from(data.audioContent, 'base64');
       const fileName = `audio-${Date.now()}.mp3`;
-      const filePath = path.join(__dirname, 'audios', fileName); // Path where the file will be saved
+      const filePath = path.join(__dirname, 'audios', fileName);
 
-      // Directory “audios”.
       if (!fs.existsSync(path.join(__dirname, 'audios'))) {
         fs.mkdirSync(path.join(__dirname, 'audios'));
       }
 
       await util.promisify(fs.writeFile)(filePath, buffer);
 
-      // Send the URL of the audio file to the client
       res.json({ audioUrl: `/audios/${fileName}` });
 
-      // Delete the file after a while (optional, if you want to clean the server after a while)
       setTimeout(() => {
         fs.unlink(filePath, (err) => {
           if (err) {
             console.error('Error deleting audio file:', err);
           }
         });
-      }, 60000); // Delete file after 60 seconds (optional)
+      }, 60000);
 
     } else {
       res.status(500).json({ error: 'Error generating audio' });
@@ -159,7 +171,6 @@ app.post('/api/generate-audio', authenticateToken, async (req, res) => {
 
 // Serves audio files
 app.use('/audios', express.static(path.join(__dirname, 'audios')));
-
 
 // User registration route
 app.post('/register', async (req, res) => {
@@ -288,13 +299,88 @@ app.get('/api/categories', authenticateToken, async (req, res) => {
   }
 });
 
+// Get stories for a specific category
+app.get('/api/stories/:categoryId', authenticateToken, async (req, res) => {
+  const { categoryId } = req.params;
+
+  try {
+    const result = await pool.query(
+      'SELECT story_id, title FROM stories WHERE category_id = $1 ORDER BY story_id',
+      [categoryId]
+    );
+    
+    let stories = result.rows;
+    
+    // If there are fewer than 9 stories, add placeholder stories
+    while (stories.length < 9) {
+      stories.push({
+        story_id: `placeholder-${stories.length + 1}`,
+        title: `Lectura ${stories.length + 1}`
+      });
+    }
+    
+    res.json(stories);
+  } catch (error) {
+    console.error('Error fetching stories:', error);
+    res.status(500).json({ error: 'Error fetching stories' });
+  }
+});
+
+// Get or generate a specific story
+app.get('/api/story/:storyId', authenticateToken, async (req, res) => {
+  const { storyId } = req.params;
+  const { categoryId } = req.query;
+
+  try {
+    if (storyId.startsWith('placeholder-')) {
+      // This is a placeholder story, so we need to generate a new one
+      const categoryResult = await pool.query('SELECT category_name FROM categories WHERE category_id = $1', [categoryId]);
+      
+      if (categoryResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Category not found' });
+      }
+
+      const categoryName = categoryResult.rows[0].category_name;
+
+      // Fetch vocabulary for the category
+      const vocabularyResult = await pool.query('SELECT word FROM vocabulary WHERE category_id = $1 ORDER BY RANDOM() LIMIT 10', [categoryId]);
+      const words = vocabularyResult.rows.map(row => row.word);
+
+      // Generate new story
+      const stories = await generateContent(words, categoryName);
+      const newStory = stories[0];
+
+      // Insert the new story into the database
+      const insertResult = await pool.query(
+        'INSERT INTO stories (title, content, category_id, difficulty_id) VALUES ($1, $2, $3, $4) RETURNING story_id',
+        [newStory.title, newStory.content, categoryId, 1] // Using difficulty_id 1 for "Beginner"
+      );
+
+      const insertedStoryId = insertResult.rows[0].story_id;
+
+      res.json({ ...newStory, story_id: insertedStoryId });
+    } else {
+      // Fetch existing story
+      const result = await pool.query('SELECT * FROM stories WHERE story_id = $1', [storyId]);
+      if (result.rows.length > 0) {
+        res.json(result.rows[0]);
+      } else {
+        res.status(404).json({ error: 'Story not found' });
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching or generating story:', error);
+    res.status(500).json({ error: 'Error fetching or generating story' });
+  }
+});
+
+
 // Generate a story
-app.get('/api/generate-content', authenticateToken, async (req, res) => {
-  const { words, categoryId } = req.query;
+app.get('/api/generate-story', authenticateToken, async (req, res) => {
+  const { words, categoryId, storyId } = req.query;
 
   try {
     console.log(`Generating content for category ${categoryId} with words: ${words}`);
-    // Fetch the category name from the database
     const categoryResult = await pool.query('SELECT category_name FROM categories WHERE category_id = $1', [categoryId]);
     
     if (categoryResult.rows.length === 0) {
@@ -303,30 +389,42 @@ app.get('/api/generate-content', authenticateToken, async (req, res) => {
     }
 
     const categoryName = categoryResult.rows[0].category_name;
-
-    // Split the words string into an array
     const wordsArray = words.split(',');
 
     const stories = await generateContent(wordsArray, categoryName);
     console.log('Generated story:', stories[0]);
-    res.json({ stories });
+
+    // Insert or update the story in the database
+    const story = stories[0];
+    let storyDbId;
+    if (storyId && storyId.startsWith('placeholder-')) {
+      // Insert new story
+      storyDbId = await  insertStoryIntoDatabase(story, categoryId);
+    } else if (storyId) {
+      // Update existing story
+      storyDbId = await updateStoryInDatabase(storyId, story);
+    } else {
+      // Insert new story (this shouldn't happen in normal flow)
+      storyDbId = await insertStoryIntoDatabase(story, categoryId);
+    }
+    
+    console.log(`Story inserted/updated with ID: ${storyDbId}`);
+
+    res.json({ story, storyId: storyDbId });
   } catch (error) {
-    console.error('Error generating content:', error);
-    res.status(500).json({ error: 'Error generating content' });
+    console.error('Error generating or storing content:', error);
+    res.status(500).json({ error: 'Error generating or storing content' });
   }
 });
-
-const fetch = require('node-fetch'); // Ensure 'node-fetch' is required if not already
 
 // Function to check if an image URL is valid
 const checkImageUrl = async (url) => {
   try {
     const response = await fetch(url, { method: 'HEAD' });
-    // If response is OK (200), the image exists
     return response.ok;
   } catch (error) {
     console.error('Error checking image URL:', error);
-    return false; // URL is not valid
+    return false;
   }
 };
 
@@ -338,17 +436,13 @@ app.post('/api/get-image-url', authenticateToken, async (req, res) => {
   }
 
   try {
-    // Check if the word already has an image URL in the database
     const result = await pool.query(
       'SELECT image_url FROM vocabulary WHERE word = $1',
       [word]
     );
 
-    // If an image URL exists, check if it's still valid
     if (result.rows.length > 0 && result.rows[0].image_url) {
       const existingImageUrl = result.rows[0].image_url;
-
-      // Check if the image URL is still valid
       const isValid = await checkImageUrl(existingImageUrl);
 
       if (isValid) {
@@ -358,7 +452,6 @@ app.post('/api/get-image-url', authenticateToken, async (req, res) => {
       }
     }
 
-    // Fetch a new image URL if no valid URL is found
     const query = encodeURIComponent(word + ' animated');
     const url = `https://www.googleapis.com/customsearch/v1?q=${query}&cx=${process.env.SEARCH_ENGINE_ID}&searchType=image&key=${process.env.GOOGLE_API_KEY}&num=1`;
 
@@ -370,7 +463,6 @@ app.post('/api/get-image-url', authenticateToken, async (req, res) => {
     if (data.items && data.items.length > 0) {
       const newImageUrl = data.items[0].link;
 
-      // Update the database with the new image URL
       await pool.query(
         'UPDATE vocabulary SET image_url = $1 WHERE word = $2',
         [newImageUrl, word]
@@ -390,18 +482,12 @@ app.post('/api/get-image-url', authenticateToken, async (req, res) => {
 function calculateNextReviewDate(familiarity_level_id) {
   const now = new Date();
   switch (familiarity_level_id) {
-    case 1: // New
-      return now.setDate(now.getDate() + 1);
-    case 2: // Recognized
-      return now.setDate(now.getDate() + 2);
-    case 3: // Familiar
-      return now.setDate(now.getDate() + 5);
-    case 4: // Learned
-      return now.setDate(now.getDate() + 7);
-    case 5: // Known
-      return now.setDate(now.getDate() + 14);
-    default:
-      return now;
+    case 1: return now.setDate(now.getDate() + 1);
+    case 2: return now.setDate(now.getDate() + 2);
+    case 3: return now.setDate(now.getDate() + 5);
+    case 4: return now.setDate(now.getDate() + 7);
+    case 5: return now.setDate(now.getDate() + 14);
+    default: return now;
   }
 }
 
@@ -438,7 +524,6 @@ app.post('/api/update-progress', authenticateToken, async (req, res) => {
     `, [userId, wordId]);
 
     if (progress.rows.length === 0) {
-      // Insert new progress record if it doesn't exist
       const familiarity_level_id = 1;
       const correct_answers = correct ? 1 : 0;
       const incorrect_answers = correct ? 0 : 1;
@@ -456,13 +541,13 @@ app.post('/api/update-progress', authenticateToken, async (req, res) => {
 
     if (correct) {
       correct_answers += 1;
-      if (familiarity_level_id === 1 && correct_answers >= 1) familiarity_level_id = 2; // New → Recognized
-      else if (familiarity_level_id === 2 && correct_answers >= 3) familiarity_level_id = 3; // Recognized → Familiar
-      else if (familiarity_level_id === 3 && correct_answers >= 5) familiarity_level_id = 4; // Familiar → Learned
-      else if (familiarity_level_id === 4 && correct_answers >= 7) familiarity_level_id = 5; // Learned → Known
+      if (familiarity_level_id === 1 && correct_answers >= 1) familiarity_level_id = 2;
+      else if (familiarity_level_id === 2 && correct_answers >= 3) familiarity_level_id = 3;
+      else if (familiarity_level_id === 3 && correct_answers >= 5) familiarity_level_id = 4;
+      else if (familiarity_level_id === 4 && correct_answers >= 7) familiarity_level_id = 5;
     } else {
       incorrect_answers += 1;
-      if (familiarity_level_id > 1) familiarity_level_id = 2; // Regresar a Recognized si es incorrecto
+      if (familiarity_level_id > 1) familiarity_level_id = 2;
     }
 
     const nextReviewDate = new Date(calculateNextReviewDate(familiarity_level_id)).toISOString();
@@ -479,43 +564,12 @@ app.post('/api/update-progress', authenticateToken, async (req, res) => {
   }
 });
 
-// Update user progress by word
-app.post('/api/update-progress', authenticateToken, async (req, res) => {
-  const { wordId, correct } = req.body;
-  const userId = req.user.userId;
-
-  try {
-    const result = await pool.query(
-      `UPDATE familiarity
-       SET correct_answers = correct_answers + $1,
-           incorrect_answers = incorrect_answers + $2,
-           last_reviewed = NOW(),
-           next_review_date = CASE
-                               WHEN $1 = 1 THEN NOW() + INTERVAL '1 day' -- Ejemplo de cómo podrías actualizar la fecha
-                               ELSE NOW() + INTERVAL '1 hour'
-                             END
-       WHERE user_id = $3 AND word_id = $4
-       RETURNING *`,
-      [correct ? 1 : 0, correct ? 0 : 1, userId, wordId]
-    );
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Progress not found' });
-    }
-
-    res.json({ message: 'Progress updated successfully', progress: result.rows[0] });
-  } catch (err) {
-    res.status(500).json({ error: 'Error updating progress' });
-  }
-});
-
 // Route to fetch the daily words for a user based on their familiarity and spaced repetition algorithm
 app.get('/api/daily-words/:categoryId', authenticateToken, async (req, res) => {
   const userId = req.user.userId;
   const { categoryId } = req.params;
 
   try {
-    // Fetch words to be reviewed today based on familiarity level and next review date
     const result = await pool.query(`
       SELECT v.*
       FROM vocabulary v
@@ -525,7 +579,6 @@ app.get('/api/daily-words/:categoryId', authenticateToken, async (req, res) => {
       LIMIT 20
     `, [userId, categoryId]);
 
-    // If less than 20 words are available, fetch additional new words to fill up the list
     if (result.rows.length < 20) {
       const additionalWords = await pool.query(`
         SELECT v.*
@@ -553,20 +606,17 @@ app.post('/api/daily-streak', authenticateToken, async (req, res) => {
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0];
 
-    // Get yesterday's streak, if any
     const yesterdayResult = await pool.query(
       'SELECT current_streak FROM daily_streaks WHERE user_id = $1 AND streak_date = $2',
       [userId, yesterday]
     );
 
-    let newCurrentStreak = 1; // If yesterday's streak does not exist, we start a new streak.
+    let newCurrentStreak = 1;
 
     if (yesterdayResult.rows.length > 0) {
-      // If the user complied yesterday, increase the current streak.
       newCurrentStreak = yesterdayResult.rows[0].current_streak + 1;
     }
 
-    // Obtain the longest previous streak
     const longestResult = await pool.query(
       'SELECT longest_streak FROM daily_streaks WHERE user_id = $1 ORDER BY longest_streak DESC LIMIT 1',
       [userId]
@@ -574,25 +624,21 @@ app.post('/api/daily-streak', authenticateToken, async (req, res) => {
 
     let newLongestStreak = longestResult.rows.length > 0 ? longestResult.rows[0].longest_streak : 0;
 
-    // If the current new streak is longer than the longest streak, update the longest streak.
     if (newCurrentStreak > newLongestStreak) {
       newLongestStreak = newCurrentStreak;
     }
 
-    // Check if a registration already exists for today
     const result = await pool.query(
       'SELECT * FROM daily_streaks WHERE user_id = $1 AND streak_date = $2',
       [userId, today]
     );
 
     if (result.rows.length > 0) {
-      // Update if a record already exists for today
       await pool.query(
         'UPDATE daily_streaks SET current_streak = $1, longest_streak = $2 WHERE user_id = $3 AND streak_date = $4',
         [newCurrentStreak, newLongestStreak, userId, today]
       );
     } else {
-      // Insert a new record if it does not exist today
       await pool.query(
         'INSERT INTO daily_streaks (user_id, streak_date, current_streak, longest_streak) VALUES ($1, $2, $3, $4)',
         [userId, today, newCurrentStreak, newLongestStreak]
@@ -605,7 +651,6 @@ app.post('/api/daily-streak', authenticateToken, async (req, res) => {
     return res.status(500).json({ error: 'Error updating daily streak' });
   }
 });
-
 
 // Start the server
 app.listen(port, () => {
