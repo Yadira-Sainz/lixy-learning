@@ -39,7 +39,8 @@ export default function OneReadingCollection() {
       })
       if (response.ok) {
         const data = await response.json()
-        setStories(data)
+        // Add a placeholder story at the end
+        setStories([...data, { story_id: `placeholder-${data.length + 1}`, title: `Nueva Lectura` }])
       } else {
         console.error('Failed to fetch stories')
       }
@@ -63,12 +64,8 @@ export default function OneReadingCollection() {
           if (response.ok) {
             const newStory = await response.json()
             setStories(prevStories => {
-              const updatedStories = [...prevStories]
-              const index = updatedStories.findIndex(story => story.story_id === storyId)
-              if (index !== -1) {
-                updatedStories[index] = { story_id: newStory.story_id, title: newStory.title }
-              }
-              return updatedStories
+              const updatedStories = prevStories.filter(story => story.story_id !== storyId)
+              return [...updatedStories, { story_id: newStory.story_id, title: newStory.title }, { story_id: `placeholder-${updatedStories.length + 1}`, title: 'Nueva Lectura' }]
             })
             router.push(`/leer?categoryId=${categoryId}&storyId=${newStory.story_id}`)
           } else {
