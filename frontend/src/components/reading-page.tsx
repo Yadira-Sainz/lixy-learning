@@ -1,43 +1,52 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PlayIcon, EyeOffIcon, ChevronRightIcon } from 'lucide-react'
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
 
 type Word = { id: number; word: string; definition: string; };
 
-export default function Component() {
-  const router = useRouter()
+type QuizQuestion = {
+  question: string;
+  options: string[];
+  correctAnswer: string;
+};
+
+export default function ReadingPage() {
   const [token, setToken] = useState<string | null>(null)
   const searchParams = useSearchParams()
   const [categoryId, setCategoryId] = useState<string | null>(null)
-  const [storyId, setStoryId] = useState<string | null>(null)
+  const [readingIndex, setReadingIndex] = useState<number>(0)
   const [vocabulary, setVocabulary] = useState<Word[]>([])
-  const [generatedStory, setGeneratedStory] = useState<{ title: string; content: string; story_id?: string } | null>(null)
+  const [generatedStory, setGeneratedStory] = useState<{ title: string; content: string } | null>(null)
   const [highlightsVisible, setHighlightsVisible] = useState(true)
   const [selectedWord, setSelectedWord] = useState<Word | null>(null)
-  const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({})
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([])
+  const [quizAnswers, setQuizAnswers] = useState<{ [key: number]: string }>({})
   const [quizSubmitted, setQuizSubmitted] = useState(false)
-  const audioRef = useRef<HTMLAudioElement>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const audioRef = useRef<HTMLAudioElement>(null)
 
   useEffect(() => {
     const storedToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     setToken(storedToken)
 
     const catId = searchParams.get('categoryId')
-    const sId = searchParams.get('storyId')
+    const readingIdx = searchParams.get('readingIndex')
     
-    console.log('Received params:', { categoryId: catId, storyId: sId })
+    console.log('Received params:', { categoryId: catId, readingIndex: readingIdx })
     
     setCategoryId(catId)
-    setStoryId(sId)
+    setReadingIndex(readingIdx ? parseInt(readingIdx) : 0)
 
     if (catId && storedToken) {
       fetchVocabulary(catId, storedToken)
@@ -48,12 +57,12 @@ export default function Component() {
   }, [searchParams])
 
   useEffect(() => {
-    if (vocabulary.length > 0 && token && categoryId && storyId) {
-      fetchStory(storyId, token, categoryId)
+    if (vocabulary.length > 0 && token && categoryId) {
+      generateStory()
     } else if (!isLoading && vocabulary.length === 0) {
       setError('No vocabulary found for this category')
     }
-  }, [vocabulary, token, categoryId, storyId, isLoading])
+  }, [vocabulary, token, categoryId, isLoading])
 
   const fetchVocabulary = async (categoryId: string, token: string) => {
     try {
@@ -74,20 +83,30 @@ export default function Component() {
           setError('No vocabulary found for this category')
         }
       } else {
-        console.error('Failed to fetch vocabulary')
-        setError('Failed to fetch vocabulary')
+        const errorData = await response.json()
+        console.error('Failed to fetch vocabulary:', errorData)
+        setError(`Failed to fetch vocabulary: ${errorData.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error fetching vocabulary:', error)
-      setError('Error fetching vocabulary')
+      setError(`Error fetching vocabulary: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const fetchStory = async (storyId: string, token: string, categoryId: string) => {
+  const generateStory = async () => {
+    if (!token || !categoryId) {
+      console.error('Missing token or categoryId')
+      setError('Missing token or categoryId')
+      setIsLoading(false)
+      return;
+    }
+    const selectedWords = vocabulary.sort(() => 0.5 - Math.random()).slice(0, 5)
+    const words = selectedWords.map(w => w.word).join(',')
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/story/${storyId}?categoryId=${categoryId}`, {
+      console.log('Generating story with words:', words)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate-content?words=${words}&categoryId=${categoryId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -96,17 +115,21 @@ export default function Component() {
       })
       if (response.ok) {
         const data = await response.json()
-        setGeneratedStory(data)
-        if (storyId.startsWith('placeholder-')) {
-          router.push(`/leer?categoryId=${categoryId}&storyId=${data.story_id}`)
+        console.log('Generated content:', data)
+        if (data.story && data.quizQuestions) {
+          setGeneratedStory(data.story)
+          setQuizQuestions(data.quizQuestions)
+        } else {
+          setError('Invalid response format')
         }
       } else {
-        console.error('Failed to fetch story')
-        setError('Failed to fetch story')
+        const errorData = await response.json()
+        console.error('Failed to generate content:', errorData)
+        setError(`Failed to generate content: ${errorData.error || 'Unknown error'}`)
       }
     } catch (error) {
-      console.error('Error fetching story:', error)
-      setError('Error fetching story')
+      console.error('Error generating content:', error)
+      setError(`Error generating content: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsLoading(false)
     }
@@ -116,10 +139,45 @@ export default function Component() {
     setSelectedWord(word)
   }
 
+  const handleQuizAnswerChange = (questionIndex: number, answer: string) => {
+    setQuizAnswers(prev => ({ ...prev, [questionIndex]: answer }))
+  }
+
   const handleQuizSubmit = () => {
     setQuizSubmitted(true)
-    // Here you would typically send the quiz answers to the backend for processing
-    console.log('Quiz submitted with answers:', quizAnswers)
+  }
+
+  const generateAudio = async () => {
+    if (!token || !generatedStory) return;
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate-audio`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sentence: generatedStory.content }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const fullAudioUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}${data.audioUrl}`;
+        setAudioUrl(fullAudioUrl);
+        if (audioRef.current) {
+          audioRef.current.src = fullAudioUrl;
+          audioRef.current.load(); // Load the new audio source
+          audioRef.current.play().catch(e => console.error('Error playing audio:', e));
+        }
+      } else {
+        const errorData = await response.json()
+        console.error('Failed to generate audio:', errorData)
+        setError(`Failed to generate audio: ${errorData.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Error generating audio:', error)
+      setError(`Error generating audio: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   const renderContent = () => {
@@ -151,18 +209,35 @@ export default function Component() {
   }
 
   if (error) {
-    return <div className="text-red-500">Error: {error}</div>
+    return (
+      <div className="container mx-auto p-4">
+        <Card className="p-4">
+          <h1 className="text-2xl font-bold text-red-500 mb-4">Error</h1>
+          <p>{error}</p>
+          <Button className="mt-4" onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </Card>
+      </div>
+    )
   }
 
   if (isLoading) {
-    return <div>Loading...</div>
+    return (
+      <div className="container mx-auto p-4">
+        <Card className="p-4">
+          <h1 className="text-2xl font-bold mb-4">Loading...</h1>
+          <p>Please wait while we prepare your reading material.</p>
+        </Card>
+      </div>
+    )
   }
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-4">{generatedStory?.title || 'Loading'}</h1>
+      <h1 className="text-3xl font-bold mb-4">{generatedStory?.title || 'Reading Page'}</h1>
       <div className="flex flex-col lg:flex-row gap-4">
-        <Card className="w-full lg:w-2/3 p-4 mb-4">
+        <Card className="w-full lg:w-2/3 p-4  mb-4">
           <ScrollArea className="h-[300px] lg:h-[400px] mb-4">
             <p className="mb-4 space-x-1">{renderContent()}</p>
           </ScrollArea>
@@ -187,14 +262,14 @@ export default function Component() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
-                      onClick={() => audioRef.current?.play()}
+                      onClick={generateAudio}
                       aria-label="Play Audio"
                     >
                       <PlayIcon className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Reproducir Audio</p>
+                    <p>Play Audio</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -207,18 +282,17 @@ export default function Component() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Siguiente Página</p>
+                  <p>Next Page</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
         </Card>
-        <audio ref={audioRef} src="/placeholder.mp3" />
         <Card className="w-full lg:w-1/3 p-4">
           <Tabs defaultValue="words" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="words">Palabras</TabsTrigger>
-              <TabsTrigger value="quiz">Cuestionario</TabsTrigger>
+              <TabsTrigger value="words">Words</TabsTrigger>
+              <TabsTrigger value="quiz">Quiz</TabsTrigger>
             </TabsList>
             <TabsContent value="words">
               <ScrollArea className="h-[300px] lg:h-[400px]">
@@ -228,7 +302,7 @@ export default function Component() {
                     <p className="mb-4">{selectedWord.definition}</p>
                   </div>
                 ) : (
-                  <p className="text-center mt-4">Haz click en una palabra resaltada para ver sus detalles.</p>
+                  <p className="text-center mt-4">Click on a highlighted word to see its details.</p>
                 )}
               </ScrollArea>
             </TabsContent>
@@ -236,21 +310,29 @@ export default function Component() {
               <ScrollArea className="h-[300px] lg:h-[400px]">
                 <div>
                   <h2 className="text-xl font-bold mb-4">Quiz</h2>
-                  {vocabulary.slice(0, 5).map((word, index) => (
-                    <div key={word.id} className="mb-4">
-                      <p className="font-semibold mb-2">{index + 1}. What does &quot;{word.word}&quot; mean?</p>
-                      <input
-                        type="text"
-                        className="w-full p-2 border rounded"
-                        placeholder="Enter your answer"
-                        value={quizAnswers[word.id] || ''}
-                        onChange={(e) => setQuizAnswers({...quizAnswers, [word.id]: e.target.value})}
-                        disabled={quizSubmitted}
-                      />
+                  {quizQuestions.map((question, index) => (
+                    <div key={index} className="mb-6">
+                      <p className="font-semibold mb-2">{question.question}</p>
+                      <RadioGroup
+                        value={quizAnswers[index]}
+                        onValueChange={(value) => handleQuizAnswerChange(index, value)}
+                      >
+                        {question.options.map((option, optionIndex) => (
+                          <div key={optionIndex} className="flex items-center space-x-2">
+                            <RadioGroupItem value={option} id={`q${index}-option${optionIndex}`} />
+                            <Label htmlFor={`q${index}-option${optionIndex}`}>{option}</Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                      {quizSubmitted && (
+                        <p className={`mt-2 ${quizAnswers[index] === question.correctAnswer ? 'text-green-600' : 'text-red-600'}`}>
+                          {quizAnswers[index] === question.correctAnswer ? 'Correct!' : `Incorrect. The correct answer is: ${question.correctAnswer}`}
+                        </p>
+                      )}
                     </div>
                   ))}
-                  <Button onClick={handleQuizSubmit} className="w-full mt-4" disabled={quizSubmitted}>
-                    {quizSubmitted ? 'Quiz Submitted' : 'Submit Quiz'}
+                  <Button onClick={handleQuizSubmit} className="w-full" disabled={quizSubmitted}>
+                    {quizSubmitted ? 'Submitted' : 'Submit Answers'}
                   </Button>
                 </div>
               </ScrollArea>
@@ -258,6 +340,7 @@ export default function Component() {
           </Tabs>
         </Card>
       </div>
+      <audio ref={audioRef} controls style={{ display: 'block', marginTop: '1rem' }} />
     </div>
   )
 }
