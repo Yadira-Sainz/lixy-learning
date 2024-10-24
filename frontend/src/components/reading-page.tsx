@@ -238,7 +238,7 @@ export default function Component() {
                   <h2 className="text-xl font-bold mb-4">Quiz</h2>
                   {vocabulary.slice(0, 5).map((word, index) => (
                     <div key={word.id} className="mb-4">
-                      <p className="font-semibold mb-2">{index + 1}. What does "{word.word}" mean?</p>
+                      <p className="font-semibold mb-2">{index + 1}. What does &quot;{word.word}&quot; mean?</p>
                       <input
                         type="text"
                         className="w-full p-2 border rounded"
