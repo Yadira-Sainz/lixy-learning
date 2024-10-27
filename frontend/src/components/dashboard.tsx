@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -6,6 +6,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { AlignLeft } from 'lucide-react';
 
 const difficultyData = [
   { name: 'Fácil', value: 30 },
@@ -32,40 +33,53 @@ const weakWords = [
 export function DashboardComponent() {
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [currentWord, setCurrentWord] = useState(0)
-  const [streakDates, setStreakDates] = useState<Date[]>([]);// Para guardar las fechas de racha
+  const [streakDates, setStreakDates] = useState<string[]>([]); // Cambiado a string[]
+
+  const fetchStreakDates = async (userId: number) => {
+    const token = localStorage.getItem('token'); // Obtener el token almacenado
+  
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/streaks/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`, // Incluir el token en el encabezado
+      },
+    });
+  
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+  
+    const streakDates = await response.json();
+    return streakDates.map((dateStr: string) => dateStr); // Mantener como string
+  };
 
   useEffect(() => {
-    fetch('/api/streaks/1') // Reemplazar con el ID de usuario real
-      .then(res => res.json())
+    const userId = 1; // Reemplazar con el ID de usuario real o dinámico
+    
+    fetchStreakDates(userId)
       .then(data => {
-        setStreakDates(data.map((dateStr: string) => new Date(dateStr))); // Convertir las fechas a objetos Date
+        setStreakDates(data); // Guardar las fechas de racha como strings
       })
       .catch(err => console.error("Error fetching streaks:", err));
   }, []);
-
-  const isStreakDay = (date: Date) => {
-    return streakDates.some(streakDate => streakDate.toDateString() === date.toDateString());
-  };
-
+  
   return (
     <section id="tablero">
       <div className="p-4">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="col-span-1 md:col-span-2 lg:col-span-1 h-full">
           <CardHeader>
-            <CardTitle>Racha Diaria</CardTitle>
+            <CardTitle>Racha Diaria   <span className='dias'>{streakDates.length}</span> </CardTitle>
           </CardHeader>
           <CardContent>
             <Calendar
               mode="single"
               selected={date}
               onSelect={setDate}
+              streakDates={streakDates} // Ahora son strings
               className="rounded-md border w-full"
-              modifiers={{
-                streakDay: isStreakDay, // Días con racha
-              }}
               modifiersClassNames={{
-                streakDay: 'bg-green-500 text-white rounded-full', // Estilo para días de racha
+                streak: 'bg-green-500 text-white rounded-full', // Cambia 'streakDay' a 'streak'
               }}
             />
           </CardContent>
@@ -152,7 +166,6 @@ export function DashboardComponent() {
       </div>
     </div>
     </section>
-    
   )
 }
 

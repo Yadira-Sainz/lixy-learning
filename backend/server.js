@@ -603,6 +603,38 @@ app.post('/api/daily-streak', authenticateToken, async (req, res) => {
   }
 });
 
+app.post('/api/streaks',authenticateToken, async (req, res) => {
+  const  userId  = req.user.userId;
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1); // Resta un día para obtener la fecha de ayer
+  const yesterdayFormatted = yesterday.toISOString().split('T')[0]; 
+  const todayFormat = today.toISOString().split('T')[0];
+  try {
+    console.log(`Fetching streaks for user ${userId}`);
+    const result = await pool.query(
+      'SELECT current_streak FROM daily_streaks WHERE user_id = $1 AND (streak_date = $2 OR streak_date = $3) ORDER BY streak_date DESC LIMIT 1',
+      [userId,todayFormat,yesterdayFormatted]
+    );
+    
+    console.log(`Fetched ${result.rows.length} streak dates`);
+    
+    // Extraer las fechas de racha esto esta mallll
+    //const streakDates = result.rows.map(row => row.streak_date);
+    const date = new Date(today);
+    const dates = [];
+    for (let i = 0; i < result.rows[0].current_streak; i++) {
+      date.setDate(today.getDate() - i); // Resta `i` días a la fecha actual
+      dates.push(date.toISOString().split('T')[0]); // Formatea y guarda en el arreglo
+    }
+    console.log(dates);
+    // Devolver las fechas de racha en formato JSON
+    res.json(dates);
+  } catch (err) {
+    console.error('Error fetching streaks:', err);
+    res.status(500).json({ error: 'Error al obtener las fechas de racha', details: err.message, test:authenticateToken() });
+  }
+});
 
 // Start the server
 app.listen(port, () => {

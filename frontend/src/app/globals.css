@@ -102,3 +102,26 @@ h1, h2, h3, h4, h5, h6 {
     @apply bg-background text-foreground;
   }
 }
+
+
+.streak {
+  position: relative;
+}
+
+.streak::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px; /* Ajusta el tamaño del punto */
+  height: 4px; /* Ajusta el tamaño del punto */
+  background-color: green; /* Color del punto */
+  border-radius: 50%; /* Hace que sea redondo */
+}
+
+.dias {
+  position: relative;
+  right: -20%;
+  color: green;
+}
