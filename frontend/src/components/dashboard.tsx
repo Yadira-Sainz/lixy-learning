@@ -35,7 +35,7 @@ export function DashboardComponent() {
   const [currentWord, setCurrentWord] = useState(0)
   const [streakDates, setStreakDates] = useState<string[]>([]); // Cambiado a string[]
 
-  const fetchStreakDates = async (userId: number) => {
+  const fetchStreakDates = async () => {
     const token = localStorage.getItem('token'); // Obtener el token almacenado
   
     const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/streaks/`, {
@@ -53,10 +53,8 @@ export function DashboardComponent() {
     return streakDates.map((dateStr: string) => dateStr); // Mantener como string
   };
 
-  useEffect(() => {
-    const userId = 1; // Reemplazar con el ID de usuario real o dinámico
-    
-    fetchStreakDates(userId)
+  useEffect(() => {   
+    fetchStreakDates()
       .then(data => {
         setStreakDates(data); // Guardar las fechas de racha como strings
       })
