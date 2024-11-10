@@ -7,14 +7,26 @@ import { DayPicker } from "react-day-picker"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>
+// Define la prop para las fechas de racha
+export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
+  streakDates: string[]; // Agregamos esta prop
+}
 
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  streakDates, // Recibimos las fechas de racha
   ...props
 }: CalendarProps) {
+  // Modificador para marcar las fechas de racha
+  const modifiers = {
+    streak: (date:  Date) => {
+      const dateString = date.toISOString().split('T')[0]; // Formateamos la fecha
+      return streakDates.includes(dateString); // Comprobamos si la fecha está en las fechas de racha
+    },
+  }
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
@@ -57,10 +69,12 @@ function Calendar({
         IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
         IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />,
       }}
+      modifiers={modifiers} // Pasamos los modificadores
       {...props}
     />
   )
 }
+
 Calendar.displayName = "Calendar"
 
 export { Calendar }
