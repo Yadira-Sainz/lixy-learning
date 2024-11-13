@@ -11,10 +11,10 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
-        <h2 style={styles.text}>Congratulations!</h2>
-        <p style={styles.text}>You have completed your daily streak of 20 words.</p>
+        <h2 style={styles.text}>¡Felicidades!</h2>
+        <p style={styles.text}>Has completado tu repaso de 20 palabras.</p>
         <button onClick={onClose} style={styles.button}>
-          Go to Dashboard
+          Ir al tablero
         </button>
       </div>
     </div>

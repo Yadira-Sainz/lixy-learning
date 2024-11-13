@@ -1,11 +1,12 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker } from "react-day-picker"
+import * as React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { DayPicker } from "react-day-picker";
+import { es } from "date-fns/locale";
 
-import { cn } from "@/lib/utils"
-import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 
 // Define la prop para las fechas de racha
 export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
@@ -16,19 +17,20 @@ function Calendar({
   className,
   classNames,
   showOutsideDays = true,
-  streakDates, // Recibimos las fechas de racha
+  streakDates,
   ...props
 }: CalendarProps) {
   // Modificador para marcar las fechas de racha
   const modifiers = {
-    streak: (date:  Date) => {
-      const dateString = date.toISOString().split('T')[0]; // Formateamos la fecha
-      return streakDates.includes(dateString); // Comprobamos si la fecha está en las fechas de racha
+    streak: (date: Date) => {
+      const dateString = date.toISOString().split("T")[0];
+      return streakDates.includes(dateString);
     },
-  }
+  };
 
   return (
     <DayPicker
+      locale={es} // Set the locale to Spanish
       showOutsideDays={showOutsideDays}
       className={cn("p-3", className)}
       classNames={{

@@ -133,7 +133,7 @@ export function FlashcardCenter() {
                     <CardTitle>{set.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-gray-500">Click to start practicing this set</p>
+                    <p className="text-sm text-gray-500">Haz clic para empezar a practicar</p>
                   </CardContent>
                 </Card>
               ))}
@@ -170,7 +170,7 @@ export function FlashcardCenter() {
                   <CardTitle>{category.category_name}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-500">Click to view this category</p>
+                  <p className="text-sm text-gray-500">Haz click para ver esta categoría</p>
                 </CardContent>
               </Card>
             ))}

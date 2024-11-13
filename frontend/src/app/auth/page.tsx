@@ -1,6 +1,6 @@
 // src/app/auth/page.tsx
 import React, { Suspense } from 'react';
-import { AuthPageComponent } from '@/components/auth-page';
+import AuthPageComponent from "@/components/auth-page"
 
 const AuthPage = () => {
   return (
