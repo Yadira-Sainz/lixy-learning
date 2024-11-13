@@ -1,5 +1,12 @@
 # Use the official Node.js 20 image as a parent image
 FROM node:20.17
+
+# Install tzdata to set the timezone
+RUN apt-get update && apt-get install -y tzdata
+
+# Set the timezone to Guadalajara, Mexico
+ENV TZ=America/Mexico_City
+RUN ln -fs /usr/share/zoneinfo/$TZ /etc/localtime && dpkg-reconfigure -f noninteractive tzdata
  
 # Set the working directory
 WORKDIR /usr/src/app
