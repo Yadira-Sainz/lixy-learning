@@ -181,7 +181,7 @@ export default function ReadingPage() {
   }
 
   const renderContent = () => {
-    if (!generatedStory) return <p>Loading...</p>
+    if (!generatedStory) return <p>Cargando...</p>
     return generatedStory.content.split(' ').map((word, index) => {
       const cleanWord = word.replace(/[^a-zA-Z]/g, '').toLowerCase()
       const highlightInfo = vocabulary.find(v => v.word.toLowerCase() === cleanWord)
@@ -215,20 +215,19 @@ export default function ReadingPage() {
           <h1 className="text-2xl font-bold text-red-500 mb-4">Error</h1>
           <p>{error}</p>
           <Button className="mt-4" onClick={() => window.location.reload()}>
-            Try Again
+            Intentar de nuevo
           </Button>
         </Card>
       </div>
     )
   }
 
-  //Is loading
   if (isLoading) {
     return (
       <div className="container mx-auto p-4">
         <Card className="p-4">
-          <h1 className="text-2xl font-bold mb-4">Loading...</h1>
-          <p>Please wait while we prepare your reading material.</p>
+          <h1 className="text-2xl font-bold mb-4">Cargando...</h1>
+          <p>Por favor espera mientras cargamos el material de lectura.</p>
         </Card>
       </div>
     )
@@ -292,8 +291,18 @@ export default function ReadingPage() {
         <Card className="w-full lg:w-1/3 p-4">
           <Tabs defaultValue="words" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="words">Words</TabsTrigger>
-              <TabsTrigger value="quiz">Quiz</TabsTrigger>
+              <TabsTrigger 
+                value="words"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                Palabras
+              </TabsTrigger>
+              <TabsTrigger 
+                value="quiz"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                Cuestionario
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="words">
               <ScrollArea className="h-[300px] lg:h-[400px]">
@@ -303,14 +312,14 @@ export default function ReadingPage() {
                     <p className="mb-4">{selectedWord.definition}</p>
                   </div>
                 ) : (
-                  <p className="text-center mt-4">Click on a highlighted word to see its details.</p>
+                  <p className="text-center mt-4">Haz click en una palabra resaltada para ver sus detalles.</p>
                 )}
               </ScrollArea>
             </TabsContent>
             <TabsContent value="quiz">
               <ScrollArea className="h-[300px] lg:h-[400px]">
                 <div>
-                  <h2 className="text-xl font-bold mb-4">Quiz</h2>
+                  <h2 className="text-xl font-bold mb-4">Cuestionario</h2>
                   {quizQuestions.map((question, index) => (
                     <div key={index} className="mb-6">
                       <p className="font-semibold mb-2">{question.question}</p>
@@ -327,13 +336,13 @@ export default function ReadingPage() {
                       </RadioGroup>
                       {quizSubmitted && (
                         <p className={`mt-2 ${quizAnswers[index] === question.correctAnswer ? 'text-green-600' : 'text-red-600'}`}>
-                          {quizAnswers[index] === question.correctAnswer ? 'Correct!' : `Incorrect. The correct answer is: ${question.correctAnswer}`}
+                          {quizAnswers[index] === question.correctAnswer ? '¡Correcto!' : `Incorrecto. La respuesta es: ${question.correctAnswer}`}
                         </p>
                       )}
                     </div>
                   ))}
                   <Button onClick={handleQuizSubmit} className="w-full" disabled={quizSubmitted}>
-                    {quizSubmitted ? 'Submitted' : 'Submit Answers'}
+                    {quizSubmitted ? 'Enviado' : 'Enviar respuestas'}
                   </Button>
                 </div>
               </ScrollArea>

@@ -109,7 +109,7 @@ export default function ProfileSectionComponent() {
               </div>
               <Label htmlFor="profile-image" className="cursor-pointer block text-center">
                 <div className="bg-background text-foreground border rounded-full py-2 px-4 inline-block">
-                  Change Profile Picture
+                  Cambiar foto de perfil
                 </div>
                 <Input
                   id="profile-image"
@@ -122,15 +122,15 @@ export default function ProfileSectionComponent() {
             </div>
             <div className="w-full md:w-2/3 space-y-4">
               <div>
-                <Label htmlFor="first-name">First Name</Label>
+                <Label htmlFor="first-name">Nombre</Label>
                 <Input id="first-name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
               </div>
               <div>
-                <Label htmlFor="last-name">Last Name</Label>
+                <Label htmlFor="last-name">Apellido</Label>
                 <Input id="last-name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
               </div>
               <div>
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="username">Nombre de usuario</Label>
                 <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} />
               </div>
               <div>
@@ -138,31 +138,31 @@ export default function ProfileSectionComponent() {
                 <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div>
-                <Label htmlFor="age">Age</Label>
+                <Label htmlFor="age">Edad</Label>
                 <Input id="age" type="number" value={age === "" ? "" : age.toString()} onChange={(e) => setAge(e.target.value === "" ? "" : Number(e.target.value))} />
               </div>
               <div>
-                <Label htmlFor="gender">Gender</Label>
+                <Label htmlFor="gender">Género</Label>
                 <Select value={gender} onValueChange={setGender}>
                   <SelectTrigger id="gender">
-                    <SelectValue placeholder="Select your gender" />
+                    <SelectValue placeholder="Selecciona tu género" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                    <SelectItem value="Male"> Masculino</SelectItem>
+                    <SelectItem value="Female">Femenino</SelectItem>
+                    <SelectItem value="Other">Otro</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label htmlFor="country">Country</Label>
+                <Label htmlFor="country">País</Label>
                 <Input id="country" value={country} onChange={(e) => setCountry(e.target.value)} />
               </div>
               <div>
-                <Label htmlFor="native-language">Native Language</Label>
+                <Label htmlFor="native-language">Idioma nativo</Label>
                 <Select value={nativeLanguage} onValueChange={setNativeLanguage}>
                   <SelectTrigger id="native-language">
-                    <SelectValue placeholder="Select your native language" />
+                    <SelectValue placeholder="Selecciona tu idioma nativo" />
                   </SelectTrigger>
                   <SelectContent>
                     {languages.length > 0 && languages.map((language: any) => (
@@ -176,10 +176,10 @@ export default function ProfileSectionComponent() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="learning-language">Learning Language</Label>
+                <Label htmlFor="learning-language">Idioma a aprender</Label>
                 <Select value={learningLanguage} onValueChange={setLearningLanguage}>
                   <SelectTrigger id="learning-language">
-                    <SelectValue placeholder="Select the language you are learning" />
+                    <SelectValue placeholder="Selecciona el idioma que estás aprendiendo" />
                   </SelectTrigger>
                   <SelectContent>
                     {languages.length > 0 && languages.map((language: any) => (
@@ -193,7 +193,7 @@ export default function ProfileSectionComponent() {
                 </Select>
               </div>
               <div className="flex justify-end">
-                <Button onClick={handleSubmit}>Save Changes</Button>
+                <Button onClick={handleSubmit}>Guardar cambios</Button>
               </div>
             </div>
           </div>

@@ -95,7 +95,7 @@ export function ReadingCenterComponent() {
                       <CardTitle>{set.title}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm text-gray-500">Click to start practicing this set</p>
+                      <p className="text-sm text-gray-500">Haz click para comenzar a practicar</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -126,7 +126,7 @@ export function ReadingCenterComponent() {
         <section>
           <h2 className="text-3xl font-bold mb-4">Colección</h2>
           {isLoading ? (
-            <p>Loading categories...</p>
+            <p>Cargando categorías...</p>
           ) : error ? (
             <p className="text-red-500">{error}</p>
           ) : (
@@ -141,7 +141,7 @@ export function ReadingCenterComponent() {
                     <CardTitle>{category.category_name}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-gray-500">Click to view this category</p>
+                    <p className="text-sm text-gray-500">Da click para ver esta categoría</p>
                   </CardContent>
                 </Card>
               ))}
