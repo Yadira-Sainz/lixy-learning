@@ -59,6 +59,10 @@ export default function AuthPageComponent() {
 
   const handleLogin = async () => {
     try {
+      if (!email || !password) {
+        setLoginError('Por favor, complete todos los campos')
+        return
+      }
       const response = await axios.post(process.env.NEXT_PUBLIC_BACKEND_URL + '/login', {
         email,
         password,
@@ -77,6 +81,26 @@ export default function AuthPageComponent() {
   }
 
   const handleSignup = async () => {
+    if (!firstName || !lastName || !email || !password || !age || !gender || !country || !nativeLanguage || !learningLanguage) {
+      setSignupError('Por favor, complete todos los campos')
+      return
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setSignupError('Por favor, ingrese un correo electrónico válido')
+      return
+    }
+
+    if (password.length < 6) {
+      setSignupError('La contraseña debe tener al menos 6 caracteres')
+      return
+    }
+
+    if (isNaN(Number(age)) || Number(age) <= 0) {
+      setSignupError('Por favor, ingrese una edad válida')
+      return
+    }
+
     try {
       const generatedUsername = generateUsername(email)
 
@@ -188,7 +212,10 @@ export default function AuthPageComponent() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="age">Edad</Label>
-                  <Input id="age" type="number" value={age} onChange={(e) => setAge(e.target.value)} />
+                  <Input id="age" type="number" value={age} onChange={(e) => {
+                    const numericValue = e.target.value.replace(/\D/g, '')
+                    setAge(numericValue)
+                  }} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="gender">Género</Label>
