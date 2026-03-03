@@ -53,39 +53,41 @@ lixylearning aims to provide a comprehensive platform for learning English vocab
 
    ```
 
-2. Create a .env file in the root directory and add the following environment variables:
-   GEMINI_API_KEY=your_gemini_api_key
-   DATABASE_URL=postgres://lixylearning:lixylearning@localhost:5432/lixylearningdb
-   POSTGRES_USER=lixylearning
-   POSTGRES_PASSWORD=lixylearning
-   POSTGRES_DB=lixylearning
-   REACT_APP_BACKEND_HOST=localhost
+2. Create a `.env` file in the root directory. Copy from the example:
+   ```sh
+   cp .env.production.example .env
+   ```
+   Then edit `.env` and add your actual values. See [docs/VARIABLES_ENTORNO.md](docs/VARIABLES_ENTORNO.md) for full documentation.
+
+   **Variables mínimas para desarrollo local:**
+   - `NEXT_PUBLIC_BACKEND_URL=http://localhost:5001`
+   - `DATABASE_URL=postgresql://postgres:lixylearning@postgres:5432/lixylearning_db`
+   - `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
+   - `GEMINI_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `SEARCH_ENGINE_ID`
+   - `JWT_SECRET`
 
 ### Running the Application
 
 Build and start the services using Docker Compose:
+
+```sh
 docker-compose up --build
+```
 
-Access the frontend at http://localhost:3000 and the backend at http://localhost:5000.
+Access the frontend at http://localhost:3000 and the backend at http://localhost:5001.
 
-Environment Variables
-Ensure you have the following environment variables set in your .env file:
+### Migración a AWS
 
-GEMINI_API_KEY: Your Gemini API key
-DATABASE_URL: PostgreSQL connection string
-POSTGRES_USER: PostgreSQL username
-POSTGRES_PASSWORD: PostgreSQL password
-POSTGRES_DB: PostgreSQL database name
-REACT_APP_BACKEND_HOST: Backend host URL for the frontend
-Docker Setup
+Para desplegar en AWS (EC2), consulta el [Manual de Migración a AWS](docs/MANUAL_MIGRACION_AWS.md).
 
-### The project uses Docker for containerization. The docker-compose.yml file defines the services for the frontend, backend, and PostgreSQL database.
+### Docker Setup
 
-### Docker Compose Commands
+The project uses Docker for containerization. The `docker-compose.yml` file defines the services for the frontend, backend, and PostgreSQL database.
 
-Start services: docker-compose up
-Stop services: docker-compose down
-Rebuild images: docker-compose up --build
+**Docker Compose Commands:**
+- Start services: `docker-compose up`
+- Stop services: `docker-compose down`
+- Rebuild images: `docker-compose up --build`
 
 ## Contributing
 
