@@ -58,6 +58,28 @@ sudo systemctl start docker
 sudo systemctl enable docker
 ```
 
+### Build del frontend termina con "Killed" (OOM)
+
+**Causa:** La instancia t3.micro tiene solo 1GB RAM. El build de Next.js consume más memoria y el kernel mata el proceso (OOM Killer).
+
+**Solución:** Crear un archivo swap en EC2 para dar memoria virtual durante el build:
+
+```bash
+# Crear swap de 2GB
+sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+
+# Hacerlo persistente tras reinicio
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
+# Verificar
+free -h
+```
+
+Luego reconstruir: `docker-compose build --no-cache frontend`. El build será más lento pero debería completarse.
+
 ### Error: "Could not find a production build in the '.next' directory"
 
 **Causa:** Next.js necesita `output: 'standalone'` para Docker. Sin ello, el directorio `.next` no se copia correctamente a la imagen final.
