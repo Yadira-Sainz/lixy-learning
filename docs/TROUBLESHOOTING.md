@@ -60,11 +60,12 @@ sudo systemctl enable docker
 
 ### Error: "Could not find a production build in the '.next' directory"
 
-**Causa:** El build de Next.js no incluyó devDependencies o la imagen usó caché corrupta.
+**Causa:** Next.js necesita `output: 'standalone'` para Docker. Sin ello, el directorio `.next` no se copia correctamente a la imagen final.
 
 **Solución:**
-1. En `frontend/Dockerfile`, usar `RUN npm install` (no `--production`) para que el build tenga TypeScript, etc.
-2. Reconstruir sin caché: `docker-compose build --no-cache frontend`
+1. En `frontend/next.config.mjs`, añadir `output: 'standalone'`
+2. El `frontend/Dockerfile` debe usar el build standalone (multi-stage): copiar `.next/standalone`, `.next/static` y ejecutar `node server.js`
+3. Reconstruir sin caché: `docker-compose build --no-cache frontend && docker-compose up -d`
 
 ---
 
