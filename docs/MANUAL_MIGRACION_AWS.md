@@ -50,31 +50,149 @@ Para tener HTTPS con Let's Encrypt necesitas un nombre de dominio. Opciones sin 
 
 ## 3. Fase 1: Crear instancia EC2
 
+Esta sección te guía paso a paso para crear tu primera instancia EC2 en AWS. Si es tu primer uso de AWS, sigue cada paso con cuidado.
+
+---
+
 ### 3.1 Acceder a la consola AWS
 
-1. Inicia sesión en [console.aws.amazon.com](https://console.aws.amazon.com)
-2. Selecciona la región más cercana (ej: `us-east-1` - N. Virginia)
+1. Abre tu navegador y ve a: **https://console.aws.amazon.com**
+2. Inicia sesión con tu cuenta de AWS (email y contraseña)
+3. Una vez dentro, verás el panel principal. En la esquina superior derecha verás la **región** actual (ej: "N. Virginia", "Ohio"). Puedes dejarla o cambiarla haciendo clic ahí. Para México, **us-east-1 (N. Virginia)** suele dar buen rendimiento.
 
-### 3.2 Lanzar la instancia
+---
 
-1. Ve a **EC2** → **Instances** → **Launch instance**
-2. Configura:
-   - **Name:** `lixylearning-prod`
-   - **AMI:** Amazon Linux 2023
-   - **Instance type:** t2.micro (Free tier eligible)
-   - **Key pair:** Create new → nombre `lixy-key` → Descargar y guardar el archivo `.pem`
-   - **Network settings:** Edit → Create security group:
-     - SSH (22): My IP
-     - HTTP (80): Anywhere (0.0.0.0/0)
-     - HTTPS (443): Anywhere (0.0.0.0/0)
-     - Custom TCP 3000: Anywhere (para pruebas sin Nginx)
-     - Custom TCP 5001: Anywhere (para pruebas sin Nginx)
-   - **Storage:** 20 GB gp2
-3. Click **Launch instance**
+### 3.2 Ir al servicio EC2
 
-### 3.3 Obtener la IP pública
+1. En la barra de búsqueda superior (donde dice "Search for services, features, etc."), escribe: **EC2**
+2. Haz clic en **EC2** (aparecerá como "Amazon Elastic Compute Cloud" o similar)
+3. Llegarás al **Dashboard de EC2**. Verás un menú lateral izquierdo con opciones como "Instances", "Security Groups", etc.
 
-En la lista de instancias, anota la **Public IPv4 address** (cambiará al reiniciar hasta que asignes Elastic IP).
+---
+
+### 3.3 Iniciar la creación de una instancia
+
+1. En el panel central, busca el botón naranja **"Launch instance"** (o "Iniciar instancia") y haz clic
+2. Se abrirá una pantalla con varios pasos de configuración. Sigue cada uno:
+
+---
+
+### 3.4 Paso 1: Nombre y etiquetas
+
+1. En el campo **"Name and tags"** (Nombre y etiquetas), en la fila "Name", escribe:
+   ```
+   lixylearning-staging
+   ```
+   (Usa `-staging` para pruebas; para producción usarías `lixylearning-prod`)
+
+---
+
+### 3.5 Paso 2: Imagen de aplicación (AMI)
+
+1. En **"Application and OS Images"** (Imágenes de aplicación y SO):
+   - Deja **"Quick Start"** seleccionado
+   - En la lista, selecciona **Amazon Linux**
+   - En la versión, elige **Amazon Linux 2023** (AMI)
+   - No cambies la arquitectura (64-bit x86)
+
+---
+
+### 3.6 Paso 3: Tipo de instancia
+
+1. En **"Instance type"** (Tipo de instancia):
+   - Haz clic en el desplegable
+   - Busca y selecciona **t3.micro** (o **t2.micro** si aparece; en algunas regiones solo está t3.micro)
+   - Debe aparecer la etiqueta **"Free tier eligible"** (elegible para capa gratuita)
+   - **t3.micro** tiene 2 vCPU y 1 GB de RAM — suficiente y recomendado para tu proyecto
+
+---
+
+### 3.7 Paso 4: Par de claves (Key pair) — MUY IMPORTANTE
+
+El par de claves te permite conectarte por SSH a tu servidor. **Guarda el archivo .pem en un lugar seguro; sin él no podrás acceder a la instancia.**
+
+1. En **"Key pair (login)"**:
+   - Haz clic en **"Create new key pair"** (Crear nuevo par de claves)
+2. Se abrirá un cuadro de diálogo:
+   - **Key pair name:** escribe `lixy-key`
+   - **Key pair type:** deja **RSA**
+   - **Private key format:** si usas **Mac o Linux**, elige **.pem**; si usas **Windows con PuTTY**, elige **.ppk**
+3. Haz clic en **"Create key pair"**
+4. Se descargará un archivo `lixy-key.pem` (o `lixy-key.ppk`). **Guárdalo en una carpeta segura** (ej: `~/Downloads` o `Documentos`). No lo compartas ni lo subas a internet.
+
+---
+
+### 3.8 Paso 5: Configuración de red (Security Group)
+
+1. Haz clic en **"Edit"** (Editar) junto a "Network settings"
+2. En **"Security group name"**, puedes dejar el nombre por defecto (`launch-wizard-1`) o cambiarlo a `lixy-sg` para identificarlo mejor
+3. En **"Inbound security group rules"** (Reglas de entrada), verás una regla SSH por defecto:
+   - **Regla 1 (SSH):** Por defecto viene con **Source type: Anywhere** (0.0.0.0/0). AWS mostrará una advertencia amarilla indicando que esto permite acceso desde cualquier IP.
+   - **Importante:** Cambia **Source type** a **"My IP"** para que solo tu computadora pueda conectarse por SSH. Esto es más seguro.
+   - Si usas "My IP", el campo **Source** se llenará automáticamente con tu IP actual
+4. Haz clic en **"Add security group rule"** para añadir las reglas restantes. Configura:
+
+   | Tipo        | Puerto | Source type | Source      | Descripción                    |
+   |-------------|--------|-------------|-------------|--------------------------------|
+   | SSH         | 22     | My IP       | (automático)| Para conectarte por SSH        |
+   | HTTP        | 80     | Anywhere    | 0.0.0.0/0   | Tráfico web                    |
+   | HTTPS       | 443    | Anywhere    | 0.0.0.0/0   | Tráfico web seguro             |
+   | Custom TCP  | 3000   | Anywhere    | 0.0.0.0/0   | Frontend (pruebas sin Nginx)   |
+   | Custom TCP  | 5001   | Anywhere    | 0.0.0.0/0   | Backend (pruebas sin Nginx)    |
+
+5. Para cada regla nueva:
+   - **Type:** elige HTTP, HTTPS o Custom TCP
+   - **Port range:** para Custom TCP escribe `3000` o `5001`
+   - **Source type:** "My IP" solo para SSH; "Anywhere" para el resto
+   - **Source:** si eliges Anywhere, aparecerá `0.0.0.0/0`
+6. **Nota:** Si tu IP de internet cambia (ej: reinicias el router), tendrás que actualizar la regla SSH o usar temporalmente "Anywhere" para poder conectarte
+
+---
+
+### 3.9 Paso 6: Almacenamiento
+
+1. En **"Configure storage"** (Configurar almacenamiento):
+   - **Size (GiB):** cambia a **20** (el mínimo suele ser 8, 20 da margen)
+   - **Type:** deja **gp2** (General Purpose SSD)
+   - No añadas más volúmenes
+
+---
+
+### 3.10 Paso 7: Resumen y lanzamiento
+
+1. Revisa el **resumen** en el panel derecho (número de instancias: 1, tipo t3.micro, etc.)
+2. Haz clic en el botón naranja **"Launch instance"** (Iniciar instancia)
+3. Verás un mensaje de éxito: "Successfully initiated launch of instance"
+4. Haz clic en **"Connect to instance"** o en el ID de la instancia (ej: `i-0abc123...`) para ir a la lista
+
+---
+
+### 3.11 Obtener la IP pública
+
+1. En el menú lateral, haz clic en **"Instances"** (Instancias)
+2. Verás tu instancia `lixylearning-staging`. Puede tardar 1-2 minutos en pasar de "Pending" a "Running"
+3. Selecciona la instancia (marca la casilla)
+4. En el panel inferior, en la pestaña **"Details"** (Detalles), busca:
+   - **Public IPv4 address** — anótala (ej: `54.123.45.67`). Esta es la IP que usarás para conectarte por SSH
+   - **Public IPv4 DNS** — opcional, es el nombre DNS que AWS asigna (ej: `ec2-54-123-45-67.compute-1.amazonaws.com`)
+
+**Nota:** Esta IP cambiará cada vez que detengas y reinicies la instancia, hasta que asignes una Elastic IP (Fase 3).
+
+---
+
+### 3.12 Alternativa: Desplegar con CloudFormation
+
+Si prefieres usar Infrastructure as Code, existe una plantilla CloudFormation en `infrastructure/aws/ec2-staging-cloudformation.yaml` que crea la misma configuración (EC2 t3.micro + Security Group). Ver `infrastructure/aws/README.md` para instrucciones.
+
+---
+
+### 3.13 Resumen de lo que creaste
+
+- Una instancia EC2 con Amazon Linux 2023
+- Tipo t3.micro (Free Tier, 2 vCPU, 1 GB RAM)
+- 20 GB de almacenamiento
+- Par de claves `lixy-key.pem` para SSH
+- Reglas de firewall que permiten SSH, HTTP, HTTPS y los puertos 3000 y 5001
 
 ---
 
@@ -84,10 +202,10 @@ En la lista de instancias, anota la **Public IPv4 address** (cambiará al reinic
 
 ```bash
 # Dar permisos al archivo de clave
-chmod 400 ~/Downloads/lixy-key.pem
+chmod 400 ~/.ssh/lixy-key.pem
 
 # Conectar (reemplaza con tu IP pública)
-ssh -i ~/Downloads/lixy-key.pem ec2-user@<TU-IP-PUBLICA>
+ssh -i ~/.ssh/lixy-key.pem ec2-user@<TU-IP-PUBLICA>
 ```
 
 ### 4.2 Instalar Docker
@@ -102,12 +220,20 @@ sudo usermod -aG docker ec2-user
 
 **Importante:** Cierra la sesión SSH y vuelve a conectar para que el grupo `docker` se aplique.
 
-### 4.3 Instalar Docker Compose
+### 4.3 Instalar Docker Compose y Buildx
 
 ```bash
+# Docker Compose (standalone)
 sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
-docker-compose --version  # Verificar instalación
+
+# Buildx (requerido por docker-compose v5+ para builds)
+mkdir -p ~/.docker/cli-plugins
+curl -SL https://github.com/docker/buildx/releases/download/v0.19.3/buildx-v0.19.3.linux-amd64 -o ~/.docker/cli-plugins/docker-buildx
+chmod +x ~/.docker/cli-plugins/docker-buildx
+
+docker-compose --version  # Verificar
+docker buildx version     # Debe ser 0.17.0 o superior
 ```
 
 ---
@@ -116,11 +242,15 @@ docker-compose --version  # Verificar instalación
 
 ### 5.1 Asignar Elastic IP
 
-1. EC2 → **Elastic IPs** → **Allocate Elastic IP address** → Allocate
-2. Selecciona la IP → **Actions** → **Associate Elastic IP address**
-3. Elige tu instancia `lixylearning-prod` → Associate
+1. En el menú lateral de EC2, haz clic en **"Elastic IPs"** (debajo de "Network & Security")
+2. Haz clic en **"Allocate Elastic IP address"** (Asignar dirección IP elástica)
+3. En la ventana que aparece, haz clic en **"Allocate"**
+4. Se creará una nueva IP. Selecciónala (marca la casilla)
+5. Haz clic en **"Actions"** → **"Associate Elastic IP address"**
+6. En el desplegable **"Instance"**, elige tu instancia (`lixylearning-staging` o `lixylearning-prod`)
+7. Haz clic en **"Associate"**
 
-La IP ya no cambiará al reiniciar la instancia.
+La IP ya no cambiará al reiniciar la instancia. Usa esta IP para configurar DuckDNS o No-IP.
 
 ### 5.2 Actualizar DNS (DuckDNS/No-IP)
 
@@ -130,7 +260,16 @@ Actualiza tu subdominio con la nueva Elastic IP en el panel de DuckDNS o No-IP.
 
 ## 6. Fase 4: Desplegar la aplicación
 
-### 6.1 Clonar el repositorio
+### 6.1 Instalar Git
+
+Amazon Linux no incluye Git por defecto. Instálalo antes de clonar:
+
+```bash
+sudo yum install git -y
+git --version  # Verificar instalación (ej: git version 2.40.0)
+```
+
+### 6.2 Clonar el repositorio
 
 ```bash
 cd ~
@@ -138,7 +277,15 @@ git clone https://github.com/Yadira-Sainz/lixy-learning.git
 cd lixy-learning
 ```
 
-### 6.2 Crear archivo .env
+**Si es ambiente de staging (pruebas):** cambia a la rama que quieres probar:
+```bash
+git checkout feature/aws-migration
+# o, cuando hagas merge: git checkout develop
+```
+
+**Si es ambiente de producción:** la rama `main` es la predeterminada al clonar; no necesitas cambiar.
+
+### 6.3 Crear archivo .env
 
 ```bash
 cp .env.production.example .env
@@ -152,13 +299,13 @@ Variables críticas:
 - `DATABASE_URL`: `postgresql://postgres:TU_PASSWORD@postgres:5432/lixylearning_db`
 - Todas las API keys
 
-### 6.3 Construir y ejecutar
+### 6.4 Construir y ejecutar
 
 ```bash
 docker-compose up -d --build
 ```
 
-### 6.4 Verificar
+### 6.5 Verificar
 
 - Frontend: `http://<TU-IP>:3000`
 - Backend: `http://<TU-IP>:5001`

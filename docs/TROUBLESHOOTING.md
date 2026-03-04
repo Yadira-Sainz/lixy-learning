@@ -43,7 +43,7 @@ sudo usermod -aG docker ec2-user
 
 ### Los contenedores se detienen o fallan
 
-**Causa:** t2.micro tiene solo 1GB RAM; puede ser insuficiente para 3 contenedores.
+**Causa:** t3.micro/t2.micro tiene solo 1GB RAM; puede ser insuficiente para 3 contenedores.
 
 **Solución:**
 1. Verificar logs: `docker-compose logs`
@@ -57,6 +57,14 @@ sudo usermod -aG docker ec2-user
 sudo systemctl start docker
 sudo systemctl enable docker
 ```
+
+### Error: "Could not find a production build in the '.next' directory"
+
+**Causa:** El build de Next.js no incluyó devDependencies o la imagen usó caché corrupta.
+
+**Solución:**
+1. En `frontend/Dockerfile`, usar `RUN npm install` (no `--production`) para que el build tenga TypeScript, etc.
+2. Reconstruir sin caché: `docker-compose build --no-cache frontend`
 
 ---
 
@@ -81,6 +89,17 @@ docker-compose down -v  # Elimina volúmenes
 docker-compose up -d
 # Revisar logs: docker-compose logs postgres
 ```
+
+### Error: PostgreSQL 18+ "pg_ctlcluster" / "unused mount/volume"
+
+**Causa:** La imagen `postgres:latest` (PostgreSQL 18+) cambió el formato de datos. El volumen debe montarse en `/var/lib/postgresql` en lugar de `/var/lib/postgresql/data`.
+
+**Solución:** En `docker-compose.yml`, cambiar:
+```yaml
+volumes:
+  - postgres-data:/var/lib/postgresql  # no /data
+```
+Luego: `docker-compose down -v` y `docker-compose up -d`.
 
 ---
 
