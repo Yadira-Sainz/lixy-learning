@@ -1,7 +1,8 @@
 FROM postgres:latest
 
 # Copy initialization scripts into the Docker image
-COPY init-db.sh /docker-entrypoint-initdb.d/
+# Order: db_ddl.sql (schema) runs first, then load-data.sh (vocabulary CSV)
+# Note: init-db.sh was removed to avoid duplicate execution of scripts
 COPY load-data.sh /docker-entrypoint-initdb.d/
 COPY sql_scripts/* /docker-entrypoint-initdb.d/
 COPY vocabulary.csv /docker-entrypoint-initdb.d/

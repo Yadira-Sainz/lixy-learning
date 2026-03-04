@@ -113,6 +113,12 @@ docker-compose up -d
 # Revisar logs: docker-compose logs postgres
 ```
 
+### Error: "duplicate key value violates unique constraint vocabulary_pkey" en init
+
+**Causa:** `init-db.sh` ejecutaba `db_ddl.sql` y `load-data.sh`, y el entrypoint de PostgreSQL también ejecutaba `load-data.sh`, cargando el vocabulario dos veces.
+
+**Solución:** Ya corregido: `init-db.sh` fue removido del Dockerfile. Solo se ejecutan `db_ddl.sql` y `load-data.sh` una vez cada uno. Si usas una imagen antigua, reconstruir: `docker-compose build --no-cache postgres && docker-compose down -v && docker-compose up -d`.
+
 ### Error: PostgreSQL 18+ "pg_ctlcluster" / "unused mount/volume"
 
 **Causa:** La imagen `postgres:latest` (PostgreSQL 18+) cambió el formato de datos. El volumen debe montarse en `/var/lib/postgresql` en lugar de `/var/lib/postgresql/data`.
