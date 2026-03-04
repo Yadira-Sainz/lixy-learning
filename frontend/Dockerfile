@@ -19,7 +19,7 @@ ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
 
 RUN npm run build
 
-# Stage 2: Production
+# Stage 2: Production (standalone output)
 FROM node:20.17
 
 RUN apt-get update && apt-get install -y tzdata
@@ -28,14 +28,14 @@ RUN ln -fs /usr/share/zoneinfo/$TZ /etc/localtime && dpkg-reconfigure -f noninte
 
 WORKDIR /usr/src/app
 
-# Copy only what's needed for production
-COPY --from=builder /usr/src/app/package*.json ./
-COPY --from=builder /usr/src/app/yarn.lock ./
-COPY --from=builder /usr/src/app/.next ./.next
-COPY --from=builder /usr/src/app/public ./public
-COPY --from=builder /usr/src/app/node_modules ./node_modules
-COPY --from=builder /usr/src/app/next.config.mjs ./
+# Standalone: copia solo lo necesario (server.js + .next mínimo)
+COPY --from=builder /usr/src/app/.next/standalone ./
+COPY --from=builder /usr/src/app/.next/static ./.next/static
+
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
