@@ -21,7 +21,7 @@ Este manual describe el proceso paso a paso para migrar LixyLearning desde un se
 
 - Cuenta de AWS (Free Tier con créditos)
 - Par de claves SSH (se creará en el proceso)
-- Acceso a las API keys: Gemini, OpenAI, Google (TTS y Custom Search)
+- Acceso a las API keys: Gemini, OpenAI, Google (TTS), Pixabay (imágenes)
 - Cliente SSH en tu computadora (Terminal en Mac/Linux, PuTTY en Windows)
 
 ---
@@ -33,7 +33,7 @@ Para tener HTTPS con Let's Encrypt necesitas un nombre de dominio. Opciones sin 
 | Servicio | URL ejemplo | Notas |
 |----------|-------------|-------|
 | **DuckDNS** | `lixylearning.duckdns.org` | Subdominio gratis, actualización automática de IP |
-| **No-IP** | `lixylearning.ddns.net` | Similar a DuckDNS, ya lo conoces |
+| **No-IP** | `lixylearning.zapto.org` | Similar a DuckDNS, dominios como .zapto.org, .ddns.net |
 | **nip.io** | `52.1.2.3.nip.io` | Usa tu IP directamente, sin registro. No recomendado para SSL |
 
 **Recomendación:** Usa DuckDNS o No-IP. Ambos permiten obtener certificados SSL gratuitos con Let's Encrypt.
@@ -45,6 +45,18 @@ Para tener HTTPS con Let's Encrypt necesitas un nombre de dominio. Opciones sin 
 3. Crea un subdominio (ej: `lixylearning`)
 4. Anota tu token para actualización automática
 5. Una vez tengas la Elastic IP de EC2, actualiza el registro con esa IP
+
+### Configurar No-IP (ejemplo)
+
+1. Ve a [my.noip.com](https://www.noip.com) e inicia sesión
+2. Entra a **DDNS & Remote Access** → **DNS Records**
+3. Haz clic en **Create Hostname** (o edita uno existente)
+4. Configura:
+   - **Type:** A
+   - **Host:** `lixylearning` (o el nombre que prefieras)
+   - **IPv4:** Tu Elastic IP de EC2
+   - **Enable Dynamic DNS:** Actívalo solo si tu IP cambia (no necesario con Elastic IP)
+5. Guarda. Tu dominio será `lixylearning.zapto.org` (o el subdominio que elijas)
 
 ---
 
@@ -256,6 +268,13 @@ La IP ya no cambiará al reiniciar la instancia. Usa esta IP para configurar Duc
 
 Actualiza tu subdominio con la nueva Elastic IP en el panel de DuckDNS o No-IP.
 
+**Verificar que el DNS resuelve correctamente** (antes de ejecutar Certbot):
+
+```bash
+dig tu-dominio.duckdns.org +short   # o lixylearning.zapto.org
+# Debe devolver tu Elastic IP
+```
+
 ---
 
 ## 6. Fase 4: Desplegar la aplicación
@@ -295,7 +314,8 @@ nano .env  # o vi .env
 Edita y reemplaza todos los valores con tus credenciales reales. **No uses valores de ejemplo en producción.**
 
 Variables críticas:
-- `NEXT_PUBLIC_BACKEND_URL`: `https://tu-dominio.duckdns.org` (o tu subdominio)
+- `NEXT_PUBLIC_BACKEND_URL`: `https://tu-dominio.duckdns.org` o `https://lixylearning.zapto.org` (según tu proveedor DNS)
+- `NEXT_PUBLIC_FRONTEND_URL`: misma URL que el backend si usas reverse proxy
 - `DATABASE_URL`: `postgresql://postgres:TU_PASSWORD@postgres:5432/lixylearning_db`
 - Todas las API keys
 
@@ -318,10 +338,12 @@ Si todo funciona, continúa con Nginx para HTTPS.
 
 ### 7.1 Instalar Nginx y Certbot
 
+**Nota:** En Amazon Linux 2023 no existe `amazon-linux-extras`. Usa pip para instalar Certbot:
+
 ```bash
-sudo yum install nginx -y
-sudo amazon-linux-extras install epel -y
-sudo yum install certbot python3-certbot-nginx -y
+sudo dnf install nginx -y
+sudo dnf install -y python3-pip
+sudo python3 -m pip install certbot certbot-nginx
 ```
 
 ### 7.2 Configurar Nginx como reverse proxy
@@ -332,12 +354,12 @@ Crea el archivo de configuración:
 sudo nano /etc/nginx/conf.d/lixylearning.conf
 ```
 
-Contenido (reemplaza `tu-dominio.duckdns.org`):
+Contenido (reemplaza con tu dominio: `lixylearning.duckdns.org`, `lixylearning.zapto.org`, etc.):
 
 ```nginx
 server {
     listen 80;
-    server_name tu-dominio.duckdns.org;
+    server_name lixylearning.zapto.org;
 
     location / {
         proxy_pass http://127.0.0.1:3000;
@@ -376,15 +398,34 @@ server {
 }
 ```
 
-### 7.3 Obtener certificado SSL
+**Verificar y reiniciar Nginx:**
 
 ```bash
+sudo nginx -t
 sudo systemctl start nginx
 sudo systemctl enable nginx
-sudo certbot --nginx -d tu-dominio.duckdns.org
 ```
 
+### 7.3 Obtener certificado SSL
+
+Let's Encrypt es **gratuito**. Certbot obtiene y renueva el certificado automáticamente:
+
+```bash
+sudo certbot --nginx -d lixylearning.zapto.org
+```
+
+(Reemplaza con tu dominio real)
+
 Sigue las instrucciones (email, aceptar términos). Certbot configurará HTTPS automáticamente.
+
+**Después del certificado:** Actualiza el `.env` con las URLs HTTPS y reinicia la aplicación:
+
+```bash
+# En .env: NEXT_PUBLIC_BACKEND_URL=https://tu-dominio
+#          NEXT_PUBLIC_FRONTEND_URL=https://tu-dominio
+cd ~/lixy-learning
+docker-compose down && docker-compose up -d --build
+```
 
 ### 7.4 Renovación automática
 

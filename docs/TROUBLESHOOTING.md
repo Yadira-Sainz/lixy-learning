@@ -157,6 +157,17 @@ curl http://127.0.0.1:3000  # Probar localmente en EC2
 
 ## SSL / Certbot
 
+### Error: "amazon-linux-extras: command not found" o "No module named pip"
+
+**Causa:** Amazon Linux 2023 no incluye `amazon-linux-extras` ni pip por defecto.
+
+**Solución:** Instalar Certbot con pip:
+
+```bash
+sudo dnf install -y python3-pip
+sudo python3 -m pip install certbot certbot-nginx
+```
+
 ### Error: "Could not find a valid ACME account"
 
 **Solución:**
@@ -169,9 +180,9 @@ sudo certbot register --agree-tos -m tu@email.com
 **Causa:** El dominio no apunta a la IP de tu EC2.
 
 **Solución:**
-1. Verificar en DuckDNS/No-IP que el registro tenga la Elastic IP correcta
+1. Verificar en DuckDNS/No-IP que el registro A tenga la Elastic IP correcta
 2. Esperar propagación DNS (hasta 5-10 minutos)
-3. Probar: `nslookup tu-dominio.duckdns.org` debe devolver tu IP
+3. Probar: `dig tu-dominio.duckdns.org +short` o `dig lixylearning.zapto.org +short` debe devolver tu Elastic IP
 
 ### Certificado expirado
 
@@ -190,7 +201,7 @@ sudo systemctl reload nginx
 **Causa:** API keys faltantes, incorrectas o límites excedidos.
 
 **Solución:**
-1. Verificar que todas las variables estén en .env: GEMINI_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY, SEARCH_ENGINE_ID
+1. Verificar que todas las variables estén en .env: GEMINI_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY, PIXABAY_API_KEY
 2. Revisar cuotas en las consolas de OpenAI, Google Cloud
 3. Ver logs del backend: `docker-compose logs backend`
 

@@ -63,7 +63,7 @@ lixylearning aims to provide a comprehensive platform for learning English vocab
    - `NEXT_PUBLIC_BACKEND_URL=http://localhost:5001`
    - `DATABASE_URL=postgresql://postgres:lixylearning@postgres:5432/lixylearning_db`
    - `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
-   - `GEMINI_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `SEARCH_ENGINE_ID`
+   - `GEMINI_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `PIXABAY_API_KEY`
    - `JWT_SECRET`
 
 ### Running the Application

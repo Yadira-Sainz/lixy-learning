@@ -236,7 +236,14 @@ const handleCloseModal = () => {
           <Card key={flashcards[currentCardIndex].id} className="p-6">
             <div className="flex flex-col md:flex-row md:space-x-6 space-y-6 md:space-y-0">
               <div className="w-full md:w-1/3 flex flex-col items-center md:items-start">
-                <img src={currentImageUrl} alt="Flashcard image" className="w-full max-w-[200px] h-auto object-cover rounded-lg mb-4" />
+                {currentImageUrl ? (
+                  <>
+                    <img src={currentImageUrl} alt="Flashcard image" className="w-full max-w-[200px] h-auto object-cover rounded-lg mb-1" />
+                    <a href="https://pixabay.com" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:underline mb-4 block">Image from Pixabay</a>
+                  </>
+                ) : (
+                  <div className="w-full max-w-[200px] h-[150px] bg-muted rounded-lg flex items-center justify-center mb-4 text-muted-foreground text-sm">Loading image...</div>
+                )}
                 <div className="flex space-x-2 justify-center md:justify-start">
                   <Button variant="outline" size="icon" onClick={playAudio}>
                     <Play className="h-4 w-4" />

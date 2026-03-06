@@ -15,8 +15,8 @@ Documentación de todas las variables de entorno requeridas para el proyecto. **
 | JWT_SECRET | Sí | Secreto para tokens JWT |
 | GEMINI_API_KEY | Sí | API key de Google Gemini |
 | OPENAI_API_KEY | Sí | API key de OpenAI |
-| GOOGLE_API_KEY | Sí | API key de Google (TTS, Custom Search) |
-| SEARCH_ENGINE_ID | Sí | ID del motor de búsqueda personalizado |
+| GOOGLE_API_KEY | Sí | API key de Google (Text-to-Speech) |
+| PIXABAY_API_KEY | Sí | API key de Pixabay (imágenes para flashcards) |
 
 ---
 
@@ -72,12 +72,12 @@ Documentación de todas las variables de entorno requeridas para el proyecto. **
 - **Obtener:** [OpenAI Platform](https://platform.openai.com/api-keys)
 
 #### GOOGLE_API_KEY
-- **Uso:** Google Text-to-Speech y Custom Search API
+- **Uso:** Google Text-to-Speech (síntesis de voz)
 - **Obtener:** [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
 
-#### SEARCH_ENGINE_ID
-- **Uso:** Google Custom Search para imágenes de vocabulario
-- **Obtener:** [Programmable Search Engine](https://programmablesearchengine.google.com/)
+#### PIXABAY_API_KEY
+- **Uso:** Búsqueda de imágenes para flashcards de vocabulario (API gratuita)
+- **Obtener:** [Pixabay API](https://pixabay.com/api/docs/) — Regístrate gratis y obtén tu API key
 
 ---
 

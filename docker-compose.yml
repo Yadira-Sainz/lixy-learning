@@ -22,6 +22,9 @@ services:
     env_file:
       - .env
     restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   postgres:
     build: ./db
@@ -34,6 +37,11 @@ services:
       # PostgreSQL 18+ requiere montar en /var/lib/postgresql (no /data)
       - postgres-data:/var/lib/postgresql
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d lixylearning_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     
 
 volumes:
