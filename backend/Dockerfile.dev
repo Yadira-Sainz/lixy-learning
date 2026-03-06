@@ -1,0 +1,19 @@
+# Desarrollo: hot reload con nodemon
+FROM node:18
+
+RUN apt-get update && apt-get install -y tzdata
+ENV TZ=America/Mexico_City
+RUN ln -fs /usr/share/zoneinfo/$TZ /etc/localtime && dpkg-reconfigure -f noninteractive tzdata
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+ARG NEXT_PUBLIC_FRONTEND_URLS=http://localhost:3000
+ENV NEXT_PUBLIC_FRONTEND_URLS=$NEXT_PUBLIC_FRONTEND_URLS
+
+ENV NODE_ENV=development
+EXPOSE 5000
+
+CMD ["npm", "run", "dev"]
