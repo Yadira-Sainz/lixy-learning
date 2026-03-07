@@ -1,0 +1,19 @@
+# Backend sin hot reload (menor uso de memoria)
+FROM python:3.12-slim
+
+RUN apt-get update && apt-get install -y tzdata libpq-dev gcc
+ENV TZ=America/Mexico_City
+RUN ln -fs /usr/share/zoneinfo/$TZ /etc/localtime && dpkg-reconfigure -f noninteractive tzdata
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+ARG NEXT_PUBLIC_FRONTEND_URLS=http://localhost:3000
+ENV NEXT_PUBLIC_FRONTEND_URLS=$NEXT_PUBLIC_FRONTEND_URLS
+
+ENV PYTHONUNBUFFERED=1
+EXPOSE 5000
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]

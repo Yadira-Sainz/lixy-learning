@@ -1,0 +1,26 @@
+# Production build (no hot reload, lower memory)
+FROM node:20.17
+
+RUN apt-get update && apt-get install -y tzdata
+ENV TZ=America/Mexico_City
+RUN ln -fs /usr/share/zoneinfo/$TZ /etc/localtime && dpkg-reconfigure -f noninteractive tzdata
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+COPY yarn.lock ./
+RUN npm install
+
+ARG NEXT_PUBLIC_BACKEND_URL=http://localhost:5001
+ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
+
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+# Cap Node heap to reduce OOM risk on low-memory instances
+ENV NODE_OPTIONS="--max-old-space-size=512"
+
+EXPOSE 3000
+
+# Build and run production server (no hot reload, lower memory)
+CMD ["sh", "-c", "npm run build && npm run start"]

@@ -69,6 +69,7 @@ export default function AuthPageComponent() {
       })
       localStorage.setItem('token', response.data.token)
       setLoginError('')
+      window.dispatchEvent(new CustomEvent('auth-change', { detail: { loggedIn: true } }))
       router.push('/tablero')
     } catch (error) {
       setLoginError('Correo o contraseña inválidos')
@@ -119,6 +120,7 @@ export default function AuthPageComponent() {
 
       localStorage.setItem('token', response.data.token)
       setSignupError('')
+      window.dispatchEvent(new CustomEvent('auth-change', { detail: { loggedIn: true } }))
       router.push('/tablero')
     } catch (error) {
       setSignupError('Error al registrarse. Por favor intente nuevamente.')

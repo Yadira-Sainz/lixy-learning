@@ -32,7 +32,8 @@ export default function UserMenu() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    router.push('/auth?tab=login'); // Redirect to login page
+    window.dispatchEvent(new CustomEvent('auth-change', { detail: { loggedIn: false } }));
+    router.push('/auth?tab=login');
   };
 
   return (

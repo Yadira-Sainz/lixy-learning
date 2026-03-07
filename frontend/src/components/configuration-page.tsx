@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
+import { useTheme } from 'next-themes'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,11 +19,17 @@ interface SectionRefs {
 }
 
 export default function ConfigurationPageComponent() {
+  const { theme, setTheme, resolvedTheme } = useTheme()
   const [dailyGoal, setDailyGoal] = useState('10')
   const [cardsPerSession, setCardsPerSession] = useState('20')
   const [includeTranslation, setIncludeTranslation] = useState(true)
   const [activeSection, setActiveSection] = useState(sections[0].id)
   const sectionRefs = useRef<SectionRefs>({})
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     sections.forEach(section => {
@@ -33,7 +40,7 @@ export default function ConfigurationPageComponent() {
   }, [])
 
   const handleSaveChanges = () => {
-    console.log('Changes saved:', { dailyGoal, cardsPerSession, includeTranslation })
+    console.log('Changes saved:', { dailyGoal, cardsPerSession, includeTranslation, theme })
   }
 
   const scrollToSection = (sectionId: string) => {
@@ -68,16 +75,25 @@ export default function ConfigurationPageComponent() {
           <div className="space-y-4">
             <div>
               <Label htmlFor="theme">Tema</Label>
-              <Select>
+              <Select
+                value={mounted ? (theme ?? 'system') : 'system'}
+                onValueChange={(value) => setTheme(value as 'light' | 'dark' | 'system')}
+              >
                 <SelectTrigger id="theme">
                   <SelectValue placeholder="Selecciona un tema" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="light">Claro</SelectItem>
                   <SelectItem value="dark">Oscuro</SelectItem>
-                  <SelectItem value="system">Sistema</SelectItem>
+                  <SelectItem value="system">Sistema (según el SO)</SelectItem>
                 </SelectContent>
               </Select>
+              {mounted && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  {resolvedTheme === 'dark' ? 'Modo oscuro activo' : 'Modo claro activo'}
+                  {theme === 'system' && ' (según preferencia del sistema)'}
+                </p>
+              )}
             </div>
             
             <div>

@@ -355,17 +355,22 @@ app.post('/api/get-image-url', authenticateToken, async (req, res) => {
       }
     }
 
-    // Fetch a new image URL if no valid URL is found
-    const query = encodeURIComponent(word + ' animated');
-    const url = `https://www.googleapis.com/customsearch/v1?q=${query}&cx=${process.env.SEARCH_ENGINE_ID}&searchType=image&key=${process.env.GOOGLE_API_KEY}&num=1`;
+    // Fetch a new image URL using Pixabay API (free, no billing required)
+    const apiKey = process.env.PIXABAY_API_KEY;
+    if (!apiKey) {
+      console.error('PIXABAY_API_KEY is not configured');
+      return res.status(500).json({ error: 'Image search not configured. Add PIXABAY_API_KEY to .env' });
+    }
 
-    const response = await fetch(url);
+    const query = encodeURIComponent(word);
+    const pixabayUrl = `https://pixabay.com/api/?key=${apiKey}&q=${query}&image_type=photo&per_page=3&safesearch=true`;
+
+    const response = await fetch(pixabayUrl);
     const data = await response.json();
 
-    console.log('Google Custom Search API Response:', data);
-
-    if (data.items && data.items.length > 0) {
-      const newImageUrl = data.items[0].link;
+    if (data.hits && data.hits.length > 0) {
+      // Use webformatURL (640px) - good balance for flashcards
+      const newImageUrl = data.hits[0].webformatURL || data.hits[0].largeImageURL;
 
       // Update the database with the new image URL
       await pool.query(
@@ -375,7 +380,7 @@ app.post('/api/get-image-url', authenticateToken, async (req, res) => {
 
       return res.json({ imageUrl: newImageUrl });
     } else {
-      return res.status(404).json({ error: 'No image  found for the word' });
+      return res.status(404).json({ error: 'No image found for the word' });
     }
   } catch (err) {
     console.error('Error fetching image URL:', err);
