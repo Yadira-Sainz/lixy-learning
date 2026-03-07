@@ -1,19 +1,20 @@
-# Desarrollo: hot reload con nodemon
-FROM node:18
+# Desarrollo: hot reload con uvicorn --reload
+FROM python:3.12-slim
 
-RUN apt-get update && apt-get install -y tzdata
+RUN apt-get update && apt-get install -y tzdata libpq-dev gcc
 ENV TZ=America/Mexico_City
 RUN ln -fs /usr/share/zoneinfo/$TZ /etc/localtime && dpkg-reconfigure -f noninteractive tzdata
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 ARG NEXT_PUBLIC_FRONTEND_URLS=http://localhost:3000
 ENV NEXT_PUBLIC_FRONTEND_URLS=$NEXT_PUBLIC_FRONTEND_URLS
 
-ENV NODE_ENV=development
+ENV PYTHONUNBUFFERED=1
 EXPOSE 5000
 
-CMD ["npm", "run", "dev"]
+# Hot reload: uvicorn recarga al detectar cambios en el código
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000", "--reload"]

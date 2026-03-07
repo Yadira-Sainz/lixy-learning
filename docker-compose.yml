@@ -25,7 +25,6 @@ services:
       - "5001:5000"
     volumes:
       - ./backend:/app
-      - /app/node_modules
     env_file:
       - .env
     restart: always
