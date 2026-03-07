@@ -16,6 +16,10 @@ yarn-debug.log*
 yarn-error.log*
 
 
+# Python
+__pycache__/
+*.pyc
+
 # Node.js
 node_modules
 npm-debug.log
