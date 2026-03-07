@@ -149,7 +149,7 @@ export default function NavbarComponent({ isLandingPage = false }: NavbarProps) 
               {isLandingPage && (
                 <Button
                   variant="outline"
-                  className={`hidden md:inline-flex ml-4 transition-all duration-300 ${isScrolled ? 'text-xs py-1 px-2' : 'text-sm'}`}
+                  className={`hidden md:inline-flex ml-4 transition-all duration-300 border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-700 hover:text-emerald-700 ${isScrolled ? 'text-xs py-1 px-2' : 'text-sm'}`}
                   onClick={handleLoginClick}
                 >
                   Iniciar Sesión
@@ -187,7 +187,7 @@ export default function NavbarComponent({ isLandingPage = false }: NavbarProps) 
             </button>
           )}
           {isLandingPage && (
-            <Button variant="outline" className="w-full mt-2" onClick={handleLoginClick}>
+            <Button variant="outline" className="w-full mt-2 border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-700 hover:text-emerald-700" onClick={handleLoginClick}>
               Iniciar Sesión
             </Button>
           )}

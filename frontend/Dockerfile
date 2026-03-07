@@ -1,37 +1,41 @@
-# Use the official Node.js 20 image as a parent image
-FROM node:20.17
+# Stage 1: Build
+FROM node:20.17 AS builder
 
-# Install tzdata to set the timezone
 RUN apt-get update && apt-get install -y tzdata
-
-# Set the timezone to Guadalajara, Mexico
 ENV TZ=America/Mexico_City
 RUN ln -fs /usr/share/zoneinfo/$TZ /etc/localtime && dpkg-reconfigure -f noninteractive tzdata
- 
-# Set the working directory
+
 WORKDIR /usr/src/app
- 
-# Copy package.json and package-lock.json (or yarn.lock)
+
 COPY package*.json ./
 COPY yarn.lock ./
- 
-# Install dependencies
-RUN npm install --production
- 
-# Copy the rest of your application code
+RUN npm install
+
 COPY . .
- 
-# Use a custom ESLint configuration
 COPY .eslintrc.js .eslintrc.js
 
 ARG NEXT_PUBLIC_BACKEND_URL=http://localhost:5001
 ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
 
-# Build your Next.js application
 RUN npm run build
- 
-# Expose the port the app runs on
+
+# Stage 2: Production (standalone output)
+FROM node:20.17
+
+RUN apt-get update && apt-get install -y tzdata
+ENV TZ=America/Mexico_City
+RUN ln -fs /usr/share/zoneinfo/$TZ /etc/localtime && dpkg-reconfigure -f noninteractive tzdata
+
+WORKDIR /usr/src/app
+
+# Standalone: copia solo lo necesario (server.js + .next mínimo)
+COPY --from=builder /usr/src/app/.next/standalone ./
+COPY --from=builder /usr/src/app/.next/static ./.next/static
+
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
 EXPOSE 3000
 
-# Command to run your app
-CMD ["npm", "start"]
+CMD ["node", "server.js"]

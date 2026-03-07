@@ -1,0 +1,99 @@
+# CloudFormation template - LixyLearning EC2 Staging
+# Generado: 2026-03-04
+# Uso: Despliega una instancia EC2 t3.micro con el Security Group configurado
+#
+# IMPORTANTE: El VpcId (vpc-090dcea1681694dd1) es específico de tu cuenta/región AWS.
+# Si despliegas en otra cuenta o región, debes cambiarlo por el ID de tu VPC por defecto.
+# Para obtener tu VPC ID: AWS Console → VPC → Your VPCs
+#
+# Desplegar desde AWS CLI:
+#   aws cloudformation create-stack --stack-name lixylearning-staging \
+#     --template-body file://ec2-staging-cloudformation.yaml
+#
+# O desde la consola: CloudFormation → Create stack → Upload template
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'LixyLearning - EC2 staging con Security Group (SSH, HTTP, HTTPS, 3000, 5001)'
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Default: vpc-090dcea1681694dd1
+    Description: ID de la VPC donde se creará la instancia (cambiar si usas otra cuenta/región)
+
+Resources:
+  LaunchWizard1SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: launch-wizard-1
+      GroupDescription: launch-wizard-1 created 2026-03-04T00:21:43.861Z
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: web80
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: web443
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+          Description: Frontend
+        - IpProtocol: tcp
+          FromPort: 5001
+          ToPort: 5001
+          CidrIp: 0.0.0.0/0
+          Description: Backend
+
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-08cf43bd6bbcf1724
+      InstanceType: t3.micro
+      KeyName: lixy-key
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            Encrypted: false
+            DeleteOnTermination: true
+            Iops: 3000
+            SnapshotId: snap-0e11a61d35744431e
+            VolumeSize: 20
+            VolumeType: gp3
+            Throughput: 125
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          GroupSet:
+            - !Ref LaunchWizard1SecurityGroup
+      CreditSpecification:
+        CPUCredits: unlimited
+      Tags:
+        - Key: Name
+          Value: lixylearning-staging
+      MetadataOptions:
+        HttpEndpoint: enabled
+        HttpPutResponseHopLimit: 2
+        HttpTokens: required
+      PrivateDnsNameOptions:
+        HostnameType: ip-name
+        EnableResourceNameDnsARecord: true
+        EnableResourceNameDnsAAAARecord: false
+
+Outputs:
+  InstanceId:
+    Description: ID de la instancia EC2
+    Value: !Ref EC2Instance
+  PublicIP:
+    Description: IP pública de la instancia
+    Value: !GetAtt EC2Instance.PublicIp
