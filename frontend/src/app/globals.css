@@ -1,11 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Figtree:wght@100;400;700&family=Poppins:wght@100;400;700&display=swap');
+@import './themes.css';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Variables de tema centralizadas (light/dark/system) */
-@import './themes.css';
 
 body {
   font-family: 'Figtree', sans-serif;

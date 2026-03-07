@@ -1,4 +1,4 @@
-# Desarrollo: hot reload con uvicorn --reload
+# Backend sin hot reload (menor uso de memoria)
 FROM python:3.12-slim
 
 RUN apt-get update && apt-get install -y tzdata libpq-dev gcc
@@ -16,5 +16,4 @@ ENV NEXT_PUBLIC_FRONTEND_URLS=$NEXT_PUBLIC_FRONTEND_URLS
 ENV PYTHONUNBUFFERED=1
 EXPOSE 5000
 
-# Hot reload: uvicorn recarga al detectar cambios en el código
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000", "--reload"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]
