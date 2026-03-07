@@ -14,6 +14,10 @@ services:
     restart: always
     env_file:
       - .env
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
   backend:
     build:
       context: ./backend
@@ -31,6 +35,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   postgres:
     build: ./db
@@ -43,6 +51,10 @@ services:
       # PostgreSQL 18+ requiere montar en /var/lib/postgresql (no /data)
       - postgres-data:/var/lib/postgresql
     restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d lixylearning_db"]
       interval: 5s
