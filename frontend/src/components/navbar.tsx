@@ -13,17 +13,18 @@ type NavbarProps = {
   isLandingPage?: boolean;
 };
 
-export default function NavbarComponent({ isLandingPage = false }: NavbarProps) {
+export default function NavbarComponent({ isLandingPage: isLandingPageProp = false }: NavbarProps) {
   const [activeItem, setActiveItem] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // State for login status
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
   const isAuthPage = pathname.startsWith('/auth');
   const isProfileOrSettings = pathname === '/perfil' || pathname === '/ajustes';
+  const isLandingPage = pathname === '/' || isLandingPageProp;
 
   const navItems = isLandingPage
     ? ['Sobre nosotros', 'Funciones', 'Contacto']
@@ -90,15 +91,18 @@ export default function NavbarComponent({ isLandingPage = false }: NavbarProps) 
       }
     }
 
-    // Check if user is logged in
     const token = localStorage.getItem('token');
-    if (token) {
-      setIsLoggedIn(true);
-    }
+    setIsLoggedIn(!!token);
+
+    const handleAuthChange = (e: CustomEvent<{ loggedIn: boolean }>) => {
+      setIsLoggedIn(e.detail.loggedIn);
+    };
+    window.addEventListener('auth-change', handleAuthChange as EventListener);
 
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('auth-change', handleAuthChange as EventListener);
       if (isLandingPage) {
         observerRef.current?.disconnect();
       }
@@ -146,7 +150,9 @@ export default function NavbarComponent({ isLandingPage = false }: NavbarProps) 
                   <Menu />
                 </Button>
               </div>
-              {isLandingPage && (
+              {isLoggedIn ? (
+                <UserMenu />
+              ) : (
                 <Button
                   variant="outline"
                   className={`hidden md:inline-flex ml-4 transition-all duration-300 border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-700 hover:text-emerald-700 ${isScrolled ? 'text-xs py-1 px-2' : 'text-sm'}`}
@@ -154,9 +160,6 @@ export default function NavbarComponent({ isLandingPage = false }: NavbarProps) 
                 >
                   Iniciar Sesión
                 </Button>
-              )}
-              {!isLandingPage && (
-                <UserMenu />
               )}
             </div>
           </>
@@ -178,7 +181,7 @@ export default function NavbarComponent({ isLandingPage = false }: NavbarProps) 
               </button>
             );
           })}
-          {!isLandingPage && !isProfileOrSettings && (
+          {isLoggedIn && !isProfileOrSettings && (
             <button
               onClick={() => router.push('/perfil')}
               className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -186,7 +189,7 @@ export default function NavbarComponent({ isLandingPage = false }: NavbarProps) 
               Perfil
             </button>
           )}
-          {isLandingPage && (
+          {!isLoggedIn && (
             <Button variant="outline" className="w-full mt-2 border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-700 hover:text-emerald-700" onClick={handleLoginClick}>
               Iniciar Sesión
             </Button>

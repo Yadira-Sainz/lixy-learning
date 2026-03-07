@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from "@/components/ui/button"
-import Navbar from '@/components/navbar'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import homepageImage from '@/assets/homepage.png'
@@ -17,7 +16,6 @@ export function LandingPageComponent() {
   return (
     <section id="sobre-nosotros">
       <div className="min-h-screen flex flex-col">
-        <Navbar isLandingPage={true} />
         <main className="flex-grow container mx-auto py-10 px-4 sm:px-6 lg:px-8 flex items-center">
           <div className="flex flex-col md:flex-row items-center justify-between py-12 md:py-24">
             {/* Left side content */}
