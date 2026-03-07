@@ -1,28 +1,21 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { AlignLeft } from 'lucide-react';
 
-const difficultyData = [
-  { name: 'Fácil', value: 30 },
-  { name: 'Medio', value: 45 },
-  { name: 'Difícil', value: 25 },
-]
+const DifficultyChart = dynamic(
+  () => import('./dashboard-charts').then((m) => m.DifficultyChart),
+  { ssr: false, loading: () => <div className="h-[300px] flex items-center justify-center text-muted-foreground">Cargando...</div> }
+);
 
-const progressData = [
-  { name: 'Lun', value: 20 },
-  { name: 'Mar', value: 35 },
-  { name: 'Mié', value: 15 },
-  { name: 'Jue', value: 40 },
-  { name: 'Vie', value: 30 },
-  { name: 'Sáb', value: 25 },
-  { name: 'Dom', value: 45 },
-]
+const ProgressChart = dynamic(
+  () => import('./dashboard-charts').then((m) => m.ProgressChart),
+  { ssr: false, loading: () => <div className="h-[300px] flex items-center justify-center text-muted-foreground">Cargando...</div> }
+);
 
 const weakWords = [
   { word: 'Abrumador', translation: 'Overwhelming' },
@@ -88,15 +81,7 @@ export function DashboardComponent() {
             <CardTitle>Dificultad</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={difficultyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
+            <DifficultyChart />
           </CardContent>
         </Card>
 
@@ -129,15 +114,7 @@ export function DashboardComponent() {
             <CardTitle>Progreso</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={progressData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#82ca9d" />
-              </BarChart>
-            </ResponsiveContainer>
+            <ProgressChart />
           </CardContent>
         </Card>
 
