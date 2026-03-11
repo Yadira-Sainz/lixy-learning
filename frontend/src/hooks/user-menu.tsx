@@ -14,21 +14,21 @@ export default function UserMenu() {
   const [userDetails, setUserDetails] = React.useState({ username: '', email: '', points: 0 });
   const router = useRouter();
 
-  React.useEffect(() => {
-    const fetchUserDetails = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(process.env.NEXT_PUBLIC_BACKEND_URL + '/user-details', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setUserDetails({ ...response.data, points: response.data.points ?? 0 });
-      } catch (error) {
-        console.error('Error fetching user details:', error);
-      }
-    };
-
-    fetchUserDetails();
+  const fetchUserDetails = React.useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(process.env.NEXT_PUBLIC_BACKEND_URL + '/user-details', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUserDetails({ ...response.data, points: response.data.points ?? 0 });
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+    }
   }, []);
+
+  React.useEffect(() => {
+    fetchUserDetails();
+  }, [fetchUserDetails]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -37,7 +37,7 @@ export default function UserMenu() {
   };
 
   return (
-    <Popover>
+    <Popover onOpenChange={(open) => open && fetchUserDetails()}>
       <PopoverTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
