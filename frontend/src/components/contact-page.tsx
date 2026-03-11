@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
+import { useLocale } from '@/contexts/locale-context'
 
 export function ContactPageComponent() {
+  const { t } = useLocale()
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -34,15 +36,15 @@ export function ContactPageComponent() {
     <section id='contacto' className="flex items-center justify-center min-h-screen">
       <div className="py-14 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Contáctanos</h1>
-          <p className="text-lg text-gray-600 mb-8">
-            ¿Tienes alguna pregunta o necesitas ayuda? Nuestro equipo está aquí para ayudarte. Completa el formulario a continuación y te responderemos lo antes posible.
+          <h1 className="text-4xl font-bold text-foreground mb-4">{t('contact.title')}</h1>
+          <p className="text-lg text-muted-foreground mb-8">
+            {t('contact.subtitle')}
           </p>
           <Card>
-            <CardContent className="p-8"> {/* Adjust padding here */}
+            <CardContent className="p-8">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label htmlFor="nombre" className="block text-sm font-medium text-gray-700">Nombre</label>
+                  <label htmlFor="nombre" className="block text-sm font-medium text-foreground">{t('contact.name')}</label>
                   <Input
                     type="text"
                     id="nombre"
@@ -54,7 +56,7 @@ export function ContactPageComponent() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">E-mail</label>
+                  <label htmlFor="email" className="block text-sm font-medium text-foreground">{t('contact.email')}</label>
                   <Input
                     type="email"
                     id="email"
@@ -66,7 +68,7 @@ export function ContactPageComponent() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="asunto" className="block text-sm font-medium text-gray-700">Asunto</label>
+                  <label htmlFor="asunto" className="block text-sm font-medium text-foreground">{t('contact.subject')}</label>
                   <Input
                     type="text"
                     id="asunto"
@@ -78,7 +80,7 @@ export function ContactPageComponent() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="mensaje" className="block text-sm font-medium text-gray-700">Mensaje</label>
+                  <label htmlFor="mensaje" className="block text-sm font-medium text-foreground">{t('contact.message')}</label>
                   <Textarea
                     id="mensaje"
                     name="mensaje"
@@ -89,7 +91,7 @@ export function ContactPageComponent() {
                     rows={4}
                   />
                 </div>
-                <Button type="submit" className="w-full">Enviar</Button>
+                <Button type="submit" className="w-full">{t('contact.send')}</Button>
               </form>
             </CardContent>
           </Card>

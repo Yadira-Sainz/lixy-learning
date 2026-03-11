@@ -1,0 +1,193 @@
+{
+  "nav": {
+    "about": "About us",
+    "features": "Features",
+    "contact": "Contact",
+    "dashboard": "Dashboard",
+    "profile": "Profile",
+    "settings": "Settings",
+    "flashcards": "Flashcard Center",
+    "reading": "Reading Center"
+  },
+  "common": {
+    "login": "Log in"
+  },
+  "landing": {
+    "title": "Explore a new language",
+    "subtitle": "We believe language learning should be dynamic and personalized. Discover a new way to learn!",
+    "signup": "Sign up",
+    "imageAlt": "Languages from around the world"
+  },
+  "footer": {
+    "brand": "LixyLearning",
+    "copyright": "© 2024 LixyLearning. All rights reserved.",
+    "social": "Social media"
+  },
+  "features": {
+    "title": "What are LexiLearn's features?",
+    "flashcards": {
+      "title": "Custom Flashcards",
+      "description": "Study flashcards with text and audio, using an intelligent spaced repetition algorithm to optimize long-term retention."
+    },
+    "vocabulary": {
+      "title": "Contextual vocabulary introduction",
+      "description": "Vocabulary is introduced through contextual phrases and short readings, allowing you to understand and remember new terms more easily."
+    },
+    "routes": {
+      "title": "Adaptive learning routes",
+      "description": "Learning routes adapt to your learning needs."
+    }
+  },
+  "contact": {
+    "title": "Contact us",
+    "subtitle": "Do you have any questions or need help? Our team is here to help you. Fill out the form below and we will get back to you as soon as possible.",
+    "name": "Name",
+    "email": "E-mail",
+    "subject": "Subject",
+    "message": "Message",
+    "send": "Send"
+  },
+  "config": {
+    "general": "General Settings",
+    "theme": "Theme",
+    "themePlaceholder": "Select a theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System (according to OS)",
+    "themeActiveDark": "Dark mode active",
+    "themeActiveLight": "Light mode active",
+    "themeSystemNote": "(according to system preference)",
+    "language": "Interface language",
+    "languagePlaceholder": "Select a language",
+    "languageEs": "Español",
+    "languageEn": "English",
+    "languageFr": "Français",
+    "dailyGoal": "Daily streak goal",
+    "flashcards": "Flashcards",
+    "cardsPerSession": "Cards per session",
+    "includeTranslation": "Include translation",
+    "saveChanges": "Save changes",
+    "changesSaved": "Changes saved"
+  },
+  "userMenu": {
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Log out"
+  },
+  "auth": {
+    "login": "Log in",
+    "signup": "Sign up",
+    "loginDesc": "Enter your credentials to continue",
+    "signupDesc": "Create a new account",
+    "email": "Email",
+    "password": "Password",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "age": "Age",
+    "gender": "Gender",
+    "genderPlaceholder": "Select gender",
+    "male": "Male",
+    "female": "Female",
+    "other": "Other",
+    "country": "Country",
+    "nativeLanguage": "Native Language",
+    "learningLanguage": "Language to Learn",
+    "nativeLanguagePlaceholder": "Select native language",
+    "learningLanguagePlaceholder": "Select language to learn",
+    "noLanguages": "No languages available",
+    "fillAllFields": "Please fill in all fields",
+    "invalidCredentials": "Invalid email or password",
+    "invalidEmail": "Please enter a valid email address",
+    "passwordMinLength": "Password must be at least 6 characters",
+    "invalidAge": "Please enter a valid age",
+    "signupError": "Registration error. Please try again."
+  },
+  "dashboard": {
+    "dailyStreak": "Daily Streak",
+    "difficulty": "Difficulty",
+    "upcomingReviews": "Upcoming reviews",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "nextWeek": "Next week",
+    "progress": "Progress",
+    "recommended": "Recommended",
+    "practiceWeak": "Practice your weakest words",
+    "nextWord": "Next word",
+    "loading": "Loading..."
+  },
+  "profile": {
+    "changePhoto": "Change profile photo",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "username": "Username",
+    "email": "Email",
+    "age": "Age",
+    "gender": "Gender",
+    "genderPlaceholder": "Select your gender",
+    "country": "Country",
+    "nativeLanguage": "Native language",
+    "learningLanguage": "Language to learn",
+    "nativeLanguagePlaceholder": "Select your native language",
+    "learningLanguagePlaceholder": "Select the language you are learning",
+    "saveChanges": "Save changes",
+    "updateSuccess": "Profile updated successfully!",
+    "updateFailed": "Failed to update profile"
+  },
+  "flashcardCenter": {
+    "recent": "Recent",
+    "collection": "Collection",
+    "clickToPractice": "Click to start practicing",
+    "clickToViewCategory": "Click to view this category",
+    "vocabulary": "Vocabulary",
+    "reinforceWeak": "Reinforce weakest words"
+  },
+  "readingCenter": {
+    "recent": "Recent",
+    "collection": "Collection",
+    "clickToPractice": "Click to start practicing",
+    "clickToViewCategory": "Click to view this category",
+    "loadingCategories": "Loading categories...",
+    "reinforceWeak": "Reinforce weakest words",
+    "reading": "Reading"
+  },
+  "readingPage": {
+    "loading": "Loading...",
+    "loadingMaterial": "Please wait while we load the reading material.",
+    "error": "Error",
+    "tryAgain": "Try again",
+    "words": "Words",
+    "quiz": "Quiz",
+    "clickWordForDetails": "Click on a highlighted word to see its details.",
+    "submitAnswers": "Submit answers",
+    "submitted": "Submitted",
+    "correct": "Correct!",
+    "incorrect": "Incorrect. The answer is:",
+    "hideHighlights": "Hide Highlights",
+    "showHighlights": "Show Highlights",
+    "playAudio": "Play Audio",
+    "nextPage": "Next Page"
+  },
+  "modal": {
+    "congrats": "Congratulations!",
+    "completedReview": "You have completed your review of 20 words.",
+    "completedReviewAlt": "You have completed your review of 20 words.",
+    "completedReviewPrefix": "You have completed your review of",
+    "completedReviewSuffix": "words.",
+    "currentStreak": "Current streak",
+    "bestStreak": "Best streak",
+    "goToDashboard": "Go to dashboard"
+  },
+  "collection": {
+    "categoryName": "Category name",
+    "clickToView": "Click to view this reading",
+    "reading": "Reading"
+  },
+  "flashcard": {
+    "loadingImage": "Loading image...",
+    "playAudio": "Play audio",
+    "hideTranslation": "Hide translation",
+    "showTranslation": "Show translation",
+    "correct": "Correct",
+    "incorrect": "Incorrect"
+  }
+}

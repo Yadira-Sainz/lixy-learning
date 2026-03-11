@@ -1,20 +1,28 @@
+'use client'
+
 import React from 'react';
+import { useLocale } from '@/contexts/locale-context';
 
 type ModalProps = {
   isOpen: boolean;
   onClose: () => void;
+  completedCount?: number;
 };
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, completedCount = 20 }) => {
+  const { t } = useLocale();
+
   if (!isOpen) return null;
+
+  const message = `${t('modal.completedReviewPrefix')} ${completedCount} ${t('modal.completedReviewSuffix')}`;
 
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
-        <h2 style={styles.text}>¡Felicidades!</h2>
-        <p style={styles.text}>Has completado tu repaso de 20 palabras.</p>
+        <h2 style={styles.text}>{t('modal.congrats')}</h2>
+        <p style={styles.text}>{message}</p>
         <button onClick={onClose} style={styles.button}>
-          Ir al tablero
+          {t('modal.goToDashboard')}
         </button>
       </div>
     </div>

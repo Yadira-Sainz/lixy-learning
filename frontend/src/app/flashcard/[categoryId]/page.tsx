@@ -1,7 +1,9 @@
 "use client";
 
-import { useParams } from 'next/navigation'; // Uses useParams to get the category ID from the URL
+import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useLocale } from '@/contexts/locale-context';
+import { getCardsPerSession, getIncludeTranslation } from '@/lib/config';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,9 +29,10 @@ type FlashcardType = {
 let completedCardsCount = 0; // Global variable to keep track of completed cards
 
 const FlashcardComponent: React.FC = () => {
+  const { t } = useLocale();
   const { categoryId } = useParams<{ categoryId: string }>(); // Gets the categoryId parameter from the URL
   const [flashcards, setFlashcards] = useState<FlashcardType[]>([]);
-  const [showTranslation, setShowTranslation] = useState<boolean>(false);
+  const [showTranslation, setShowTranslation] = useState<boolean>(() => getIncludeTranslation());
   const [currentCardIndex, setCurrentCardIndex] = useState<number>(0); // Index of the current card
   const [isClient, setIsClient] = useState<boolean>(false);
   const [generatedSentence, setGeneratedSentence] = useState<string | null>(null);
@@ -41,9 +44,10 @@ const FlashcardComponent: React.FC = () => {
   useEffect(() => {
     setIsClient(true);
     const token = localStorage.getItem('token');
-  
+    const limit = getCardsPerSession();
+
     if (categoryId && token) {
-      fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/daily-words/${categoryId}`, {
+      fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/daily-words/${categoryId}?limit=${limit}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -90,6 +94,9 @@ const FlashcardComponent: React.FC = () => {
       const currentWord = flashcards[currentCardIndex]?.sentence[0]?.word;
       console.log(currentWord);
       if (currentWord) {
+        setShowTranslation(getIncludeTranslation()); // Reset visibility según config al cambiar de tarjeta
+        setGeneratedSentence(null);
+        setTranslatedSentence(null);
         generateSentence(currentWord); // Automatically generate sentence
         // Fetch the image for the current word
         fetchImageUrl(currentWord).then((imageUrl) => setCurrentImageUrl(imageUrl)); // Fetch and set the image URL for the current word
@@ -99,7 +106,7 @@ const FlashcardComponent: React.FC = () => {
 
   const generateSentence = async (word: string): Promise<void> => {
     try {
-      const token = localStorage.getItem('token'); // Get the token from local storage
+      const token = localStorage.getItem('token');
       const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate-sentence`, 
         { word }, 
         { headers: { Authorization: `Bearer ${token}` } }
@@ -107,7 +114,7 @@ const FlashcardComponent: React.FC = () => {
 
       const generated = response.data.sentence;
       setGeneratedSentence(generated);
-      await translateSentence(generated); // Translate the generated sentence
+      await translateSentence(generated);
     } catch (error) {
       console.error('Error generating sentence:', error);
     }
@@ -153,15 +160,13 @@ const FlashcardComponent: React.FC = () => {
 
   const nextCard = (isCorrect: boolean): void => {
     const currentWordId = flashcards[currentCardIndex]?.sentence[0]?.vocabulary_id;
-    //console.log(`WORD ID--> ${currentWordId}`)
-    //console.log(`CARD --> ${currentCardIndex}`)
-    //console.log(flashcards)
+    const cardsPerSession = getCardsPerSession();
     if (currentWordId) {
-      updateProgress(currentWordId, isCorrect); // Update user progress
+      updateProgress(currentWordId, isCorrect);
       completedCardsCount++;
-      if (completedCardsCount >= 20) {
-        updateDailyStreak(); // Update the user's daily streak after completing 20 cards
-        completedCardsCount = 0; // Reset the count
+      if (completedCardsCount >= cardsPerSession) {
+        updateDailyStreak();
+        completedCardsCount = 0;
       }
     }
     const newIndex = (currentCardIndex + 1) % flashcards.length;
@@ -242,16 +247,16 @@ const handleCloseModal = () => {
                     <a href="https://pixabay.com" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:underline mb-4 block">Image from Pixabay</a>
                   </>
                 ) : (
-                  <div className="w-full max-w-[200px] h-[150px] bg-muted rounded-lg flex items-center justify-center mb-4 text-muted-foreground text-sm">Loading image...</div>
+                  <div className="w-full max-w-[200px] h-[150px] bg-muted rounded-lg flex items-center justify-center mb-4 text-muted-foreground text-sm">{t('flashcard.loadingImage')}</div>
                 )}
                 <div className="flex space-x-2 justify-center md:justify-start">
                   <Button variant="outline" size="icon" onClick={playAudio}>
                     <Play className="h-4 w-4" />
-                    <span className="sr-only">Play audio</span>
+                    <span className="sr-only">{t('flashcard.playAudio')}</span>
                   </Button>
                   <Button variant="outline" size="icon" onClick={toggleTranslation}>
                     {showTranslation ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    <span className="sr-only">{showTranslation ? 'Hide translation' : 'Show translation'}</span>
+                    <span className="sr-only">{showTranslation ? t('flashcard.hideTranslation') : t('flashcard.showTranslation')}</span>
                   </Button>
                 </div>
               </div>
@@ -262,7 +267,7 @@ const handleCloseModal = () => {
                   </p>
                 )}
                 {showTranslation && translatedSentence && (
-                  <p className="text-gray-600 break-words">{translatedSentence}</p>
+                  <p className="text-muted-foreground break-words">{translatedSentence}</p>
                 )}
               </div>
             </div>
@@ -271,14 +276,14 @@ const handleCloseModal = () => {
         <div className="flex justify-center space-x-4">
           <Button variant="outline" size="icon" onClick={() => nextCard(false)}>
             <X className="h-6 w-6" />
-            <span className="sr-only">Incorrect</span>
+            <span className="sr-only">{t('flashcard.incorrect')}</span>
           </Button>
           <Button variant="outline" size="icon" onClick={() => nextCard(true)}>
             <Check className="h-6 w-6" />
-            <span className="sr-only">Correct</span>
+            <span className="sr-only">{t('flashcard.correct')}</span>
           </Button>
         </div>
-        <Modal isOpen={isModalOpen} onClose={handleCloseModal} />
+        <Modal isOpen={isModalOpen} onClose={handleCloseModal} completedCount={getCardsPerSession()} />
       </div>
     </TooltipProvider>
   );

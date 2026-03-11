@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useLocale } from '@/contexts/locale-context';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from 'next/navigation';
 
 const recentSets = [
-  { id: 1, title: "Reforzar palabras más débiles" },
+  { id: 1, titleKey: "flashcardCenter.reinforceWeak" },
   { id: 2, title: "Set 1" },
   { id: 3, title: "Set 2" },
   { id: 4, title: "Set 3" },
@@ -40,12 +41,17 @@ interface Vocabulary {
 }
 
 export function FlashcardCenter() {
+  const { t } = useLocale();
   const [categories, setCategories] = useState<Category[]>([]);
   const [vocabularySets, setVocabularySets] = useState<Record<number, Vocabulary[]>>({});
   const [currentCategory, setCurrentCategory] = useState<number | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [recentIndex, setRecentIndex] = useState(0);
   const setsToShow = 2;
   const router = useRouter()
+
+  const recentTotalPages = Math.ceil(recentSets.length / setsToShow);
+  const recentCurrentPage = Math.floor(recentIndex / setsToShow);
 
   useEffect(() => {
     fetchCategories();
@@ -93,6 +99,14 @@ export function FlashcardCenter() {
     }
   };
 
+  const handleRecentPrevious = useCallback(() => {
+    setRecentIndex((prev) => Math.max(0, prev - setsToShow));
+  }, [setsToShow]);
+
+  const handleRecentNext = useCallback(() => {
+    setRecentIndex((prev) => Math.min(prev + setsToShow, recentSets.length - setsToShow));
+  }, [setsToShow]);
+
   const handlePrevious = useCallback(() => {
     setCurrentIndex((prevIndex) => Math.max(0, prevIndex - setsToShow));
   }, [setsToShow]);
@@ -102,7 +116,7 @@ export function FlashcardCenter() {
       if (currentCategory !== null) {
         return Math.min(prevIndex + setsToShow, vocabularySets[currentCategory]?.length - setsToShow);
       }
-      return prevIndex; // Mantener el índice anterior si currentCategory es null
+      return prevIndex;
     });
   }, [setsToShow, currentCategory, vocabularySets]);
 
@@ -114,26 +128,26 @@ export function FlashcardCenter() {
       <div className="container mx-auto p-4 space-y-8">
         
       <section>
-        <h2 className="text-3xl font-bold mb-4">Recientes</h2>
+        <h2 className="text-3xl font-bold mb-4">{t('flashcardCenter.recent')}</h2>
         <div className="relative">
           <div className="flex items-center">
             <Button
               variant="outline"
               size="icon"
               className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10"
-              onClick={handlePrevious}
-              disabled={currentIndex === 0}
+              onClick={handleRecentPrevious}
+              disabled={recentIndex === 0}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <div className="grid md:grid-cols-2 gap-4 w-full px-12">
-              {recentSets.slice(currentIndex, currentIndex + setsToShow).map((set) => (
+              {recentSets.slice(recentIndex, recentIndex + setsToShow).map((set) => (
                 <Card key={set.id} className="h-48">
                   <CardHeader>
-                    <CardTitle>{set.title}</CardTitle>
+                    <CardTitle>{"titleKey" in set && set.titleKey ? t(set.titleKey) : "title" in set ? set.title : ""}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-gray-500">Haz clic para empezar a practicar</p>
+                    <p className="text-sm text-gray-500">{t('flashcardCenter.clickToPractice')}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -142,19 +156,19 @@ export function FlashcardCenter() {
               variant="outline"
               size="icon"
               className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10"
-              onClick={handleNext}
-              disabled={currentIndex >= recentSets.length - setsToShow}
+              onClick={handleRecentNext}
+              disabled={recentIndex >= recentSets.length - setsToShow}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
         <div className="flex justify-center mt-4 space-x-2">
-          {Array.from({ length: totalPages }).map((_, index) => (
+          {Array.from({ length: recentTotalPages }).map((_, index) => (
             <div
               key={index}
               className={`w-2 h-2 rounded-full ${
-                index === currentPage ? "bg-primary" : "bg-gray-300"
+                index === recentCurrentPage ? "bg-primary" : "bg-gray-300"
               }`}
             />
           ))}
@@ -162,7 +176,7 @@ export function FlashcardCenter() {
       </section>
 
         <section>
-          <h2 className="text-3xl font-bold mb-4">Colección</h2>
+          <h2 className="text-3xl font-bold mb-4">{t('flashcardCenter.collection')}</h2>
           <div className="grid md:grid-cols-3 gap-4">
             {categories.map((category) => (
               <Card key={category.category_id} className="h-40" onClick={() => handleCategoryClick(category.category_id)}>
@@ -170,7 +184,7 @@ export function FlashcardCenter() {
                   <CardTitle>{category.category_name}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-500">Haz click para ver esta categoría</p>
+                  <p className="text-sm text-gray-500">{t('flashcardCenter.clickToViewCategory')}</p>
                 </CardContent>
               </Card>
             ))}
@@ -179,7 +193,7 @@ export function FlashcardCenter() {
 
         {currentCategory && (
           <section>
-            <h2 className="text-3xl font-bold mb-4">Vocabulario - {categories.find(c => c.category_id === currentCategory)?.category_name}</h2>
+            <h2 className="text-3xl font-bold mb-4">{t('flashcardCenter.vocabulary')} - {categories.find(c => c.category_id === currentCategory)?.category_name}</h2>
             <div className="relative">
               <div className="flex items-center">
                 <Button

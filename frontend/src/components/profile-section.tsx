@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useLocale } from '@/contexts/locale-context';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useRouter } from 'next/navigation';
 
 export default function ProfileSectionComponent() {
+  const { t } = useLocale();
   const [profileImage, setProfileImage] = useState("/placeholder.svg?height=300&width=300");
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -90,11 +92,11 @@ export default function ProfileSectionComponent() {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      alert("Profile updated successfully!");
+      alert(t('profile.updateSuccess'));
       router.push('/tablero'); // Redirect to another page after successful update
     } catch (error) {
       console.error("Error updating profile:", error);
-      alert("Failed to update profile");
+      alert(t('profile.updateFailed'));
     }
   };
 
@@ -109,7 +111,7 @@ export default function ProfileSectionComponent() {
               </div>
               <Label htmlFor="profile-image" className="cursor-pointer block text-center">
                 <div className="bg-background text-foreground border rounded-full py-2 px-4 inline-block">
-                  Cambiar foto de perfil
+                  {t('profile.changePhoto')}
                 </div>
                 <Input
                   id="profile-image"
@@ -122,47 +124,47 @@ export default function ProfileSectionComponent() {
             </div>
             <div className="w-full md:w-2/3 space-y-4">
               <div>
-                <Label htmlFor="first-name">Nombre</Label>
+                <Label htmlFor="first-name">{t('profile.firstName')}</Label>
                 <Input id="first-name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
               </div>
               <div>
-                <Label htmlFor="last-name">Apellido</Label>
+                <Label htmlFor="last-name">{t('profile.lastName')}</Label>
                 <Input id="last-name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
               </div>
               <div>
-                <Label htmlFor="username">Nombre de usuario</Label>
+                <Label htmlFor="username">{t('profile.username')}</Label>
                 <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} />
               </div>
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t('profile.email')}</Label>
                 <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div>
-                <Label htmlFor="age">Edad</Label>
+                <Label htmlFor="age">{t('profile.age')}</Label>
                 <Input id="age" type="number" value={age === "" ? "" : age.toString()} onChange={(e) => setAge(e.target.value === "" ? "" : Number(e.target.value))} />
               </div>
               <div>
-                <Label htmlFor="gender">Género</Label>
+                <Label htmlFor="gender">{t('profile.gender')}</Label>
                 <Select value={gender} onValueChange={setGender}>
                   <SelectTrigger id="gender">
-                    <SelectValue placeholder="Selecciona tu género" />
+                    <SelectValue placeholder={t('profile.genderPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Male"> Masculino</SelectItem>
-                    <SelectItem value="Female">Femenino</SelectItem>
-                    <SelectItem value="Other">Otro</SelectItem>
+                    <SelectItem value="Male">{t('auth.male')}</SelectItem>
+                    <SelectItem value="Female">{t('auth.female')}</SelectItem>
+                    <SelectItem value="Other">{t('auth.other')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label htmlFor="country">País</Label>
+                <Label htmlFor="country">{t('profile.country')}</Label>
                 <Input id="country" value={country} onChange={(e) => setCountry(e.target.value)} />
               </div>
               <div>
-                <Label htmlFor="native-language">Idioma nativo</Label>
+                <Label htmlFor="native-language">{t('profile.nativeLanguage')}</Label>
                 <Select value={nativeLanguage} onValueChange={setNativeLanguage}>
                   <SelectTrigger id="native-language">
-                    <SelectValue placeholder="Selecciona tu idioma nativo" />
+                    <SelectValue placeholder={t('profile.nativeLanguagePlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {languages.length > 0 && languages.map((language: any) => (
@@ -176,10 +178,10 @@ export default function ProfileSectionComponent() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="learning-language">Idioma a aprender</Label>
+                <Label htmlFor="learning-language">{t('profile.learningLanguage')}</Label>
                 <Select value={learningLanguage} onValueChange={setLearningLanguage}>
                   <SelectTrigger id="learning-language">
-                    <SelectValue placeholder="Selecciona el idioma que estás aprendiendo" />
+                    <SelectValue placeholder={t('profile.learningLanguagePlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {languages.length > 0 && languages.map((language: any) => (
@@ -193,7 +195,7 @@ export default function ProfileSectionComponent() {
                 </Select>
               </div>
               <div className="flex justify-end">
-                <Button onClick={handleSubmit}>Guardar cambios</Button>
+                <Button onClick={handleSubmit}>{t('profile.saveChanges')}</Button>
               </div>
             </div>
           </div>

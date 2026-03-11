@@ -487,24 +487,26 @@ async def update_progress(
 @app.get("/api/daily-words/{category_id}")
 async def daily_words(
     category_id: int,
+    limit: int = 20,
     user: dict = Depends(get_current_user),
     conn=Depends(get_db),
 ):
+    limit = min(max(limit, 1), 100)
     rows = _execute_query(
         conn,
         """SELECT v.* FROM vocabulary v JOIN familiarity f ON v.vocabulary_id = f.word_id
            WHERE f.user_id = %s AND v.category_id = %s AND f.next_review_date <= NOW()
-           ORDER BY f.next_review_date ASC LIMIT 20""",
-        (user["userId"], category_id),
+           ORDER BY f.next_review_date ASC LIMIT %s""",
+        (user["userId"], category_id, limit),
     )
     result = [dict(r) for r in rows]
-    if len(result) < 20:
+    if len(result) < limit:
         extra = _execute_query(
             conn,
             """SELECT v.* FROM vocabulary v
                LEFT JOIN familiarity f ON v.vocabulary_id = f.word_id AND f.user_id = %s
                WHERE v.category_id = %s AND f.word_id IS NULL LIMIT %s""",
-            (user["userId"], category_id, 20 - len(result)),
+            (user["userId"], category_id, limit - len(result)),
         )
         result.extend([dict(r) for r in extra])
     return result
@@ -515,8 +517,10 @@ async def daily_streak(
     user: dict = Depends(get_current_user),
     conn=Depends(get_db),
 ):
-    today = datetime.utcnow().date().isoformat()
-    yesterday = (datetime.utcnow() - timedelta(days=1)).date().isoformat()
+    # Use local time (not UTC) to avoid streak dates shifting to next day in some timezones
+    now = datetime.now()
+    today = now.date().isoformat()
+    yesterday = (now - timedelta(days=1)).date().isoformat()
     yesterday_row = _execute_query_one(
         conn,
         "SELECT current_streak FROM daily_streaks WHERE user_id = %s AND streak_date = %s",
@@ -559,8 +563,10 @@ async def get_streaks(
     user: dict = Depends(get_current_user),
     conn=Depends(get_db),
 ):
-    today = datetime.utcnow().date().isoformat()
-    yesterday = (datetime.utcnow() - timedelta(days=1)).date().isoformat()
+    # Use local time (not UTC) to avoid streak dates shifting to next day in some timezones
+    now = datetime.now()
+    today = now.date().isoformat()
+    yesterday = (now - timedelta(days=1)).date().isoformat()
     rows = _execute_query(
         conn,
         "SELECT current_streak FROM daily_streaks WHERE user_id = %s AND (streak_date = %s OR streak_date = %s) ORDER BY streak_date DESC LIMIT 1",
@@ -571,7 +577,7 @@ async def get_streaks(
     current_streak = rows[0]["current_streak"]
     dates = []
     for i in range(current_streak):
-        d = (datetime.utcnow() - timedelta(days=i)).date().isoformat()
+        d = (now - timedelta(days=i)).date().isoformat()
         dates.append(d)
     return dates
 

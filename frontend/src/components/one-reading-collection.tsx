@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { useLocale } from '@/contexts/locale-context'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 type Word = { id: number; word: string; definition: string; };
 
 export default function OneReadingCollection() {
+  const { t } = useLocale()
   const searchParams = useSearchParams()
   const router = useRouter()
-  const [category, setCategory] = useState<string>('Nombre de categoría')
+  const [category, setCategory] = useState<string>(t('collection.categoryName'))
   const [categoryId, setCategoryId] = useState<string | null>(null)
   const [vocabulary, setVocabulary] = useState<Word[]>([])
   const [token, setToken] = useState<string | null>(null)
@@ -18,7 +20,7 @@ export default function OneReadingCollection() {
     const storedToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     setToken(storedToken)
 
-    const cat = searchParams.get('category') || 'Nombre de categoría'
+    const cat = searchParams.get('category') || t('collection.categoryName')
     const catId = searchParams.get('categoryId')
     setCategory(cat)
     setCategoryId(catId)
@@ -26,7 +28,7 @@ export default function OneReadingCollection() {
     if (catId && storedToken) {
       fetchVocabulary(catId, storedToken)
     }
-  }, [searchParams])
+  }, [searchParams, t])
 
   const fetchVocabulary = async (categoryId: string, token: string) => {
     try {
@@ -76,7 +78,7 @@ export default function OneReadingCollection() {
               <CardTitle className="text-xl">{lectura}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Haga clic para ver esta lectura</p>
+              <p className="text-muted-foreground">{t('collection.clickToView')}</p>
             </CardContent>
           </Card>
         ))}
