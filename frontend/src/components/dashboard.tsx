@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react'
+import { useLocale } from '@/contexts/locale-context'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "@/components/ui/button"
@@ -9,13 +10,18 @@ import { Progress } from "@/components/ui/progress"
 
 const DifficultyChart = dynamic(
   () => import('./dashboard-charts').then((m) => m.DifficultyChart),
-  { ssr: false, loading: () => <div className="h-[300px] flex items-center justify-center text-muted-foreground">Cargando...</div> }
+  { ssr: false, loading: () => <div className="h-[300px] flex items-center justify-center text-muted-foreground"><DashboardLoadingPlaceholder /></div> }
 );
 
 const ProgressChart = dynamic(
   () => import('./dashboard-charts').then((m) => m.ProgressChart),
-  { ssr: false, loading: () => <div className="h-[300px] flex items-center justify-center text-muted-foreground">Cargando...</div> }
+  { ssr: false, loading: () => <div className="h-[300px] flex items-center justify-center text-muted-foreground"><DashboardLoadingPlaceholder /></div> }
 );
+
+function DashboardLoadingPlaceholder() {
+  const { t } = useLocale();
+  return <>{t('dashboard.loading')}</>;
+}
 
 const weakWords = [
   { word: 'Abrumador', translation: 'Overwhelming' },
@@ -24,6 +30,7 @@ const weakWords = [
 ]
 
 export function DashboardComponent() {
+  const { t } = useLocale()
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [currentWord, setCurrentWord] = useState(0)
   const [streakDates, setStreakDates] = useState<string[]>([]); // Cambiado a string[]
@@ -60,7 +67,7 @@ export function DashboardComponent() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="col-span-1 md:col-span-2 lg:col-span-1 h-full">
           <CardHeader>
-            <CardTitle>Racha Diaria   <span className='dias'>{streakDates.length}</span> </CardTitle>
+            <CardTitle>{t('dashboard.dailyStreak')}   <span className='dias'>{streakDates.length}</span> </CardTitle>
           </CardHeader>
           <CardContent>
             <Calendar
@@ -78,7 +85,7 @@ export function DashboardComponent() {
 
         <Card className="h-full">
           <CardHeader>
-            <CardTitle>Dificultad</CardTitle>
+            <CardTitle>{t('dashboard.difficulty')}</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
             <DifficultyChart />
@@ -87,21 +94,21 @@ export function DashboardComponent() {
 
         <Card className="h-full">
           <CardHeader>
-            <CardTitle>Próximas revisiones</CardTitle>
+            <CardTitle>{t('dashboard.upcomingReviews')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span>Hoy</span>
+                  <span>{t('dashboard.today')}</span>
                   <Progress value={80} className="w-2/3" />
                 </div>
                 <div className="flex justify-between items-center">
-                  <span>Mañana</span>
+                  <span>{t('dashboard.tomorrow')}</span>
                   <Progress value={50} className="w-2/3" />
                 </div>
                 <div className="flex justify-between items-center">
-                  <span>Próxima semana</span>
+                  <span>{t('dashboard.nextWeek')}</span>
                   <Progress value={30} className="w-2/3" />
                 </div>
               </div>
@@ -111,7 +118,7 @@ export function DashboardComponent() {
 
         <Card className="col-span-1 md:col-span-2 h-full">
           <CardHeader>
-            <CardTitle>Progreso</CardTitle>
+            <CardTitle>{t('dashboard.progress')}</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ProgressChart />
@@ -120,11 +127,11 @@ export function DashboardComponent() {
 
         <Card className="h-full">
           <CardHeader>
-            <CardTitle>Recomendado</CardTitle>
+            <CardTitle>{t('dashboard.recommended')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-center space-y-4">
-              <h3 className="text-lg font-semibold">Practica tus palabras más débiles</h3>
+              <h3 className="text-lg font-semibold">{t('dashboard.practiceWeak')}</h3>
               <div className="bg-white p-4 rounded-md shadow">
                 <p className="text-xl font-bold mb-2">{weakWords[currentWord].word}</p>
                 <p className="text-gray-600">{weakWords[currentWord].translation}</p>
@@ -133,7 +140,7 @@ export function DashboardComponent() {
                 onClick={() => setCurrentWord((prev) => (prev + 1) % weakWords.length)}
                 className="w-full"
               >
-                Siguiente palabra
+                {t('dashboard.nextWord')}
               </Button>
             </div>
           </CardContent>

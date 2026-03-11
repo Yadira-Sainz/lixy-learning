@@ -515,6 +515,7 @@ app.post('/api/update-progress', authenticateToken, async (req, res) => {
 app.get('/api/daily-words/:categoryId', authenticateToken, async (req, res) => {
   const userId = req.user.userId;
   const { categoryId } = req.params;
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
 
   try {
     // Fetch words to be reviewed today based on familiarity level and next review date
@@ -524,18 +525,18 @@ app.get('/api/daily-words/:categoryId', authenticateToken, async (req, res) => {
       JOIN familiarity f ON v.vocabulary_id = f.word_id
       WHERE f.user_id = $1 AND v.category_id = $2 AND f.next_review_date <= NOW()
       ORDER BY f.next_review_date ASC
-      LIMIT 20
-    `, [userId, categoryId]);
+      LIMIT $3
+    `, [userId, categoryId, limit]);
 
-    // If less than 20 words are available, fetch additional new words to fill up the list
-    if (result.rows.length < 20) {
+    // If less than limit words are available, fetch additional new words to fill up the list
+    if (result.rows.length < limit) {
       const additionalWords = await pool.query(`
         SELECT v.*
         FROM vocabulary v
         LEFT JOIN familiarity f ON v.vocabulary_id = f.word_id AND f.user_id = $1
         WHERE v.category_id = $2 AND f.word_id IS NULL
         LIMIT $3
-      `, [userId, categoryId, 20 - result.rows.length]);
+      `, [userId, categoryId, limit - result.rows.length]);
 
       result.rows.push(...additionalWords.rows);
     }
@@ -547,13 +548,24 @@ app.get('/api/daily-words/:categoryId', authenticateToken, async (req, res) => {
   }
 });
 
+// Helper: format date as YYYY-MM-DD in local timezone (avoid UTC shift from toISOString)
+function formatDateLocal(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 //Daily streak
 app.post('/api/daily-streak', authenticateToken, async (req, res) => {
   const userId = req.user.userId;
 
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0];
+    const now = new Date();
+    const yesterdayDate = new Date(now);
+    yesterdayDate.setDate(now.getDate() - 1);
+    const today = formatDateLocal(now);
+    const yesterday = formatDateLocal(yesterdayDate);
 
     // Get yesterday's streak, if any
     const yesterdayResult = await pool.query(
@@ -608,38 +620,40 @@ app.post('/api/daily-streak', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/streaks',authenticateToken, async (req, res) => {
-  const  userId  = req.user.userId;
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1); // Resta un día para obtener la fecha de ayer
-  const yesterdayFormatted = yesterday.toISOString().split('T')[0]; 
-  const todayFormat = today.toISOString().split('T')[0];
-  try {
-    console.log(`Fetching streaks for user ${userId}`);
-    const result = await pool.query(
-      'SELECT current_streak FROM daily_streaks WHERE user_id = $1 AND (streak_date = $2 OR streak_date = $3) ORDER BY streak_date DESC LIMIT 1',
-      [userId,todayFormat,yesterdayFormatted]
-    );
-    
-    console.log(`Fetched ${result.rows.length} streak dates`);
-    
-    // Extraer las fechas de racha esto esta mallll
-    //const streakDates = result.rows.map(row => row.streak_date);
-    const date = new Date(today);
-    const dates = [];
-    for (let i = 0; i < result.rows[0].current_streak; i++) {
-      date.setDate(today.getDate() - i); // Resta `i` días a la fecha actual
-      dates.push(date.toISOString().split('T')[0]); // Formatea y guarda en el arreglo
+const handleStreaks = [
+  authenticateToken,
+  async (req, res) => {
+    const userId = req.user.userId;
+    const now = new Date();
+    const yesterdayDate = new Date(now);
+    yesterdayDate.setDate(now.getDate() - 1);
+    const todayFormat = formatDateLocal(now);
+    const yesterdayFormatted = formatDateLocal(yesterdayDate);
+    try {
+      const result = await pool.query(
+        'SELECT current_streak FROM daily_streaks WHERE user_id = $1 AND (streak_date = $2 OR streak_date = $3) ORDER BY streak_date DESC LIMIT 1',
+        [userId, todayFormat, yesterdayFormatted]
+      );
+
+      if (result.rows.length === 0) {
+        return res.json([]);
+      }
+
+      const dates = [];
+      for (let i = 0; i < result.rows[0].current_streak; i++) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        dates.push(formatDateLocal(d));
+      }
+      res.json(dates);
+    } catch (err) {
+      console.error('Error fetching streaks:', err);
+      res.status(500).json({ error: 'Error al obtener las fechas de racha', details: err.message });
     }
-    console.log(dates);
-    // Devolver las fechas de racha en formato JSON
-    res.json(dates);
-  } catch (err) {
-    console.error('Error fetching streaks:', err);
-    res.status(500).json({ error: 'Error al obtener las fechas de racha', details: err.message, test:authenticateToken() });
-  }
-});
+  },
+];
+app.post('/api/streaks', handleStreaks);
+app.post('/api/streaks/', handleStreaks);
 
 // Start the server
 app.listen(port, () => {

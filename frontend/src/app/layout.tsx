@@ -3,6 +3,7 @@ import "./globals.css";
 import NavbarComponent from '@/components/navbar';
 import FooterComponent from "@/components/footer";
 import { ThemeProvider } from "@/components/theme-provider";
+import { LocaleProvider } from "@/contexts/locale-context";
 
 export const metadata: Metadata = {
   title: "LixyLearning",
@@ -15,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       <body className="antialiased flex flex-col min-h-screen">
         <ThemeProvider
           attribute="class"
@@ -23,9 +24,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <NavbarComponent />
-          <main className="flex-grow pt-safe">{children}</main>
-          <FooterComponent />
+          <LocaleProvider>
+            <NavbarComponent />
+            <main className="flex-grow pt-safe">{children}</main>
+            <FooterComponent />
+          </LocaleProvider>
         </ThemeProvider>
       </body>
     </html>

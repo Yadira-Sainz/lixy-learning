@@ -20,11 +20,17 @@ function Calendar({
   streakDates,
   ...props
 }: CalendarProps) {
-  // Modificador para marcar las fechas de racha
+  // Format date as YYYY-MM-DD in local timezone (toISOString uses UTC and can shift the date)
+  const formatDateLocal = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
   const modifiers = {
     streak: (date: Date) => {
-      const dateString = date.toISOString().split("T")[0];
-      return streakDates.includes(dateString);
+      return streakDates.includes(formatDateLocal(date));
     },
   };
 

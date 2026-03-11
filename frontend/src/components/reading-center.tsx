@@ -2,17 +2,18 @@
 
 import { useState, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useLocale } from '@/contexts/locale-context'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 const recentSets = [
-  { id: 1, title: "Reforzar palabras más débiles" },
-  { id: 2, title: "Lectura 1" },
-  { id: 3, title: "Lectura 2" },
-  { id: 4, title: "Lectura 3" },
-  { id: 5, title: "Lectura 4" },
-  { id: 6, title: "Lectura 5" },
+  { id: 1, titleKey: "readingCenter.reinforceWeak" },
+  { id: 2, titleKey: null, readingNum: 1 },
+  { id: 3, titleKey: null, readingNum: 2 },
+  { id: 4, titleKey: null, readingNum: 3 },
+  { id: 5, titleKey: null, readingNum: 4 },
+  { id: 6, titleKey: null, readingNum: 5 },
 ]
 
 interface Category {
@@ -21,6 +22,7 @@ interface Category {
 }
 
 export function ReadingCenterComponent() {
+  const { t } = useLocale()
   const router = useRouter()
   const [categories, setCategories] = useState<Category[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -73,10 +75,10 @@ export function ReadingCenterComponent() {
   }
 
   return (
-    <section id="centro-de-flashcards">
+    <section id="centro-de-lectura">
       <div className="container mx-auto p-4 space-y-8">
         <section>
-          <h2 className="text-3xl font-bold mb-4">Recientes</h2>
+          <h2 className="text-3xl font-bold mb-4">{t('readingCenter.recent')}</h2>
           <div className="relative">
             <div className="flex items-center">
               <Button
@@ -92,10 +94,12 @@ export function ReadingCenterComponent() {
                 {recentSets.slice(currentIndex, currentIndex + setsToShow).map((set) => (
                   <Card key={set.id} className="h-48">
                     <CardHeader>
-                      <CardTitle>{set.title}</CardTitle>
+                      <CardTitle>
+                        {set.titleKey ? t(set.titleKey) : `${t('readingCenter.reading')} ${(set as { readingNum: number }).readingNum}`}
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm text-gray-500">Haz click para comenzar a practicar</p>
+                      <p className="text-sm text-gray-500">{t('readingCenter.clickToPractice')}</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -124,9 +128,9 @@ export function ReadingCenterComponent() {
         </section>
         
         <section>
-          <h2 className="text-3xl font-bold mb-4">Colección</h2>
+          <h2 className="text-3xl font-bold mb-4">{t('readingCenter.collection')}</h2>
           {isLoading ? (
-            <p>Cargando categorías...</p>
+            <p>{t('readingCenter.loadingCategories')}</p>
           ) : error ? (
             <p className="text-red-500">{error}</p>
           ) : (
@@ -141,7 +145,7 @@ export function ReadingCenterComponent() {
                     <CardTitle>{category.category_name}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-gray-500">Da click para ver esta categoría</p>
+                    <p className="text-sm text-gray-500">{t('readingCenter.clickToViewCategory')}</p>
                   </CardContent>
                 </Card>
               ))}

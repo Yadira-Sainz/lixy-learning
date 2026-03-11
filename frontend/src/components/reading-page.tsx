@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { useLocale } from '@/contexts/locale-context'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -20,6 +21,7 @@ type QuizQuestion = {
 };
 
 export default function ReadingPage() {
+  const { t } = useLocale()
   const [token, setToken] = useState<string | null>(null)
   const searchParams = useSearchParams()
   const [categoryId, setCategoryId] = useState<string | null>(null)
@@ -181,7 +183,7 @@ export default function ReadingPage() {
   }
 
   const renderContent = () => {
-    if (!generatedStory) return <p>Cargando...</p>
+    if (!generatedStory) return <p>{t('readingPage.loading')}</p>
     return generatedStory.content.split(' ').map((word, index) => {
       const cleanWord = word.replace(/[^a-zA-Z]/g, '').toLowerCase()
       const highlightInfo = vocabulary.find(v => v.word.toLowerCase() === cleanWord)
@@ -212,10 +214,10 @@ export default function ReadingPage() {
     return (
       <div className="container mx-auto p-4">
         <Card className="p-4">
-          <h1 className="text-2xl font-bold text-red-500 mb-4">Error</h1>
+          <h1 className="text-2xl font-bold text-red-500 mb-4">{t('readingPage.error')}</h1>
           <p>{error}</p>
           <Button className="mt-4" onClick={() => window.location.reload()}>
-            Intentar de nuevo
+            {t('readingPage.tryAgain')}
           </Button>
         </Card>
       </div>
@@ -226,8 +228,8 @@ export default function ReadingPage() {
     return (
       <div className="container mx-auto p-4">
         <Card className="p-4">
-          <h1 className="text-2xl font-bold mb-4">Cargando...</h1>
-          <p>Por favor espera mientras cargamos el material de lectura.</p>
+          <h1 className="text-2xl font-bold mb-4">{t('readingPage.loading')}</h1>
+          <p>{t('readingPage.loadingMaterial')}</p>
         </Card>
       </div>
     )
@@ -254,7 +256,7 @@ export default function ReadingPage() {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{highlightsVisible ? "Hide Highlights" : "Show Highlights"}</p>
+                    <p>{highlightsVisible ? t('readingPage.hideHighlights') : t('readingPage.showHighlights')}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -269,7 +271,7 @@ export default function ReadingPage() {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Play Audio</p>
+                    <p>{t('readingPage.playAudio')}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -282,7 +284,7 @@ export default function ReadingPage() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Next Page</p>
+                  <p>{t('readingPage.nextPage')}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -295,13 +297,13 @@ export default function ReadingPage() {
                 value="words"
                 className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
-                Palabras
+                {t('readingPage.words')}
               </TabsTrigger>
               <TabsTrigger 
                 value="quiz"
                 className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
-                Cuestionario
+                {t('readingPage.quiz')}
               </TabsTrigger>
             </TabsList>
             <TabsContent value="words">
@@ -312,14 +314,14 @@ export default function ReadingPage() {
                     <p className="mb-4">{selectedWord.definition}</p>
                   </div>
                 ) : (
-                  <p className="text-center mt-4">Haz click en una palabra resaltada para ver sus detalles.</p>
+                  <p className="text-center mt-4">{t('readingPage.clickWordForDetails')}</p>
                 )}
               </ScrollArea>
             </TabsContent>
             <TabsContent value="quiz">
               <ScrollArea className="h-[300px] lg:h-[400px]">
                 <div>
-                  <h2 className="text-xl font-bold mb-4">Cuestionario</h2>
+                  <h2 className="text-xl font-bold mb-4">{t('readingPage.quiz')}</h2>
                   {quizQuestions.map((question, index) => (
                     <div key={index} className="mb-6">
                       <p className="font-semibold mb-2">{question.question}</p>
@@ -336,13 +338,13 @@ export default function ReadingPage() {
                       </RadioGroup>
                       {quizSubmitted && (
                         <p className={`mt-2 ${quizAnswers[index] === question.correctAnswer ? 'text-green-600' : 'text-red-600'}`}>
-                          {quizAnswers[index] === question.correctAnswer ? '¡Correcto!' : `Incorrecto. La respuesta es: ${question.correctAnswer}`}
+                          {quizAnswers[index] === question.correctAnswer ? t('readingPage.correct') : `${t('readingPage.incorrect')} ${question.correctAnswer}`}
                         </p>
                       )}
                     </div>
                   ))}
                   <Button onClick={handleQuizSubmit} className="w-full" disabled={quizSubmitted}>
-                    {quizSubmitted ? 'Enviado' : 'Enviar respuestas'}
+                    {quizSubmitted ? t('readingPage.submitted') : t('readingPage.submitAnswers')}
                   </Button>
                 </div>
               </ScrollArea>

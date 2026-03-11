@@ -8,12 +8,30 @@ import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import Logo from '@/assets/Logo.png';
 import UserMenu from '@/hooks/user-menu';
+import { useLocale } from '@/contexts/locale-context';
 
 type NavbarProps = {
   isLandingPage?: boolean;
 };
 
+const LANDING_NAV = [
+  { id: 'sobre-nosotros', key: 'nav.about' },
+  { id: 'funciones', key: 'nav.features' },
+  { id: 'contacto', key: 'nav.contact' },
+];
+const PROFILE_NAV = [
+  { id: 'tablero', key: 'nav.dashboard' },
+  { id: 'perfil', key: 'nav.profile' },
+  { id: 'ajustes', key: 'nav.settings' },
+];
+const MAIN_NAV = [
+  { id: 'tablero', key: 'nav.dashboard' },
+  { id: 'centro-de-flashcards', key: 'nav.flashcards' },
+  { id: 'centro-de-lectura', key: 'nav.reading' },
+];
+
 export default function NavbarComponent({ isLandingPage: isLandingPageProp = false }: NavbarProps) {
+  const { t } = useLocale();
   const [activeItem, setActiveItem] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -26,22 +44,18 @@ export default function NavbarComponent({ isLandingPage: isLandingPageProp = fal
   const isProfileOrSettings = pathname === '/perfil' || pathname === '/ajustes';
   const isLandingPage = pathname === '/' || isLandingPageProp;
 
-  const navItems = isLandingPage
-    ? ['Sobre nosotros', 'Funciones', 'Contacto']
-    : isProfileOrSettings
-      ? ['Tablero', 'Perfil', 'Ajustes']
-      : ['Tablero', 'Centro de Flashcards', 'Centro de Lectura'];
+  const navItems = isLandingPage ? LANDING_NAV : isProfileOrSettings ? PROFILE_NAV : MAIN_NAV;
 
-  const scrollToSection = (sectionId: string) => {
+  const scrollToSection = (itemId: string) => {
     if (isLandingPage) {
-      const section = document.getElementById(sectionId);
+      const section = document.getElementById(itemId);
       if (section) {
         section.scrollIntoView({ behavior: 'smooth' });
       }
     } else {
-      router.push(`/${sectionId}`);
+      router.push(`/${itemId}`);
     }
-    setActiveItem(sectionId);
+    setActiveItem(itemId);
     setIsMenuOpen(false);
   };
 
@@ -75,7 +89,7 @@ export default function NavbarComponent({ isLandingPage: isLandingPageProp = fal
       );
 
       navItems.forEach((item) => {
-        const section = document.getElementById(item.toLowerCase().replace(/\s+/g, '-'));
+        const section = document.getElementById(item.id);
         if (section) {
           observerRef.current?.observe(section);
         }
@@ -83,9 +97,7 @@ export default function NavbarComponent({ isLandingPage: isLandingPageProp = fal
     } else {
       // Set active item based on current pathname
       const currentPath = pathname.slice(1); // Remove leading slash
-      const matchingItem = navItems.find(item => 
-        item.toLowerCase().replace(/\s+/g, '-') === currentPath
-      );
+      const matchingItem = navItems.find(item => item.id === currentPath);
       if (matchingItem) {
         setActiveItem(currentPath);
       }
@@ -112,7 +124,7 @@ export default function NavbarComponent({ isLandingPage: isLandingPageProp = fal
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out
-      ${isScrolled ? 'bg-white bg-opacity-80 backdrop-blur-sm py-2' : 'bg-white py-4'}
+      bg-background ${isScrolled ? 'py-2' : 'py-4'}
     `}
     >
       <div className="container mx-auto px-4 flex items-center justify-between">
@@ -123,26 +135,24 @@ export default function NavbarComponent({ isLandingPage: isLandingPageProp = fal
             width={isScrolled ? 100 : 120}
             height={isScrolled ? 100 : 120}
             priority
+            className="dark:invert"
           />
         </Link>
         {!isAuthPage && (
           <>
             <div className="hidden md:flex items-center justify-center flex-grow">
-              {navItems.map((item) => {
-                const itemId = item.toLowerCase().replace(/\s+/g, '-');
-                return (
-                  <button
-                    key={item}
-                    onClick={() => scrollToSection(itemId)}
-                    className={`px-3 py-2 mx-2 rounded-md text-sm font-medium transition-all duration-300
-                      ${activeItem === itemId ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'}
-                      ${isScrolled ? 'text-xs' : 'text-sm'}
-                    `}
-                  >
-                    {item}
-                  </button>
-                );
-              })}
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => scrollToSection(item.id)}
+                  className={`px-3 py-2 mx-2 rounded-md text-sm font-medium transition-all duration-300
+                    ${activeItem === item.id ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-accent'}
+                    ${isScrolled ? 'text-xs' : 'text-sm'}
+                  `}
+                >
+                  {t(item.key)}
+                </button>
+              ))}
             </div>
             <div className="flex items-center">
               <div className="md:hidden">
@@ -158,7 +168,7 @@ export default function NavbarComponent({ isLandingPage: isLandingPageProp = fal
                   className={`hidden md:inline-flex ml-4 transition-all duration-300 border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-700 hover:text-emerald-700 ${isScrolled ? 'text-xs py-1 px-2' : 'text-sm'}`}
                   onClick={handleLoginClick}
                 >
-                  Iniciar Sesión
+                  {t('common.login')}
                 </Button>
               )}
             </div>
@@ -166,32 +176,29 @@ export default function NavbarComponent({ isLandingPage: isLandingPageProp = fal
         )}
       </div>
       {!isAuthPage && isMenuOpen && (
-        <div className="absolute top-full left-0 right-0 bg-white md:hidden">
-          {navItems.map((item) => {
-            const itemId = item.toLowerCase().replace(/\s+/g, '-');
-            return (
-              <button
-                key={item}
-                onClick={() => scrollToSection(itemId)}
-                className={`block w-full text-left px-4 py-2 text-sm
-                  ${activeItem === itemId ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'}
-                `}
-              >
-                {item}
-              </button>
-            );
-          })}
+        <div className="absolute top-full left-0 right-0 bg-background border-b border-border md:hidden">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => scrollToSection(item.id)}
+              className={`block w-full text-left px-4 py-2 text-sm
+                ${activeItem === item.id ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-accent'}
+              `}
+            >
+              {t(item.key)}
+            </button>
+          ))}
           {isLoggedIn && !isProfileOrSettings && (
             <button
               onClick={() => router.push('/perfil')}
-              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent"
             >
-              Perfil
+              {t('nav.profile')}
             </button>
           )}
           {!isLoggedIn && (
             <Button variant="outline" className="w-full mt-2 border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-700 hover:text-emerald-700" onClick={handleLoginClick}>
-              Iniciar Sesión
+              {t('common.login')}
             </Button>
           )}
         </div>
