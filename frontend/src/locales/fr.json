@@ -117,10 +117,13 @@
     "gamification": {
       "points": "Points",
       "pointsDesc": "Pour les mots pratiqués et appris",
+      "pointsHowTo": "5 points par réponse correcte. +20 bonus quand un mot atteint le niveau Appris ou Connu.",
       "wordsLearned": "Mots appris",
       "wordsLearnedDesc": "Niveau Appris ou Connu",
+      "wordsLearnedHowTo": "Mots qui atteignent le niveau 4 (Appris) ou 5 (Connu) après plusieurs réponses correctes aux flashcards.",
       "medals": "Médailles",
-      "medalsEmpty": "Complétez des séries pour débloquer des médailles"
+      "medalsEmpty": "Complétez des séries pour débloquer des médailles",
+      "medalsHowTo": "Gagnez des médailles en complétant votre session quotidienne des jours consécutifs : 3, 7, 14, 30, 60 ou 100 jours."
     }
   },
   "profile": {

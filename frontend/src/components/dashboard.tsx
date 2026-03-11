@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react'
 import { useLocale } from '@/contexts/locale-context'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -100,39 +101,56 @@ export function DashboardComponent() {
       <div className="p-4">
       {/* Gamificación: puntos y medallas */}
       {gamification && (
+        <TooltipProvider>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Zap className="h-5 w-5 text-amber-500" />
-                {t('dashboard.gamification.points')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">{gamification.points}</p>
-              <p className="text-xs text-muted-foreground mt-1">{t('dashboard.gamification.pointsDesc')}</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-emerald-200/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Star className="h-5 w-5 text-emerald-500" />
-                {t('dashboard.gamification.wordsLearned')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{gamification.wordsLearned}</p>
-              <p className="text-xs text-muted-foreground mt-1">{t('dashboard.gamification.wordsLearnedDesc')}</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border-violet-200/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-violet-500" />
-                {t('dashboard.gamification.medals')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200/50 cursor-help">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-amber-500" />
+                    {t('dashboard.gamification.points')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">{gamification.points}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('dashboard.gamification.pointsDesc')}</p>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs">
+              <p>{t('dashboard.gamification.pointsHowTo')}</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-emerald-200/50 cursor-help">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Star className="h-5 w-5 text-emerald-500" />
+                    {t('dashboard.gamification.wordsLearned')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{gamification.wordsLearned}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('dashboard.gamification.wordsLearnedDesc')}</p>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs">
+              <p>{t('dashboard.gamification.wordsLearnedHowTo')}</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border-violet-200/50 cursor-help">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Trophy className="h-5 w-5 text-violet-500" />
+                    {t('dashboard.gamification.medals')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
               <div className="flex flex-wrap gap-2 items-center">
                 {gamification.badges.length > 0 ? (
                   gamification.badges.map((b) => {
@@ -154,7 +172,13 @@ export function DashboardComponent() {
               </div>
             </CardContent>
           </Card>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs">
+              <p>{t('dashboard.gamification.medalsHowTo')}</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
+        </TooltipProvider>
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="col-span-1 md:col-span-2 lg:col-span-1 h-full">
