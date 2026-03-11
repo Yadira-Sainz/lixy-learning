@@ -113,7 +113,15 @@
     "recommended": "Recommandé",
     "practiceWeak": "Pratiquez vos mots les plus faibles",
     "nextWord": "Mot suivant",
-    "loading": "Chargement..."
+    "loading": "Chargement...",
+    "gamification": {
+      "points": "Points",
+      "pointsDesc": "Pour les mots pratiqués et appris",
+      "wordsLearned": "Mots appris",
+      "wordsLearnedDesc": "Niveau Appris ou Connu",
+      "medals": "Médailles",
+      "medalsEmpty": "Complétez des séries pour débloquer des médailles"
+    }
   },
   "profile": {
     "changePhoto": "Changer la photo de profil",

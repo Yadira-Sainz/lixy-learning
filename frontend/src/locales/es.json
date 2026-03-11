@@ -113,7 +113,15 @@
     "recommended": "Recomendado",
     "practiceWeak": "Practica tus palabras más débiles",
     "nextWord": "Siguiente palabra",
-    "loading": "Cargando..."
+    "loading": "Cargando...",
+    "gamification": {
+      "points": "Puntos",
+      "pointsDesc": "Por palabras practicadas y aprendidas",
+      "wordsLearned": "Palabras aprendidas",
+      "wordsLearnedDesc": "Nivel Learned o Known",
+      "medals": "Medallas",
+      "medalsEmpty": "Completa rachas para desbloquear medallas"
+    }
   },
   "profile": {
     "changePhoto": "Cambiar foto de perfil",

@@ -113,7 +113,15 @@
     "recommended": "Recommended",
     "practiceWeak": "Practice your weakest words",
     "nextWord": "Next word",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "gamification": {
+      "points": "Points",
+      "pointsDesc": "For words practiced and learned",
+      "wordsLearned": "Words learned",
+      "wordsLearnedDesc": "Learned or Known level",
+      "medals": "Medals",
+      "medalsEmpty": "Complete streaks to unlock medals"
+    }
   },
   "profile": {
     "changePhoto": "Change profile photo",
