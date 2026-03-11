@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { Trophy, Flame, Star, Award, Zap } from 'lucide-react'
 
 const DifficultyChart = dynamic(
   () => import('./dashboard-charts').then((m) => m.DifficultyChart),
@@ -29,41 +30,132 @@ const weakWords = [
   { word: 'Paradigma', translation: 'Paradigm' },
 ]
 
+type Badge = {
+  badge_id: number;
+  badge_key: string;
+  name_es: string;
+  description_es: string;
+  required_streak: number;
+  icon_name: string;
+  earned_at: string;
+};
+
+type GamificationData = {
+  points: number;
+  wordsLearned: number;
+  currentStreak: number;
+  longestStreak: number;
+  badges: Badge[];
+};
+
+const BADGE_ICONS: Record<string, React.ElementType> = {
+  flame: Flame,
+  star: Star,
+  medal: Award,
+  trophy: Trophy,
+  crown: Trophy,
+  gem: Zap,
+};
+
 export function DashboardComponent() {
   const { t } = useLocale()
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [currentWord, setCurrentWord] = useState(0)
-  const [streakDates, setStreakDates] = useState<string[]>([]); // Cambiado a string[]
+  const [streakDates, setStreakDates] = useState<string[]>([]);
+  const [gamification, setGamification] = useState<GamificationData | null>(null);
 
   const fetchStreakDates = async () => {
-    const token = localStorage.getItem('token'); // Obtener el token almacenado
-  
+    const token = localStorage.getItem('token');
     const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/streaks/`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`, // Incluir el token en el encabezado
-      },
+      headers: { 'Authorization': `Bearer ${token}` },
     });
-  
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-  
-    const streakDates = await response.json();
-    return streakDates.map((dateStr: string) => dateStr); // Mantener como string
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    return data.map((d: string) => d);
   };
 
-  useEffect(() => {   
+  const fetchGamification = async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/gamification`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!response.ok) return null;
+    return response.json();
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
     fetchStreakDates()
-      .then(data => {
-        setStreakDates(data); // Guardar las fechas de racha como strings
-      })
+      .then(setStreakDates)
       .catch(err => console.error("Error fetching streaks:", err));
+    fetchGamification()
+      .then(setGamification)
+      .catch(err => console.error("Error fetching gamification:", err));
   }, []);
   
   return (
     <section id="tablero">
       <div className="p-4">
+      {/* Gamificación: puntos y medallas */}
+      {gamification && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Zap className="h-5 w-5 text-amber-500" />
+                Puntos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">{gamification.points}</p>
+              <p className="text-xs text-muted-foreground mt-1">Por palabras practicadas y aprendidas</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-emerald-200/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Star className="h-5 w-5 text-emerald-500" />
+                Palabras aprendidas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{gamification.wordsLearned}</p>
+              <p className="text-xs text-muted-foreground mt-1">Nivel Learned o Known</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border-violet-200/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-violet-500" />
+                Medallas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2 items-center">
+                {gamification.badges.length > 0 ? (
+                  gamification.badges.map((b) => {
+                    const Icon = BADGE_ICONS[b.icon_name] || Trophy;
+                    return (
+                      <div
+                        key={b.badge_id}
+                        className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/60 dark:bg-black/20"
+                        title={b.description_es}
+                      >
+                        <Icon className="h-4 w-4 text-violet-600" />
+                        <span className="text-xs font-medium">{b.name_es}</span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-sm text-muted-foreground">Completa rachas para desbloquear medallas</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="col-span-1 md:col-span-2 lg:col-span-1 h-full">
           <CardHeader>

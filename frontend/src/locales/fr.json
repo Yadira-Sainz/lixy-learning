@@ -175,7 +175,8 @@
     "completedReviewSuffix": "mots.",
     "currentStreak": "Série actuelle",
     "bestStreak": "Meilleure série",
-    "goToDashboard": "Aller au tableau de bord"
+    "goToDashboard": "Aller au tableau de bord",
+    "newBadgesUnlocked": "Nouvelles médailles débloquées !"
   },
   "collection": {
     "categoryName": "Nom de la catégorie",

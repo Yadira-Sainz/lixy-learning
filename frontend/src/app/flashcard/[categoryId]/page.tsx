@@ -11,7 +11,7 @@ import { Play, Eye, EyeOff, X, Check } from 'lucide-react';
 import axios from 'axios';
 import FlashcardDash from '../page';
 import { useRouter } from 'next/navigation';
-import Modal from '@/components/ui/Modal';
+import StreakCompletionModal from '@/components/ui/streak-completion-modal';
 
 type Word = {
   vocabulary_id: number;
@@ -40,6 +40,7 @@ const FlashcardComponent: React.FC = () => {
   const [currentImageUrl, setCurrentImageUrl] = useState<string>(''); // State for the current image URL
   const router = useRouter()
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [streakData, setStreakData] = useState<{ currentStreak: number; longestStreak: number; newBadges: Array<{ badge_id: number; badge_key: string; name_es: string; description_es: string; required_streak: number; icon_name: string }> }>({ currentStreak: 0, longestStreak: 0, newBadges: [] });
 
   useEffect(() => {
     setIsClient(true);
@@ -195,22 +196,22 @@ const FlashcardComponent: React.FC = () => {
   //Update daily streak
   const updateDailyStreak = async (): Promise<void> => {
     try {
-      const token = localStorage.getItem('token'); // Obtén el token de autenticación desde el almacenamiento local
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/daily-streak`, // Endpoint URL
-        {}, // Empty body for the POST request
-        {
-          headers: { Authorization: `Bearer ${token}` } // Headers as the third argument
-        }
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/daily-streak`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-      console.log('Daily streak updated successfully');
-
-      setIsModalOpen(true); // Open the modal
-
+      setStreakData({
+        currentStreak: res.data.currentStreak ?? 0,
+        longestStreak: res.data.longestStreak ?? 0,
+        newBadges: res.data.newBadges ?? [],
+      });
+      setIsModalOpen(true);
     } catch (error) {
       console.error('Error updating daily streak:', error);
     }
-};
+  };
 
 const handleCloseModal = () => {
   setIsModalOpen(false); // Close the modal
@@ -283,7 +284,14 @@ const handleCloseModal = () => {
             <span className="sr-only">{t('flashcard.correct')}</span>
           </Button>
         </div>
-        <Modal isOpen={isModalOpen} onClose={handleCloseModal} completedCount={getCardsPerSession()} />
+        <StreakCompletionModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          currentStreak={streakData.currentStreak}
+          longestStreak={streakData.longestStreak}
+          completedCount={getCardsPerSession()}
+          newBadges={streakData.newBadges}
+        />
       </div>
     </TooltipProvider>
   );

@@ -268,7 +268,7 @@ async def user_details(
 ):
     row = _execute_query_one(
         conn,
-        "SELECT username, email FROM users WHERE user_id = %s",
+        "SELECT username, email, COALESCE(points, 0) as points FROM users WHERE user_id = %s",
         (user["userId"],),
     )
     if not row:
@@ -422,6 +422,44 @@ def _calculate_next_review_date(familiarity_level_id: int) -> datetime:
     return now + timedelta(days=days)
 
 
+def _award_points(conn, user_id: int, points: int):
+    try:
+        _execute_query(
+            conn,
+            "UPDATE users SET points = COALESCE(points, 0) + %s WHERE user_id = %s",
+            (points, user_id),
+        )
+    except Exception:
+        pass  # Graceful: points column may not exist yet
+
+
+def _award_streak_badges(conn, user_id: int, current_streak: int) -> list:
+    """Award badges for streak milestones. Returns list of newly earned badges."""
+    new_badges = []
+    try:
+        badges = _execute_query(
+            conn,
+            "SELECT badge_id, badge_key, name_es, description_es, required_streak, icon_name FROM badges WHERE required_streak <= %s ORDER BY required_streak DESC",
+            (current_streak,),
+        )
+        for b in badges:
+            existing = _execute_query_one(
+                conn,
+                "SELECT 1 FROM user_badges WHERE user_id = %s AND badge_id = %s",
+                (user_id, b["badge_id"]),
+            )
+            if not existing:
+                _execute_query(
+                    conn,
+                    "INSERT INTO user_badges (user_id, badge_id) VALUES (%s, %s)",
+                    (user_id, b["badge_id"]),
+                )
+                new_badges.append(dict(b))
+    except Exception:
+        pass
+    return new_badges
+
+
 @app.get("/api/next-session")
 async def next_session(
     user: dict = Depends(get_current_user),
@@ -436,6 +474,10 @@ async def next_session(
         (user["userId"],),
     )
     return [dict(r) for r in rows]
+
+
+POINTS_PER_CORRECT = 5
+POINTS_WORD_LEARNED = 20  # Bonus when word reaches Learned (4) or Known (5)
 
 
 @app.post("/api/update-progress")
@@ -458,10 +500,14 @@ async def update_progress(
                VALUES (%s, %s, %s, %s, %s, NOW(), %s)""",
             (user["userId"], req.wordId, fid, ca, ia, next_date),
         )
-        return {"message": "Progress created successfully"}
+        points_earned = POINTS_PER_CORRECT if req.correct else 0
+        if points_earned > 0:
+            _award_points(conn, user["userId"], points_earned)
+        return {"message": "Progress created successfully", "pointsEarned": points_earned}
     fid = progress["familiarity_level_id"]
     ca = progress["correct_answers"] + (1 if req.correct else 0)
     ia = progress["incorrect_answers"] + (0 if req.correct else 1)
+    old_fid = fid
     if req.correct:
         if fid == 1 and ca >= 1:
             fid = 2
@@ -481,7 +527,12 @@ async def update_progress(
            WHERE user_id = %s AND word_id = %s""",
         (fid, ca, ia, next_date, user["userId"], req.wordId),
     )
-    return {"message": "Progress updated successfully"}
+    points_earned = POINTS_PER_CORRECT if req.correct else 0
+    if req.correct and fid >= 4 and old_fid < 4:
+        points_earned += POINTS_WORD_LEARNED
+    if points_earned > 0:
+        _award_points(conn, user["userId"], points_earned)
+    return {"message": "Progress updated successfully", "pointsEarned": points_earned}
 
 
 @app.get("/api/daily-words/{category_id}")
@@ -554,7 +605,13 @@ async def daily_streak(
             "INSERT INTO daily_streaks (user_id, streak_date, current_streak, longest_streak) VALUES (%s, %s, %s, %s)",
             (user["userId"], today, new_current, new_longest),
         )
-    return {"message": "Racha diaria actualizada", "currentStreak": new_current, "longestStreak": new_longest}
+    new_badges = _award_streak_badges(conn, user["userId"], new_current)
+    return {
+        "message": "Racha diaria actualizada",
+        "currentStreak": new_current,
+        "longestStreak": new_longest,
+        "newBadges": new_badges,
+    }
 
 
 @app.post("/api/streaks")
@@ -580,6 +637,59 @@ async def get_streaks(
         d = (now - timedelta(days=i)).date().isoformat()
         dates.append(d)
     return dates
+
+
+@app.get("/api/gamification")
+async def get_gamification(
+    user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    """Returns points, words learned, streaks, and badges for gamification UI."""
+    user_row = _execute_query_one(
+        conn,
+        "SELECT COALESCE(points, 0) as points FROM users WHERE user_id = %s",
+        (user["userId"],),
+    )
+    points = user_row["points"] if user_row else 0
+
+    words_learned = _execute_query_one(
+        conn,
+        """SELECT COUNT(*) as count FROM familiarity WHERE user_id = %s AND familiarity_level_id >= 4""",
+        (user["userId"],),
+    )
+    words_learned_count = words_learned["count"] if words_learned else 0
+
+    today = datetime.utcnow().date().isoformat()
+    yesterday = (datetime.utcnow() - timedelta(days=1)).date().isoformat()
+    streak_row = _execute_query_one(
+        conn,
+        "SELECT current_streak FROM daily_streaks WHERE user_id = %s AND (streak_date = %s OR streak_date = %s) ORDER BY streak_date DESC LIMIT 1",
+        (user["userId"], today, yesterday),
+    )
+    longest_row = _execute_query_one(
+        conn,
+        "SELECT COALESCE(MAX(longest_streak), 0) as longest_streak FROM daily_streaks WHERE user_id = %s",
+        (user["userId"],),
+    )
+    current_streak = streak_row["current_streak"] if streak_row else 0
+    longest_streak = longest_row["longest_streak"] if longest_row else 0
+
+    badges_rows = _execute_query(
+        conn,
+        """SELECT b.badge_id, b.badge_key, b.name_es, b.description_es, b.required_streak, b.icon_name, ub.earned_at
+           FROM user_badges ub JOIN badges b ON ub.badge_id = b.badge_id
+           WHERE ub.user_id = %s ORDER BY b.required_streak ASC""",
+        (user["userId"],),
+    )
+    badges = [dict(r) for r in badges_rows] if badges_rows else []
+
+    return {
+        "points": points,
+        "wordsLearned": words_learned_count,
+        "currentStreak": current_streak,
+        "longestStreak": longest_streak,
+        "badges": badges,
+    }
 
 
 if __name__ == "__main__":

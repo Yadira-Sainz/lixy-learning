@@ -175,7 +175,8 @@
     "completedReviewSuffix": "palabras.",
     "currentStreak": "Racha actual",
     "bestStreak": "Mejor racha",
-    "goToDashboard": "Ir al tablero"
+    "goToDashboard": "Ir al tablero",
+    "newBadgesUnlocked": "¡Nuevas medallas desbloqueadas!"
   },
   "collection": {
     "categoryName": "Nombre de categoría",

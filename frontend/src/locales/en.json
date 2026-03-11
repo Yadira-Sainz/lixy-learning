@@ -175,7 +175,8 @@
     "completedReviewSuffix": "words.",
     "currentStreak": "Current streak",
     "bestStreak": "Best streak",
-    "goToDashboard": "Go to dashboard"
+    "goToDashboard": "Go to dashboard",
+    "newBadgesUnlocked": "New badges unlocked!"
   },
   "collection": {
     "categoryName": "Category name",
