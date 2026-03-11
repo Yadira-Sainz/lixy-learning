@@ -354,6 +354,13 @@ Crea el archivo de configuración:
 sudo nano /etc/nginx/conf.d/lixylearning.conf
 ```
 
+O copia desde el repo:
+
+```bash
+sudo cp conf/nginx-lixylearning.conf /etc/nginx/conf.d/lixylearning.conf
+# Ajusta server_name si usas otro dominio
+```
+
 Contenido (reemplaza con tu dominio: `lixylearning.duckdns.org`, `lixylearning.zapto.org`, etc.):
 
 ```nginx

@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { useTheme } from 'next-themes'
+import { useLocale } from '@/contexts/locale-context'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 
 const sections = [
-  { id: 'general', title: 'Configuración General' },
-  { id: 'flashcards', title: 'Flashcards' },
+  { id: 'general', titleKey: 'config.general' },
+  { id: 'flashcards', titleKey: 'config.flashcards' },
   // Add more sections here in the future
 ]
 
@@ -18,18 +19,49 @@ interface SectionRefs {
   [key: string]: React.RefObject<HTMLElement>;
 }
 
+const CONFIG_STORAGE_KEY = 'lixy-config'
+
+function loadStoredConfig() {
+  if (typeof window === 'undefined') return null
+  try {
+    const stored = localStorage.getItem(CONFIG_STORAGE_KEY)
+    return stored ? JSON.parse(stored) : null
+  } catch {
+    return null
+  }
+}
+
 export default function ConfigurationPageComponent() {
   const { theme, setTheme, resolvedTheme } = useTheme()
-  const [dailyGoal, setDailyGoal] = useState('10')
-  const [cardsPerSession, setCardsPerSession] = useState('20')
-  const [includeTranslation, setIncludeTranslation] = useState(true)
+  const { locale, setLocale, t } = useLocale()
   const [activeSection, setActiveSection] = useState(sections[0].id)
   const sectionRefs = useRef<SectionRefs>({})
   const [mounted, setMounted] = useState(false)
 
+  // Pending state - only applied when user clicks "Guardar cambios"
+  const [pendingTheme, setPendingTheme] = useState<string>('system')
+  const [pendingLocale, setPendingLocale] = useState<string>('es')
+  const [pendingDailyGoal, setPendingDailyGoal] = useState('10')
+  const [pendingCardsPerSession, setPendingCardsPerSession] = useState('20')
+  const [pendingIncludeTranslation, setPendingIncludeTranslation] = useState(true)
+  const [saveFeedback, setSaveFeedback] = useState(false)
+
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Initialize pending state from actual values when mounted
+  useEffect(() => {
+    if (!mounted) return
+    setPendingTheme(theme ?? 'system')
+    setPendingLocale(locale)
+    const stored = loadStoredConfig()
+    if (stored) {
+      if (stored.dailyGoal != null) setPendingDailyGoal(String(stored.dailyGoal))
+      if (stored.cardsPerSession != null) setPendingCardsPerSession(String(stored.cardsPerSession))
+      if (stored.includeTranslation != null) setPendingIncludeTranslation(stored.includeTranslation)
+    }
+  }, [mounted, theme, locale])
 
   useEffect(() => {
     sections.forEach(section => {
@@ -40,7 +72,18 @@ export default function ConfigurationPageComponent() {
   }, [])
 
   const handleSaveChanges = () => {
-    console.log('Changes saved:', { dailyGoal, cardsPerSession, includeTranslation, theme })
+    setTheme(pendingTheme as 'light' | 'dark' | 'system')
+    setLocale(pendingLocale as 'es' | 'en' | 'fr')
+    const config = {
+      dailyGoal: pendingDailyGoal,
+      cardsPerSession: pendingCardsPerSession,
+      includeTranslation: pendingIncludeTranslation,
+    }
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(config))
+    }
+    setSaveFeedback(true)
+    setTimeout(() => setSaveFeedback(false), 3000)
   }
 
   const scrollToSection = (sectionId: string) => {
@@ -60,7 +103,7 @@ export default function ConfigurationPageComponent() {
                 className={`w-full justify-start ${activeSection === section.id ? 'bg-accent' : ''}`}
                 onClick={() => scrollToSection(section.id)}
               >
-                {section.title}
+                {t(section.titleKey)}
               </Button>
             </li>
           ))}
@@ -70,85 +113,93 @@ export default function ConfigurationPageComponent() {
       {/* Main content */}
       <div className="flex-grow max-w-2xl mx-auto space-y-8">
         <section ref={sectionRefs.current.general as React.RefObject<HTMLElement>} id="general">
-          <h1 className="text-3xl font-bold mb-6">Configuración General</h1>
+          <h1 className="text-3xl font-bold mb-6">{t('config.general')}</h1>
           
           <div className="space-y-4">
             <div>
-              <Label htmlFor="theme">Tema</Label>
+              <Label htmlFor="theme">{t('config.theme')}</Label>
               <Select
-                value={mounted ? (theme ?? 'system') : 'system'}
-                onValueChange={(value) => setTheme(value as 'light' | 'dark' | 'system')}
+                value={mounted ? pendingTheme : 'system'}
+                onValueChange={(value) => setPendingTheme(value)}
               >
                 <SelectTrigger id="theme">
-                  <SelectValue placeholder="Selecciona un tema" />
+                  <SelectValue placeholder={t('config.themePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="light">Claro</SelectItem>
-                  <SelectItem value="dark">Oscuro</SelectItem>
-                  <SelectItem value="system">Sistema (según el SO)</SelectItem>
+                  <SelectItem value="light">{t('config.themeLight')}</SelectItem>
+                  <SelectItem value="dark">{t('config.themeDark')}</SelectItem>
+                  <SelectItem value="system">{t('config.themeSystem')}</SelectItem>
                 </SelectContent>
               </Select>
               {mounted && (
                 <p className="text-sm text-muted-foreground mt-1">
-                  {resolvedTheme === 'dark' ? 'Modo oscuro activo' : 'Modo claro activo'}
-                  {theme === 'system' && ' (según preferencia del sistema)'}
+                  {resolvedTheme === 'dark' ? t('config.themeActiveDark') : t('config.themeActiveLight')}
+                  {pendingTheme === 'system' && ` ${t('config.themeSystemNote')}`}
                 </p>
               )}
             </div>
             
             <div>
-              <Label htmlFor="language">Idioma de interfaz</Label>
-              <Select>
+              <Label htmlFor="language">{t('config.language')}</Label>
+              <Select
+                value={mounted ? pendingLocale : 'es'}
+                onValueChange={(value) => setPendingLocale(value)}
+              >
                 <SelectTrigger id="language">
-                  <SelectValue placeholder="Selecciona un idioma" />
+                  <SelectValue placeholder={t('config.languagePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="es">Español</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="fr">Français</SelectItem>
+                  <SelectItem value="es">{t('config.languageEs')}</SelectItem>
+                  <SelectItem value="en">{t('config.languageEn')}</SelectItem>
+                  <SelectItem value="fr">{t('config.languageFr')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
             <div>
-              <Label htmlFor="daily-goal">Meta de racha diaria</Label>
+              <Label htmlFor="daily-goal">{t('config.dailyGoal')}</Label>
               <Input 
                 id="daily-goal" 
                 type="number" 
-                value={dailyGoal}
-                onChange={(e) => setDailyGoal(e.target.value)}
+                value={pendingDailyGoal}
+                onChange={(e) => setPendingDailyGoal(e.target.value)}
               />
             </div>
           </div>
         </section>
 
         <section ref={sectionRefs.current.flashcards as React.RefObject<HTMLElement>} id="flashcards">
-          <h2 className="text-2xl font-bold mb-6">Flashcards</h2>
+          <h2 className="text-2xl font-bold mb-6">{t('config.flashcards')}</h2>
           
           <div className="space-y-4">
             <div>
-              <Label htmlFor="cards-per-session">Cartas por sesión</Label>
+              <Label htmlFor="cards-per-session">{t('config.cardsPerSession')}</Label>
               <Input 
                 id="cards-per-session" 
                 type="number"
-                value={cardsPerSession}
-                onChange={(e) => setCardsPerSession(e.target.value)}
+                value={pendingCardsPerSession}
+                onChange={(e) => setPendingCardsPerSession(e.target.value)}
               />
             </div>
             
             <div className="flex items-center space-x-2">
               <Switch 
                 id="include-translation"
-                checked={includeTranslation}
-                onCheckedChange={setIncludeTranslation}
+                checked={pendingIncludeTranslation}
+                onCheckedChange={setPendingIncludeTranslation}
               />
-              <Label htmlFor="include-translation">Incluir traducción</Label>
+              <Label htmlFor="include-translation">{t('config.includeTranslation')}</Label>
             </div>
           </div>
         </section>
 
-        <div className="flex justify-end mt-8">
-          <Button onClick={handleSaveChanges}>Guardar cambios</Button>
+        <div className="flex items-center justify-end gap-4 mt-8">
+          {saveFeedback && (
+            <span className="text-sm text-green-600 dark:text-green-400 font-medium animate-in fade-in duration-200">
+              {t('config.changesSaved')}
+            </span>
+          )}
+          <Button onClick={handleSaveChanges}>{t('config.saveChanges')}</Button>
         </div>
       </div>
     </div>

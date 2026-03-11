@@ -1,0 +1,193 @@
+{
+  "nav": {
+    "about": "Sobre nosotros",
+    "features": "Funciones",
+    "contact": "Contacto",
+    "dashboard": "Tablero",
+    "profile": "Perfil",
+    "settings": "Ajustes",
+    "flashcards": "Centro de Flashcards",
+    "reading": "Centro de Lectura"
+  },
+  "common": {
+    "login": "Iniciar Sesión"
+  },
+  "landing": {
+    "title": "Explora un nuevo idioma",
+    "subtitle": "Creemos que el aprendizaje de idiomas debe ser dinámico y personalizado. ¡Descubre una nueva forma de aprender!",
+    "signup": "Regístrate",
+    "imageAlt": "Idiomas de todo el mundo"
+  },
+  "footer": {
+    "brand": "LixyLearning",
+    "copyright": "© 2024 LixyLearning. Todos los derechos reservados.",
+    "social": "Redes sociales"
+  },
+  "features": {
+    "title": "¿Cuáles son las funciones de LexiLearn?",
+    "flashcards": {
+      "title": "Flashcards Personalizadas",
+      "description": "Estudia flashcards con texto y audio, utilizando un algoritmo inteligente de repetición espaciada para optimizar la retención a largo plazo."
+    },
+    "vocabulary": {
+      "title": "Introducción contextual del vocabulario",
+      "description": "El vocabulario se introduce mediante frases contextuales y lecturas breves, lo que te permite comprender y recordar los nuevos términos con mayor facilidad."
+    },
+    "routes": {
+      "title": "Rutas de aprendizaje adaptativas",
+      "description": "Las rutas de aprendizaje se ajustan en función a tus necesidades de aprendizaje."
+    }
+  },
+  "contact": {
+    "title": "Contáctanos",
+    "subtitle": "¿Tienes alguna pregunta o necesitas ayuda? Nuestro equipo está aquí para ayudarte. Completa el formulario a continuación y te responderemos lo antes posible.",
+    "name": "Nombre",
+    "email": "E-mail",
+    "subject": "Asunto",
+    "message": "Mensaje",
+    "send": "Enviar"
+  },
+  "config": {
+    "general": "Configuración General",
+    "theme": "Tema",
+    "themePlaceholder": "Selecciona un tema",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
+    "themeSystem": "Sistema (según el SO)",
+    "themeActiveDark": "Modo oscuro activo",
+    "themeActiveLight": "Modo claro activo",
+    "themeSystemNote": "(según preferencia del sistema)",
+    "language": "Idioma de interfaz",
+    "languagePlaceholder": "Selecciona un idioma",
+    "languageEs": "Español",
+    "languageEn": "English",
+    "languageFr": "Français",
+    "dailyGoal": "Meta de racha diaria",
+    "flashcards": "Flashcards",
+    "cardsPerSession": "Cartas por sesión",
+    "includeTranslation": "Incluir traducción",
+    "saveChanges": "Guardar cambios",
+    "changesSaved": "Cambios guardados"
+  },
+  "userMenu": {
+    "profile": "Perfil",
+    "settings": "Ajustes",
+    "logout": "Cerrar Sesión"
+  },
+  "auth": {
+    "login": "Iniciar Sesión",
+    "signup": "Registrarse",
+    "loginDesc": "Ingrese sus credenciales para continuar",
+    "signupDesc": "Crear una nueva cuenta",
+    "email": "Correo Electrónico",
+    "password": "Contraseña",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "age": "Edad",
+    "gender": "Género",
+    "genderPlaceholder": "Seleccionar género",
+    "male": "Masculino",
+    "female": "Femenino",
+    "other": "Otro",
+    "country": "País",
+    "nativeLanguage": "Idioma Nativo",
+    "learningLanguage": "Idioma a Aprender",
+    "nativeLanguagePlaceholder": "Seleccionar idioma nativo",
+    "learningLanguagePlaceholder": "Seleccionar idioma a aprender",
+    "noLanguages": "No hay idiomas disponibles",
+    "fillAllFields": "Por favor, complete todos los campos",
+    "invalidCredentials": "Correo o contraseña inválidos",
+    "invalidEmail": "Por favor, ingrese un correo electrónico válido",
+    "passwordMinLength": "La contraseña debe tener al menos 6 caracteres",
+    "invalidAge": "Por favor, ingrese una edad válida",
+    "signupError": "Error al registrarse. Por favor intente nuevamente."
+  },
+  "dashboard": {
+    "dailyStreak": "Racha Diaria",
+    "difficulty": "Dificultad",
+    "upcomingReviews": "Próximas revisiones",
+    "today": "Hoy",
+    "tomorrow": "Mañana",
+    "nextWeek": "Próxima semana",
+    "progress": "Progreso",
+    "recommended": "Recomendado",
+    "practiceWeak": "Practica tus palabras más débiles",
+    "nextWord": "Siguiente palabra",
+    "loading": "Cargando..."
+  },
+  "profile": {
+    "changePhoto": "Cambiar foto de perfil",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "username": "Nombre de usuario",
+    "email": "Email",
+    "age": "Edad",
+    "gender": "Género",
+    "genderPlaceholder": "Selecciona tu género",
+    "country": "País",
+    "nativeLanguage": "Idioma nativo",
+    "learningLanguage": "Idioma a aprender",
+    "nativeLanguagePlaceholder": "Selecciona tu idioma nativo",
+    "learningLanguagePlaceholder": "Selecciona el idioma que estás aprendiendo",
+    "saveChanges": "Guardar cambios",
+    "updateSuccess": "¡Perfil actualizado correctamente!",
+    "updateFailed": "Error al actualizar el perfil"
+  },
+  "flashcardCenter": {
+    "recent": "Recientes",
+    "collection": "Colección",
+    "clickToPractice": "Haz clic para empezar a practicar",
+    "clickToViewCategory": "Haz click para ver esta categoría",
+    "vocabulary": "Vocabulario",
+    "reinforceWeak": "Reforzar palabras más débiles"
+  },
+  "readingCenter": {
+    "recent": "Recientes",
+    "collection": "Colección",
+    "clickToPractice": "Haz click para comenzar a practicar",
+    "clickToViewCategory": "Da click para ver esta categoría",
+    "loadingCategories": "Cargando categorías...",
+    "reinforceWeak": "Reforzar palabras más débiles",
+    "reading": "Lectura"
+  },
+  "readingPage": {
+    "loading": "Cargando...",
+    "loadingMaterial": "Por favor espera mientras cargamos el material de lectura.",
+    "error": "Error",
+    "tryAgain": "Intentar de nuevo",
+    "words": "Palabras",
+    "quiz": "Cuestionario",
+    "clickWordForDetails": "Haz click en una palabra resaltada para ver sus detalles.",
+    "submitAnswers": "Enviar respuestas",
+    "submitted": "Enviado",
+    "correct": "¡Correcto!",
+    "incorrect": "Incorrecto. La respuesta es:",
+    "hideHighlights": "Ocultar resaltados",
+    "showHighlights": "Mostrar resaltados",
+    "playAudio": "Reproducir audio",
+    "nextPage": "Siguiente página"
+  },
+  "modal": {
+    "congrats": "¡Felicidades!",
+    "completedReview": "Has completado tu revisión de 20 palabras.",
+    "completedReviewAlt": "Has completado tu repaso de 20 palabras.",
+    "completedReviewPrefix": "Has completado tu repaso de",
+    "completedReviewSuffix": "palabras.",
+    "currentStreak": "Racha actual",
+    "bestStreak": "Mejor racha",
+    "goToDashboard": "Ir al tablero"
+  },
+  "collection": {
+    "categoryName": "Nombre de categoría",
+    "clickToView": "Haga clic para ver esta lectura",
+    "reading": "Lectura"
+  },
+  "flashcard": {
+    "loadingImage": "Cargando imagen...",
+    "playAudio": "Play audio",
+    "hideTranslation": "Hide translation",
+    "showTranslation": "Show translation",
+    "correct": "Correcto",
+    "incorrect": "Incorrecto"
+  }
+}

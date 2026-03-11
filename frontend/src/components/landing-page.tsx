@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button"
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import homepageImage from '@/assets/homepage.png'
+import { useLocale } from '@/contexts/locale-context'
 
 
 export function LandingPageComponent() {
   const router = useRouter()
+  const { t } = useLocale()
 
   const handleRegisterClick = () => {
     router.push('/auth?tab=signup')
@@ -20,24 +22,24 @@ export function LandingPageComponent() {
           <div className="flex flex-col md:flex-row items-center justify-between py-12 md:py-24">
             {/* Left side content */}
             <div className="md:w-1/2 mb-8 md:mb-0">
-              <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
-                Explora un nuevo idioma
+              <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4">
+                {t('landing.title')}
               </h1>
-              <p className="text-xl text-gray-600 mb-6">
-                Creemos que el aprendizaje de idiomas debe ser dinámico y personalizado. ¡Descubre una nueva forma de aprender!
+              <p className="text-xl text-muted-foreground mb-6">
+                {t('landing.subtitle')}
               </p>
               <Button 
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 text-lg"
                 onClick={handleRegisterClick}
               >
-                Regístrate
+                {t('landing.signup')}
               </Button>
             </div>
 
             {/* Right side illustration */}
             <div className="md:w-1/2 flex justify-center">
               <div className="relative w-full max-w-lg">
-              <Image src={homepageImage} alt="Idiomas de todo el mundo" />
+              <Image src={homepageImage} alt={t('landing.imageAlt')} />
               </div>
             </div>
           </div>

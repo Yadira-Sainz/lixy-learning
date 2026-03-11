@@ -155,6 +155,45 @@ curl http://127.0.0.1:3000  # Probar localmente en EC2
 
 ---
 
+## Web: "This site can't be reached" / ERR_CONNECTION_REFUSED
+
+**Causa:** Nada escucha en el puerto 80/443, nginx está detenido, o el firewall bloquea la conexión.
+
+**Diagnóstico (ejecutar en la EC2):**
+
+```bash
+# 1. ¿Nginx está corriendo?
+sudo systemctl status nginx
+
+# 2. ¿Algo escucha en el puerto 80?
+sudo ss -tlnp | grep :80
+
+# 3. ¿Nginx tiene errores de config?
+sudo nginx -t
+```
+
+**Soluciones:**
+
+1. **Si nginx no está corriendo:**
+   ```bash
+   sudo systemctl start nginx
+   sudo systemctl enable nginx
+   ```
+
+2. **Si nginx falla al iniciar:** Revisar logs y config:
+   ```bash
+   sudo journalctl -u nginx -n 30
+   sudo nginx -t
+   ```
+
+3. **Si nginx está bien pero no conecta:** Verificar AWS Security Group:
+   - EC2 → Instancia → Security → Security group
+   - Inbound rules: debe haber reglas para puerto **80** (HTTP) y **443** (HTTPS) desde `0.0.0.0/0` o tu IP
+
+4. **Verificar DNS:** `dig lixylearning.zapto.org +short` debe devolver la Elastic IP de tu EC2.
+
+---
+
 ## SSL / Certbot
 
 ### Error: "amazon-linux-extras: command not found" o "No module named pip"

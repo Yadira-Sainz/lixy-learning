@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Settings, User, LogOut } from "lucide-react";
 import axios from "axios";
 import { useRouter } from 'next/navigation';
+import { useLocale } from '@/contexts/locale-context';
 
 export default function UserMenu() {
+  const { t } = useLocale();
   const [userDetails, setUserDetails] = React.useState({ username: '', email: '' });
   const router = useRouter(); // Use router for redirection
 
@@ -62,15 +64,15 @@ export default function UserMenu() {
         <div className="mt-4 space-y-2">
           <Link href="/perfil" className="flex items-center text-sm">
             <User className="mr-2 h-4 w-4" />
-            Perfil
+            {t('userMenu.profile')}
           </Link>
           <Link href="/ajustes" className="flex items-center text-sm">
             <Settings className="mr-2 h-4 w-4" />
-            Ajustes
+            {t('userMenu.settings')}
           </Link>
           <Button variant="ghost" className="w-full justify-start text-sm" onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
-            Cerrar Sesión
+            {t('userMenu.logout')}
           </Button>
         </div>
       </PopoverContent>

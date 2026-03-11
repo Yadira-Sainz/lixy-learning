@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import axios from 'axios'
+import { useLocale } from '@/contexts/locale-context'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,6 +18,7 @@ interface Language {
 }
 
 export default function AuthPageComponent() {
+  const { t } = useLocale()
   const [showPassword, setShowPassword] = useState(false)
   const [activeTab, setActiveTab] = useState('login')
   const [email, setEmail] = useState('')
@@ -60,7 +62,7 @@ export default function AuthPageComponent() {
   const handleLogin = async () => {
     try {
       if (!email || !password) {
-        setLoginError('Por favor, complete todos los campos')
+        setLoginError(t('auth.fillAllFields'))
         return
       }
       const response = await axios.post(process.env.NEXT_PUBLIC_BACKEND_URL + '/login', {
@@ -72,7 +74,7 @@ export default function AuthPageComponent() {
       window.dispatchEvent(new CustomEvent('auth-change', { detail: { loggedIn: true } }))
       router.push('/tablero')
     } catch (error) {
-      setLoginError('Correo o contraseña inválidos')
+      setLoginError(t('auth.invalidCredentials'))
     }
   }
 
@@ -83,22 +85,22 @@ export default function AuthPageComponent() {
 
   const handleSignup = async () => {
     if (!firstName || !lastName || !email || !password || !age || !gender || !country || !nativeLanguage || !learningLanguage) {
-      setSignupError('Por favor, complete todos los campos')
+      setSignupError(t('auth.fillAllFields'))
       return
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setSignupError('Por favor, ingrese un correo electrónico válido')
+      setSignupError(t('auth.invalidEmail'))
       return
     }
 
     if (password.length < 6) {
-      setSignupError('La contraseña debe tener al menos 6 caracteres')
+      setSignupError(t('auth.passwordMinLength'))
       return
     }
 
     if (isNaN(Number(age)) || Number(age) <= 0) {
-      setSignupError('Por favor, ingrese una edad válida')
+      setSignupError(t('auth.invalidAge'))
       return
     }
 
@@ -123,7 +125,7 @@ export default function AuthPageComponent() {
       window.dispatchEvent(new CustomEvent('auth-change', { detail: { loggedIn: true } }))
       router.push('/tablero')
     } catch (error) {
-      setSignupError('Error al registrarse. Por favor intente nuevamente.')
+      setSignupError(t('auth.signupError'))
     }
   }
 
@@ -131,9 +133,9 @@ export default function AuthPageComponent() {
     <div className="flex justify-center items-center min-h-screen p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">{activeTab === 'login' ? 'Iniciar Sesión' : 'Registrarse'}</CardTitle>
+          <CardTitle className="text-2xl">{activeTab === 'login' ? t('auth.login') : t('auth.signup')}</CardTitle>
           <CardDescription>
-            {activeTab === 'login' ? 'Ingrese sus credenciales para continuar' : 'Crear una nueva cuenta'}
+            {activeTab === 'login' ? t('auth.loginDesc') : t('auth.signupDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -143,22 +145,22 @@ export default function AuthPageComponent() {
                 value="login"
                 className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
-                Iniciar Sesión
+                {t('auth.login')}
               </TabsTrigger>
               <TabsTrigger 
                 value="signup"
                 className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
-                Registrarse
+                {t('auth.signup')}
               </TabsTrigger>
             </TabsList>
             <TabsContent value="login" className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Correo Electrónico</Label>
+                <Label htmlFor="email">{t('auth.email')}</Label>
                 <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Contraseña</Label>
+                <Label htmlFor="password">{t('auth.password')}</Label>
                 <div className="relative">
                   <Input 
                     id="password" 
@@ -176,25 +178,25 @@ export default function AuthPageComponent() {
                 </div>
               </div>
               {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
-              <Button onClick={handleLogin} className="w-full">Iniciar Sesión</Button>
+              <Button onClick={handleLogin} className="w-full">{t('auth.login')}</Button>
             </TabsContent>
             <TabsContent value="signup" className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="first_name">Nombre</Label>
+                  <Label htmlFor="first_name">{t('auth.firstName')}</Label>
                   <Input id="first_name" type="text" required value={firstName} onChange={(e) => setFirstName(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="last_name">Apellido</Label>
+                  <Label htmlFor="last_name">{t('auth.lastName')}</Label>
                   <Input id="last_name" type="text" required value={lastName} onChange={(e) => setLastName(e.target.value)} />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Correo Electrónico</Label>
+                <Label htmlFor="email">{t('auth.email')}</Label>
                 <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Contraseña</Label>
+                <Label htmlFor="password">{t('auth.password')}</Label>
                 <div className="relative">
                   <Input 
                     id="password" 
@@ -213,35 +215,35 @@ export default function AuthPageComponent() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="age">Edad</Label>
+                  <Label htmlFor="age">{t('auth.age')}</Label>
                   <Input id="age" type="number" value={age} onChange={(e) => {
                     const numericValue = e.target.value.replace(/\D/g, '')
                     setAge(numericValue)
                   }} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="gender">Género</Label>
+                  <Label htmlFor="gender">{t('auth.gender')}</Label>
                   <Select value={gender} onValueChange={setGender}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar género" />
+                      <SelectValue placeholder={t('auth.genderPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Masculino">Masculino</SelectItem>
-                      <SelectItem value="Femenino">Femenino</SelectItem>
-                      <SelectItem value="Otro">Otro</SelectItem>
+                      <SelectItem value="Masculino">{t('auth.male')}</SelectItem>
+                      <SelectItem value="Femenino">{t('auth.female')}</SelectItem>
+                      <SelectItem value="Otro">{t('auth.other')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="country">País</Label>
+                <Label htmlFor="country">{t('auth.country')}</Label>
                 <Input id="country" type="text" required value={country} onChange={(e) => setCountry(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="native_language">Idioma Nativo</Label>
+                <Label htmlFor="native_language">{t('auth.nativeLanguage')}</Label>
                 <Select value={nativeLanguage} onValueChange={setNativeLanguage}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar idioma nativo" />
+                    <SelectValue placeholder={t('auth.nativeLanguagePlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {languages.length > 0 ? (
@@ -251,16 +253,16 @@ export default function AuthPageComponent() {
                         </SelectItem>
                       ))
                     ) : (
-                      <SelectItem disabled value="no-languages">No hay idiomas disponibles</SelectItem>
+                      <SelectItem disabled value="no-languages">{t('auth.noLanguages')}</SelectItem>
                     )}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="learning_language">Idioma a Aprender</Label>
+                <Label htmlFor="learning_language">{t('auth.learningLanguage')}</Label>
                 <Select value={learningLanguage} onValueChange={setLearningLanguage}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar idioma a aprender" />
+                    <SelectValue placeholder={t('auth.learningLanguagePlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {languages.length > 0 ? (
@@ -270,13 +272,13 @@ export default function AuthPageComponent() {
                         </SelectItem>
                       ))
                     ) : (
-                      <SelectItem disabled value="no-languages">No hay idiomas disponibles</SelectItem>
+                      <SelectItem disabled value="no-languages">{t('auth.noLanguages')}</SelectItem>
                     )}
                   </SelectContent>
                 </Select>
               </div>
               {signupError && <p className="text-red-500 text-sm">{signupError}</p>}
-              <Button onClick={handleSignup} className="w-full">Registrarse</Button>
+              <Button onClick={handleSignup} className="w-full">{t('auth.signup')}</Button>
             </TabsContent>
           </Tabs>
         </CardContent>
