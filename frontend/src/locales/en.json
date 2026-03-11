@@ -118,9 +118,9 @@
       "points": "Points",
       "pointsDesc": "For words practiced and learned",
       "pointsHowTo": "5 points per correct answer. +20 bonus when a word reaches Learned or Known level.",
-      "wordsLearned": "Words learned",
-      "wordsLearnedDesc": "Learned or Known level",
-      "wordsLearnedHowTo": "Words that reach level 4 (Learned) or 5 (Known) after multiple correct answers in flashcards.",
+      "readingsCompleted": "Readings completed",
+      "readingsCompletedDesc": "From the Reading Center",
+      "readingsCompletedHowTo": "Complete a reading and submit the quiz in the Reading Center. 15 points per reading.",
       "medals": "Medals",
       "medalsEmpty": "Complete streaks to unlock medals",
       "medalsHowTo": "Earn medals by completing your daily session on consecutive days: 3, 7, 14, 30, 60 or 100 days."

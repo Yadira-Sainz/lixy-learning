@@ -118,9 +118,9 @@
       "points": "Puntos",
       "pointsDesc": "Por palabras practicadas y aprendidas",
       "pointsHowTo": "5 puntos por cada respuesta correcta. +20 de bonus cuando una palabra alcanza el nivel Learned o Known.",
-      "wordsLearned": "Palabras aprendidas",
-      "wordsLearnedDesc": "Nivel Learned o Known",
-      "wordsLearnedHowTo": "Palabras que alcanzan el nivel 4 (Learned) o 5 (Known) tras varias respuestas correctas en flashcards.",
+      "readingsCompleted": "Lecturas completadas",
+      "readingsCompletedDesc": "Del Centro de Lectura",
+      "readingsCompletedHowTo": "Completa una lectura y envía el cuestionario en el Centro de Lectura. 15 puntos por lectura.",
       "medals": "Medallas",
       "medalsEmpty": "Completa rachas para desbloquear medallas",
       "medalsHowTo": "Obtén medallas completando tu sesión diaria en días consecutivos: 3, 7, 14, 30, 60 o 100 días."

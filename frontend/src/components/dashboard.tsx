@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Trophy, Flame, Star, Award, Zap } from 'lucide-react'
+import { Trophy, Flame, Star, Award, Zap, BookOpen } from 'lucide-react'
 
 const DifficultyChart = dynamic(
   () => import('./dashboard-charts').then((m) => m.DifficultyChart),
@@ -43,7 +43,7 @@ type Badge = {
 
 type GamificationData = {
   points: number;
-  wordsLearned: number;
+  readingsCompleted: number;
   currentStreak: number;
   longestStreak: number;
   badges: Badge[];
@@ -127,18 +127,18 @@ export function DashboardComponent() {
               <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-emerald-200/50 cursor-help">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <Star className="h-5 w-5 text-emerald-500" />
-                    {t('dashboard.gamification.wordsLearned')}
+                    <BookOpen className="h-5 w-5 text-emerald-500" />
+                    {t('dashboard.gamification.readingsCompleted')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{gamification.wordsLearned}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{t('dashboard.gamification.wordsLearnedDesc')}</p>
+                  <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{gamification.readingsCompleted ?? 0}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('dashboard.gamification.readingsCompletedDesc')}</p>
                 </CardContent>
               </Card>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-xs">
-              <p>{t('dashboard.gamification.wordsLearnedHowTo')}</p>
+              <p>{t('dashboard.gamification.readingsCompletedHowTo')}</p>
             </TooltipContent>
           </Tooltip>
           <Tooltip>

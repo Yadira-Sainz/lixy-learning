@@ -112,6 +112,15 @@ class UpdateProgressRequest(BaseModel):
     correct: bool
 
 
+class ReadingCompleteRequest(BaseModel):
+    categoryId: int
+    readingIndex: int
+    quizScore: int | None = None
+
+
+POINTS_PER_READING = 15
+
+
 def _execute_query(conn, query: str, params: tuple = ()):
     with conn.cursor() as cur:
         cur.execute(query, params)
@@ -639,6 +648,32 @@ async def get_streaks(
     return dates
 
 
+@app.post("/api/reading-complete")
+async def reading_complete(
+    req: ReadingCompleteRequest,
+    user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    """Record a completed reading session and award points."""
+    existing = _execute_query_one(
+        conn,
+        "SELECT 1 FROM reading_sessions WHERE user_id = %s AND category_id = %s AND reading_index = %s",
+        (user["userId"], req.categoryId, req.readingIndex),
+    )
+    if existing:
+        return {"message": "Reading already recorded", "pointsEarned": 0}
+    try:
+        _execute_query(
+            conn,
+            "INSERT INTO reading_sessions (user_id, category_id, reading_index, quiz_score) VALUES (%s, %s, %s, %s)",
+            (user["userId"], req.categoryId, req.readingIndex, req.quizScore),
+        )
+        _award_points(conn, user["userId"], POINTS_PER_READING)
+        return {"message": "Reading recorded", "pointsEarned": POINTS_PER_READING}
+    except Exception:
+        return {"message": "Error recording reading", "pointsEarned": 0}
+
+
 @app.get("/api/gamification")
 async def get_gamification(
     user: dict = Depends(get_current_user),
@@ -652,12 +687,12 @@ async def get_gamification(
     )
     points = user_row["points"] if user_row else 0
 
-    words_learned = _execute_query_one(
+    readings_row = _execute_query_one(
         conn,
-        """SELECT COUNT(*) as count FROM familiarity WHERE user_id = %s AND familiarity_level_id >= 4""",
+        "SELECT COUNT(*) as count FROM reading_sessions WHERE user_id = %s",
         (user["userId"],),
     )
-    words_learned_count = words_learned["count"] if words_learned else 0
+    readings_completed = readings_row["count"] if readings_row else 0
 
     today = datetime.utcnow().date().isoformat()
     yesterday = (datetime.utcnow() - timedelta(days=1)).date().isoformat()
@@ -685,7 +720,7 @@ async def get_gamification(
 
     return {
         "points": points,
-        "wordsLearned": words_learned_count,
+        "readingsCompleted": readings_completed,
         "currentStreak": current_streak,
         "longestStreak": longest_streak,
         "badges": badges,
