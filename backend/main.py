@@ -727,6 +727,69 @@ async def get_gamification(
     }
 
 
+@app.get("/api/dashboard/difficulty")
+async def get_dashboard_difficulty(
+    user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    """Returns word counts by difficulty (easy=levels 1-2, medium=3, hard=4-5)."""
+    rows = _execute_query(
+        conn,
+        """SELECT familiarity_level_id, COUNT(*) as count
+           FROM familiarity WHERE user_id = %s GROUP BY familiarity_level_id""",
+        (user["userId"],),
+    )
+    by_level = {r["familiarity_level_id"]: int(r["count"]) for r in rows}
+    return {
+        "easy": (by_level.get(1, 0) + by_level.get(2, 0)),
+        "medium": by_level.get(3, 0),
+        "hard": (by_level.get(4, 0) + by_level.get(5, 0)),
+    }
+
+
+@app.get("/api/dashboard/upcoming-reviews")
+async def get_dashboard_upcoming_reviews(
+    user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    """Returns counts of words due for review: today, tomorrow, next week."""
+    now = datetime.now()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = today_start + timedelta(days=1)
+    tomorrow_end = today_start + timedelta(days=2)
+    next_week_end = today_start + timedelta(days=7)
+
+    today_rows = _execute_query(
+        conn,
+        """SELECT COUNT(*) as count FROM familiarity
+           WHERE user_id = %s AND next_review_date IS NOT NULL AND next_review_date < %s""",
+        (user["userId"], today_end),
+    )
+    tomorrow_rows = _execute_query(
+        conn,
+        """SELECT COUNT(*) as count FROM familiarity
+           WHERE user_id = %s AND next_review_date >= %s AND next_review_date < %s""",
+        (user["userId"], today_end, tomorrow_end),
+    )
+    next_week_rows = _execute_query(
+        conn,
+        """SELECT COUNT(*) as count FROM familiarity
+           WHERE user_id = %s AND next_review_date >= %s AND next_review_date < %s""",
+        (user["userId"], tomorrow_end, next_week_end),
+    )
+
+    total_today = int(today_rows[0]["count"]) if today_rows else 0
+    total_tomorrow = int(tomorrow_rows[0]["count"]) if tomorrow_rows else 0
+    total_next_week = int(next_week_rows[0]["count"]) if next_week_rows else 0
+
+    max_count = max(total_today, total_tomorrow, total_next_week, 1)
+    return {
+        "today": {"count": total_today, "percent": round((total_today / max_count) * 100)},
+        "tomorrow": {"count": total_tomorrow, "percent": round((total_tomorrow / max_count) * 100)},
+        "nextWeek": {"count": total_next_week, "percent": round((total_next_week / max_count) * 100)},
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=5000, reload=True)

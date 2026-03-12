@@ -64,6 +64,12 @@ export function DashboardComponent() {
   const [currentWord, setCurrentWord] = useState(0)
   const [streakDates, setStreakDates] = useState<string[]>([]);
   const [gamification, setGamification] = useState<GamificationData | null>(null);
+  const [difficulty, setDifficulty] = useState<{ easy: number; medium: number; hard: number } | null>(null);
+  const [upcomingReviews, setUpcomingReviews] = useState<{
+    today: { count: number; percent: number };
+    tomorrow: { count: number; percent: number };
+    nextWeek: { count: number; percent: number };
+  } | null>(null);
 
   const fetchStreakDates = async () => {
     const token = localStorage.getItem('token');
@@ -85,6 +91,24 @@ export function DashboardComponent() {
     return response.json();
   };
 
+  const fetchDifficulty = async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/difficulty`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!response.ok) return null;
+    return response.json();
+  };
+
+  const fetchUpcomingReviews = async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/upcoming-reviews`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!response.ok) return null;
+    return response.json();
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -94,6 +118,12 @@ export function DashboardComponent() {
     fetchGamification()
       .then(setGamification)
       .catch(err => console.error("Error fetching gamification:", err));
+    fetchDifficulty()
+      .then(setDifficulty)
+      .catch(err => console.error("Error fetching difficulty:", err));
+    fetchUpcomingReviews()
+      .then(setUpcomingReviews)
+      .catch(err => console.error("Error fetching upcoming reviews:", err));
   }, []);
   
   return (
@@ -209,7 +239,7 @@ export function DashboardComponent() {
             <CardTitle>{t('dashboard.difficulty')}</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
-            <DifficultyChart />
+            <DifficultyChart data={difficulty ?? undefined} />
           </CardContent>
         </Card>
 
@@ -220,17 +250,41 @@ export function DashboardComponent() {
           <CardContent>
             <div className="space-y-4">
               <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span>{t('dashboard.today')}</span>
-                  <Progress value={80} className="w-2/3" />
+                <div className="flex justify-between items-center gap-2">
+                  <span className="min-w-[7rem]">{t('dashboard.today')}</span>
+                  <Progress
+                    value={upcomingReviews?.today.percent ?? 0}
+                    className="flex-1"
+                  />
+                  {upcomingReviews && (
+                    <span className="text-sm text-muted-foreground w-6 text-right">
+                      {upcomingReviews.today.count}
+                    </span>
+                  )}
                 </div>
-                <div className="flex justify-between items-center">
-                  <span>{t('dashboard.tomorrow')}</span>
-                  <Progress value={50} className="w-2/3" />
+                <div className="flex justify-between items-center gap-2">
+                  <span className="min-w-[7rem]">{t('dashboard.tomorrow')}</span>
+                  <Progress
+                    value={upcomingReviews?.tomorrow.percent ?? 0}
+                    className="flex-1"
+                  />
+                  {upcomingReviews && (
+                    <span className="text-sm text-muted-foreground w-6 text-right">
+                      {upcomingReviews.tomorrow.count}
+                    </span>
+                  )}
                 </div>
-                <div className="flex justify-between items-center">
-                  <span>{t('dashboard.nextWeek')}</span>
-                  <Progress value={30} className="w-2/3" />
+                <div className="flex justify-between items-center gap-2">
+                  <span className="min-w-[7rem]">{t('dashboard.nextWeek')}</span>
+                  <Progress
+                    value={upcomingReviews?.nextWeek.percent ?? 0}
+                    className="flex-1"
+                  />
+                  {upcomingReviews && (
+                    <span className="text-sm text-muted-foreground w-6 text-right">
+                      {upcomingReviews.nextWeek.count}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
