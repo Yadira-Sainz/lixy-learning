@@ -113,7 +113,18 @@
     "recommended": "Recommandé",
     "practiceWeak": "Pratiquez vos mots les plus faibles",
     "nextWord": "Mot suivant",
-    "loading": "Chargement..."
+    "loading": "Chargement...",
+    "gamification": {
+      "points": "Points",
+      "pointsDesc": "Pour les mots pratiqués et appris",
+      "pointsHowTo": "5 points par réponse correcte. +20 bonus quand un mot atteint le niveau Appris ou Connu.",
+      "readingsCompleted": "Lectures terminées",
+      "readingsCompletedDesc": "Du Centre de lecture",
+      "readingsCompletedHowTo": "Terminez une lecture et soumettez le quiz dans le Centre de lecture. 15 points par lecture.",
+      "medals": "Médailles",
+      "medalsEmpty": "Complétez des séries pour débloquer des médailles",
+      "medalsHowTo": "Gagnez des médailles en complétant votre session quotidienne des jours consécutifs : 3, 7, 14, 30, 60 ou 100 jours."
+    }
   },
   "profile": {
     "changePhoto": "Changer la photo de profil",
@@ -175,7 +186,8 @@
     "completedReviewSuffix": "mots.",
     "currentStreak": "Série actuelle",
     "bestStreak": "Meilleure série",
-    "goToDashboard": "Aller au tableau de bord"
+    "goToDashboard": "Aller au tableau de bord",
+    "newBadgesUnlocked": "Nouvelles médailles débloquées !"
   },
   "collection": {
     "categoryName": "Nom de la catégorie",

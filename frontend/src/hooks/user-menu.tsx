@@ -4,33 +4,31 @@ import Link from "next/link";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Settings, User, LogOut } from "lucide-react";
+import { Settings, User, LogOut, Zap } from "lucide-react";
 import axios from "axios";
 import { useRouter } from 'next/navigation';
 import { useLocale } from '@/contexts/locale-context';
 
 export default function UserMenu() {
   const { t } = useLocale();
-  const [userDetails, setUserDetails] = React.useState({ username: '', email: '' });
-  const router = useRouter(); // Use router for redirection
+  const [userDetails, setUserDetails] = React.useState({ username: '', email: '', points: 0 });
+  const router = useRouter();
+
+  const fetchUserDetails = React.useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(process.env.NEXT_PUBLIC_BACKEND_URL + '/user-details', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUserDetails({ ...response.data, points: response.data.points ?? 0 });
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+    }
+  }, []);
 
   React.useEffect(() => {
-    const fetchUserDetails = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(process.env.NEXT_PUBLIC_BACKEND_URL + '/user-details', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        setUserDetails(response.data);
-      } catch (error) {
-        console.error('Error fetching user details:', error);
-      }
-    };
-
     fetchUserDetails();
-  }, []);
+  }, [fetchUserDetails]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -39,7 +37,7 @@ export default function UserMenu() {
   };
 
   return (
-    <Popover>
+    <Popover onOpenChange={(open) => open && fetchUserDetails()}>
       <PopoverTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
@@ -54,11 +52,15 @@ export default function UserMenu() {
             <AvatarImage src="/placeholder.svg" alt={`@${userDetails.username}`} />
             <AvatarFallback>{userDetails.username.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
-          <div className="space-y-1">
+          <div className="space-y-1 flex-1">
             <p className="text-sm font-medium leading-none">{userDetails.username}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {userDetails.email}
             </p>
+            <div className="flex items-center gap-1 mt-1">
+              <Zap className="h-3.5 w-3.5 text-amber-500" />
+              <span className="text-xs font-medium text-amber-600 dark:text-amber-400">{userDetails.points} pts</span>
+            </div>
           </div>
         </div>
         <div className="mt-4 space-y-2">
