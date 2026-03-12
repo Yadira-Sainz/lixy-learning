@@ -790,6 +790,58 @@ async def get_dashboard_upcoming_reviews(
     }
 
 
+@app.get("/api/dashboard/progress")
+async def get_dashboard_progress(
+    user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    """Returns review counts per day of week (Mon-Sun) for the last 28 days.
+    Converts timestamps to America/Mexico_City so the day matches when the user practiced."""
+    rows = _execute_query(
+        conn,
+        """SELECT EXTRACT(DOW FROM (
+               last_reviewed AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City'
+           ))::int as dow, COUNT(*) as count
+           FROM familiarity
+           WHERE user_id = %s AND last_reviewed >= NOW() - INTERVAL '28 days'
+           GROUP BY EXTRACT(DOW FROM (
+               last_reviewed AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City'
+           ))""",
+        (user["userId"],),
+    )
+    by_dow = {int(r["dow"]): int(r["count"]) for r in rows}
+    # DOW: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+    # Chart order: Mon, Tue, Wed, Thu, Fri, Sat, Sun
+    return {
+        "mon": by_dow.get(1, 0),
+        "tue": by_dow.get(2, 0),
+        "wed": by_dow.get(3, 0),
+        "thu": by_dow.get(4, 0),
+        "fri": by_dow.get(5, 0),
+        "sat": by_dow.get(6, 0),
+        "sun": by_dow.get(0, 0),
+    }
+
+
+@app.get("/api/dashboard/weak-words")
+async def get_dashboard_weak_words(
+    user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    """Returns words the user has struggled with (high incorrect_answers, low familiarity)."""
+    rows = _execute_query(
+        conn,
+        """SELECT v.word, v.definition
+           FROM vocabulary v
+           JOIN familiarity f ON v.vocabulary_id = f.word_id
+           WHERE f.user_id = %s
+           ORDER BY f.incorrect_answers DESC, f.familiarity_level_id ASC
+           LIMIT 10""",
+        (user["userId"],),
+    )
+    return [{"word": r["word"], "translation": r["definition"] or r["word"]} for r in rows]
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=5000, reload=True)

@@ -25,12 +25,6 @@ function DashboardLoadingPlaceholder() {
   return <>{t('dashboard.loading')}</>;
 }
 
-const weakWords = [
-  { word: 'Abrumador', translation: 'Overwhelming' },
-  { word: 'Efímero', translation: 'Ephemeral' },
-  { word: 'Paradigma', translation: 'Paradigm' },
-]
-
 type Badge = {
   badge_id: number;
   badge_key: string;
@@ -61,7 +55,7 @@ const BADGE_ICONS: Record<string, React.ElementType> = {
 export function DashboardComponent() {
   const { t, locale } = useLocale()
   const [date, setDate] = useState<Date | undefined>(new Date())
-  const [currentWord, setCurrentWord] = useState(0)
+  const [currentWordIndex, setCurrentWordIndex] = useState(0)
   const [streakDates, setStreakDates] = useState<string[]>([]);
   const [gamification, setGamification] = useState<GamificationData | null>(null);
   const [difficulty, setDifficulty] = useState<{ easy: number; medium: number; hard: number } | null>(null);
@@ -70,6 +64,16 @@ export function DashboardComponent() {
     tomorrow: { count: number; percent: number };
     nextWeek: { count: number; percent: number };
   } | null>(null);
+  const [progress, setProgress] = useState<{
+    mon: number;
+    tue: number;
+    wed: number;
+    thu: number;
+    fri: number;
+    sat: number;
+    sun: number;
+  } | null>(null);
+  const [weakWords, setWeakWords] = useState<{ word: string; translation: string }[]>([]);
 
   const fetchStreakDates = async () => {
     const token = localStorage.getItem('token');
@@ -109,6 +113,24 @@ export function DashboardComponent() {
     return response.json();
   };
 
+  const fetchProgress = async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/progress`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!response.ok) return null;
+    return response.json();
+  };
+
+  const fetchWeakWords = async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/weak-words`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!response.ok) return [];
+    return response.json();
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -124,6 +146,12 @@ export function DashboardComponent() {
     fetchUpcomingReviews()
       .then(setUpcomingReviews)
       .catch(err => console.error("Error fetching upcoming reviews:", err));
+    fetchProgress()
+      .then(setProgress)
+      .catch(err => console.error("Error fetching progress:", err));
+    fetchWeakWords()
+      .then(setWeakWords)
+      .catch(err => console.error("Error fetching weak words:", err));
   }, []);
   
   return (
@@ -296,7 +324,7 @@ export function DashboardComponent() {
             <CardTitle>{t('dashboard.progress')}</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
-            <ProgressChart />
+            <ProgressChart data={progress ?? undefined} />
           </CardContent>
         </Card>
 
@@ -307,16 +335,22 @@ export function DashboardComponent() {
           <CardContent>
             <div className="text-center space-y-4">
               <h3 className="text-lg font-semibold">{t('dashboard.practiceWeak')}</h3>
-              <div className="bg-white p-4 rounded-md shadow">
-                <p className="text-xl font-bold mb-2">{weakWords[currentWord].word}</p>
-                <p className="text-gray-600">{weakWords[currentWord].translation}</p>
-              </div>
-              <Button 
-                onClick={() => setCurrentWord((prev) => (prev + 1) % weakWords.length)}
-                className="w-full"
-              >
-                {t('dashboard.nextWord')}
-              </Button>
+              {weakWords.length > 0 ? (
+                <>
+                  <div className="bg-white dark:bg-card p-4 rounded-md shadow border">
+                    <p className="text-xl font-bold mb-2">{weakWords[currentWordIndex].word}</p>
+                    <p className="text-muted-foreground">{weakWords[currentWordIndex].translation}</p>
+                  </div>
+                  <Button
+                    onClick={() => setCurrentWordIndex((prev) => (prev + 1) % weakWords.length)}
+                    className="w-full"
+                  >
+                    {t('dashboard.nextWord')}
+                  </Button>
+                </>
+              ) : (
+                <p className="text-muted-foreground py-4">{t('dashboard.recommendedEmpty')}</p>
+              )}
             </div>
           </CardContent>
         </Card>

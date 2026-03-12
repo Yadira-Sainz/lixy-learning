@@ -28,16 +28,20 @@ export function DifficultyChart({ data }: DifficultyChartProps) {
   );
 }
 
-export function ProgressChart() {
+type ProgressChartProps = {
+  data?: { mon: number; tue: number; wed: number; thu: number; fri: number; sat: number; sun: number };
+};
+
+export function ProgressChart({ data }: ProgressChartProps) {
   const { t } = useLocale();
   const progressData = [
-    { name: t('dashboard.progressMon'), value: 20 },
-    { name: t('dashboard.progressTue'), value: 35 },
-    { name: t('dashboard.progressWed'), value: 15 },
-    { name: t('dashboard.progressThu'), value: 40 },
-    { name: t('dashboard.progressFri'), value: 30 },
-    { name: t('dashboard.progressSat'), value: 25 },
-    { name: t('dashboard.progressSun'), value: 45 },
+    { name: t('dashboard.progressMon'), value: data?.mon ?? 0 },
+    { name: t('dashboard.progressTue'), value: data?.tue ?? 0 },
+    { name: t('dashboard.progressWed'), value: data?.wed ?? 0 },
+    { name: t('dashboard.progressThu'), value: data?.thu ?? 0 },
+    { name: t('dashboard.progressFri'), value: data?.fri ?? 0 },
+    { name: t('dashboard.progressSat'), value: data?.sat ?? 0 },
+    { name: t('dashboard.progressSun'), value: data?.sun ?? 0 },
   ];
   return (
     <ResponsiveContainer width="100%" height="100%">
