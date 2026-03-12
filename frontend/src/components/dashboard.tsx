@@ -25,12 +25,6 @@ function DashboardLoadingPlaceholder() {
   return <>{t('dashboard.loading')}</>;
 }
 
-const weakWords = [
-  { word: 'Abrumador', translation: 'Overwhelming' },
-  { word: 'Efímero', translation: 'Ephemeral' },
-  { word: 'Paradigma', translation: 'Paradigm' },
-]
-
 type Badge = {
   badge_id: number;
   badge_key: string;
@@ -59,11 +53,27 @@ const BADGE_ICONS: Record<string, React.ElementType> = {
 };
 
 export function DashboardComponent() {
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
   const [date, setDate] = useState<Date | undefined>(new Date())
-  const [currentWord, setCurrentWord] = useState(0)
+  const [currentWordIndex, setCurrentWordIndex] = useState(0)
   const [streakDates, setStreakDates] = useState<string[]>([]);
   const [gamification, setGamification] = useState<GamificationData | null>(null);
+  const [difficulty, setDifficulty] = useState<{ easy: number; medium: number; hard: number } | null>(null);
+  const [upcomingReviews, setUpcomingReviews] = useState<{
+    today: { count: number; percent: number };
+    tomorrow: { count: number; percent: number };
+    nextWeek: { count: number; percent: number };
+  } | null>(null);
+  const [progress, setProgress] = useState<{
+    mon: number;
+    tue: number;
+    wed: number;
+    thu: number;
+    fri: number;
+    sat: number;
+    sun: number;
+  } | null>(null);
+  const [weakWords, setWeakWords] = useState<{ word: string; translation: string }[]>([]);
 
   const fetchStreakDates = async () => {
     const token = localStorage.getItem('token');
@@ -85,6 +95,42 @@ export function DashboardComponent() {
     return response.json();
   };
 
+  const fetchDifficulty = async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/difficulty`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!response.ok) return null;
+    return response.json();
+  };
+
+  const fetchUpcomingReviews = async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/upcoming-reviews`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!response.ok) return null;
+    return response.json();
+  };
+
+  const fetchProgress = async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/progress`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!response.ok) return null;
+    return response.json();
+  };
+
+  const fetchWeakWords = async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/weak-words`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!response.ok) return [];
+    return response.json();
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -94,6 +140,18 @@ export function DashboardComponent() {
     fetchGamification()
       .then(setGamification)
       .catch(err => console.error("Error fetching gamification:", err));
+    fetchDifficulty()
+      .then(setDifficulty)
+      .catch(err => console.error("Error fetching difficulty:", err));
+    fetchUpcomingReviews()
+      .then(setUpcomingReviews)
+      .catch(err => console.error("Error fetching upcoming reviews:", err));
+    fetchProgress()
+      .then(setProgress)
+      .catch(err => console.error("Error fetching progress:", err));
+    fetchWeakWords()
+      .then(setWeakWords)
+      .catch(err => console.error("Error fetching weak words:", err));
   }, []);
   
   return (
@@ -182,18 +240,23 @@ export function DashboardComponent() {
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="col-span-1 md:col-span-2 lg:col-span-1 h-full">
-          <CardHeader>
-            <CardTitle>{t('dashboard.dailyStreak')}   <span className='dias'>{streakDates.length}</span> </CardTitle>
+          <CardHeader className="grid grid-cols-[1fr_auto_1fr] items-center">
+            <CardTitle className="col-start-1">{t('dashboard.dailyStreak')}</CardTitle>
+            <span className="col-start-2 text-2xl font-semibold text-green-600 text-center">
+              {streakDates.length}
+            </span>
           </CardHeader>
           <CardContent>
             <Calendar
               mode="single"
               selected={date}
               onSelect={setDate}
-              streakDates={streakDates} // Ahora son strings
+              streakDates={streakDates}
+              localeCode={locale}
               className="rounded-md border w-full"
               modifiersClassNames={{
-                streak: 'bg-green-500 text-white rounded-full', // Cambia 'streakDay' a 'streak'
+                streak:
+                  'streak-day !bg-green-500 !text-white rounded-full dark:!bg-green-500 dark:!text-white',
               }}
             />
           </CardContent>
@@ -204,7 +267,7 @@ export function DashboardComponent() {
             <CardTitle>{t('dashboard.difficulty')}</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
-            <DifficultyChart />
+            <DifficultyChart data={difficulty ?? undefined} />
           </CardContent>
         </Card>
 
@@ -215,17 +278,41 @@ export function DashboardComponent() {
           <CardContent>
             <div className="space-y-4">
               <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span>{t('dashboard.today')}</span>
-                  <Progress value={80} className="w-2/3" />
+                <div className="flex justify-between items-center gap-2">
+                  <span className="min-w-[7rem]">{t('dashboard.today')}</span>
+                  <Progress
+                    value={upcomingReviews?.today.percent ?? 0}
+                    className="flex-1"
+                  />
+                  {upcomingReviews && (
+                    <span className="text-sm text-muted-foreground w-6 text-right">
+                      {upcomingReviews.today.count}
+                    </span>
+                  )}
                 </div>
-                <div className="flex justify-between items-center">
-                  <span>{t('dashboard.tomorrow')}</span>
-                  <Progress value={50} className="w-2/3" />
+                <div className="flex justify-between items-center gap-2">
+                  <span className="min-w-[7rem]">{t('dashboard.tomorrow')}</span>
+                  <Progress
+                    value={upcomingReviews?.tomorrow.percent ?? 0}
+                    className="flex-1"
+                  />
+                  {upcomingReviews && (
+                    <span className="text-sm text-muted-foreground w-6 text-right">
+                      {upcomingReviews.tomorrow.count}
+                    </span>
+                  )}
                 </div>
-                <div className="flex justify-between items-center">
-                  <span>{t('dashboard.nextWeek')}</span>
-                  <Progress value={30} className="w-2/3" />
+                <div className="flex justify-between items-center gap-2">
+                  <span className="min-w-[7rem]">{t('dashboard.nextWeek')}</span>
+                  <Progress
+                    value={upcomingReviews?.nextWeek.percent ?? 0}
+                    className="flex-1"
+                  />
+                  {upcomingReviews && (
+                    <span className="text-sm text-muted-foreground w-6 text-right">
+                      {upcomingReviews.nextWeek.count}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -237,7 +324,7 @@ export function DashboardComponent() {
             <CardTitle>{t('dashboard.progress')}</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
-            <ProgressChart />
+            <ProgressChart data={progress ?? undefined} />
           </CardContent>
         </Card>
 
@@ -248,16 +335,22 @@ export function DashboardComponent() {
           <CardContent>
             <div className="text-center space-y-4">
               <h3 className="text-lg font-semibold">{t('dashboard.practiceWeak')}</h3>
-              <div className="bg-white p-4 rounded-md shadow">
-                <p className="text-xl font-bold mb-2">{weakWords[currentWord].word}</p>
-                <p className="text-gray-600">{weakWords[currentWord].translation}</p>
-              </div>
-              <Button 
-                onClick={() => setCurrentWord((prev) => (prev + 1) % weakWords.length)}
-                className="w-full"
-              >
-                {t('dashboard.nextWord')}
-              </Button>
+              {weakWords.length > 0 ? (
+                <>
+                  <div className="bg-white dark:bg-card p-4 rounded-md shadow border">
+                    <p className="text-xl font-bold mb-2">{weakWords[currentWordIndex].word}</p>
+                    <p className="text-muted-foreground">{weakWords[currentWordIndex].translation}</p>
+                  </div>
+                  <Button
+                    onClick={() => setCurrentWordIndex((prev) => (prev + 1) % weakWords.length)}
+                    className="w-full"
+                  >
+                    {t('dashboard.nextWord')}
+                  </Button>
+                </>
+              ) : (
+                <p className="text-muted-foreground py-4">{t('dashboard.recommendedEmpty')}</p>
+              )}
             </div>
           </CardContent>
         </Card>

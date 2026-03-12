@@ -54,3 +54,9 @@ h1, h2, h3, h4, h5, h6 {
   right: -20%;
   color: green;
 }
+
+/* Racha completada: mismo aspecto en modo claro y oscuro */
+.dark .streak-day {
+  background-color: rgb(34 197 94) !important;
+  color: white !important;
+}

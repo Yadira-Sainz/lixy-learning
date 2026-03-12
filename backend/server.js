@@ -655,6 +655,72 @@ const handleStreaks = [
 app.post('/api/streaks', handleStreaks);
 app.post('/api/streaks/', handleStreaks);
 
+// Dashboard: difficulty distribution (words by familiarity level)
+app.get('/api/dashboard/difficulty', authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
+  try {
+    const result = await pool.query(`
+      SELECT familiarity_level_id, COUNT(*) as count
+      FROM familiarity
+      WHERE user_id = $1
+      GROUP BY familiarity_level_id
+    `, [userId]);
+    const byLevel = Object.fromEntries(result.rows.map(r => [r.familiarity_level_id, parseInt(r.count, 10)]));
+    res.json({
+      easy: (byLevel[1] || 0) + (byLevel[2] || 0),
+      medium: byLevel[3] || 0,
+      hard: (byLevel[4] || 0) + (byLevel[5] || 0)
+    });
+  } catch (err) {
+    console.error('Error fetching difficulty stats:', err);
+    res.status(500).json({ error: 'Error fetching difficulty stats' });
+  }
+});
+
+// Dashboard: upcoming reviews (words due today, tomorrow, next week)
+app.get('/api/dashboard/upcoming-reviews', authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
+  try {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart);
+    todayEnd.setDate(todayEnd.getDate() + 1);
+    const tomorrowEnd = new Date(todayStart);
+    tomorrowEnd.setDate(tomorrowEnd.getDate() + 2);
+    const nextWeekEnd = new Date(todayStart);
+    nextWeekEnd.setDate(nextWeekEnd.getDate() + 7);
+
+    const [todayRes, tomorrowRes, nextWeekRes] = await Promise.all([
+      pool.query(`
+        SELECT COUNT(*) as count FROM familiarity
+        WHERE user_id = $1 AND next_review_date IS NOT NULL AND next_review_date < $2
+      `, [userId, todayEnd]),
+      pool.query(`
+        SELECT COUNT(*) as count FROM familiarity
+        WHERE user_id = $1 AND next_review_date >= $2 AND next_review_date < $3
+      `, [userId, todayEnd, tomorrowEnd]),
+      pool.query(`
+        SELECT COUNT(*) as count FROM familiarity
+        WHERE user_id = $1 AND next_review_date >= $2 AND next_review_date < $3
+      `, [userId, tomorrowEnd, nextWeekEnd])
+    ]);
+
+    const totalToday = parseInt(todayRes.rows[0]?.count || 0, 10);
+    const totalTomorrow = parseInt(tomorrowRes.rows[0]?.count || 0, 10);
+    const totalNextWeek = parseInt(nextWeekRes.rows[0]?.count || 0, 10);
+
+    const maxCount = Math.max(totalToday, totalTomorrow, totalNextWeek, 1);
+    res.json({
+      today: { count: totalToday, percent: Math.round((totalToday / maxCount) * 100) },
+      tomorrow: { count: totalTomorrow, percent: Math.round((totalTomorrow / maxCount) * 100) },
+      nextWeek: { count: totalNextWeek, percent: Math.round((totalNextWeek / maxCount) * 100) }
+    });
+  } catch (err) {
+    console.error('Error fetching upcoming reviews:', err);
+    res.status(500).json({ error: 'Error fetching upcoming reviews' });
+  }
+});
+
 // Start the server
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
