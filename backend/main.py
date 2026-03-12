@@ -635,15 +635,17 @@ async def get_streaks(
     yesterday = (now - timedelta(days=1)).date().isoformat()
     rows = _execute_query(
         conn,
-        "SELECT current_streak FROM daily_streaks WHERE user_id = %s AND (streak_date = %s OR streak_date = %s) ORDER BY streak_date DESC LIMIT 1",
+        "SELECT streak_date, current_streak FROM daily_streaks WHERE user_id = %s AND (streak_date = %s OR streak_date = %s) ORDER BY streak_date DESC LIMIT 1",
         (user["userId"], today, yesterday),
     )
     if not rows:
         return []
     current_streak = rows[0]["current_streak"]
+    last_streak_date = rows[0]["streak_date"]
+    # Use streak_date from DB as the last day of the streak (not "today")
     dates = []
     for i in range(current_streak):
-        d = (now - timedelta(days=i)).date().isoformat()
+        d = (last_streak_date - timedelta(days=i)).isoformat()
         dates.append(d)
     return dates
 

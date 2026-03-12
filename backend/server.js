@@ -631,7 +631,7 @@ const handleStreaks = [
     const yesterdayFormatted = formatDateLocal(yesterdayDate);
     try {
       const result = await pool.query(
-        'SELECT current_streak FROM daily_streaks WHERE user_id = $1 AND (streak_date = $2 OR streak_date = $3) ORDER BY streak_date DESC LIMIT 1',
+        'SELECT streak_date, current_streak FROM daily_streaks WHERE user_id = $1 AND (streak_date = $2 OR streak_date = $3) ORDER BY streak_date DESC LIMIT 1',
         [userId, todayFormat, yesterdayFormatted]
       );
 
@@ -639,10 +639,14 @@ const handleStreaks = [
         return res.json([]);
       }
 
+      // Use streak_date from DB as the last day of the streak (not "today")
+      const lastStreakDateStr = result.rows[0].streak_date;
+      const lastStreakDate = new Date(lastStreakDateStr + 'T12:00:00');
+
       const dates = [];
       for (let i = 0; i < result.rows[0].current_streak; i++) {
-        const d = new Date(now);
-        d.setDate(now.getDate() - i);
+        const d = new Date(lastStreakDate);
+        d.setDate(lastStreakDate.getDate() - i);
         dates.push(formatDateLocal(d));
       }
       res.json(dates);
