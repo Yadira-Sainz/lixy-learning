@@ -182,8 +182,11 @@ export function DashboardComponent() {
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="col-span-1 md:col-span-2 lg:col-span-1 h-full">
-          <CardHeader>
-            <CardTitle>{t('dashboard.dailyStreak')}   <span className='dias'>{streakDates.length}</span> </CardTitle>
+          <CardHeader className="grid grid-cols-[1fr_auto_1fr] items-center">
+            <CardTitle className="col-start-1">{t('dashboard.dailyStreak')}</CardTitle>
+            <span className="col-start-2 text-2xl font-semibold text-green-600 text-center">
+              {streakDates.length}
+            </span>
           </CardHeader>
           <CardContent>
             <Calendar
@@ -194,7 +197,8 @@ export function DashboardComponent() {
               localeCode={locale}
               className="rounded-md border w-full"
               modifiersClassNames={{
-                streak: '!bg-green-500 !text-white rounded-full',
+                streak:
+                  'streak-day !bg-green-500 !text-white rounded-full dark:!bg-green-500 dark:!text-white',
               }}
             />
           </CardContent>
