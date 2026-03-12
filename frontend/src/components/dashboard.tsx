@@ -59,7 +59,7 @@ const BADGE_ICONS: Record<string, React.ElementType> = {
 };
 
 export function DashboardComponent() {
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [currentWord, setCurrentWord] = useState(0)
   const [streakDates, setStreakDates] = useState<string[]>([]);
@@ -190,10 +190,11 @@ export function DashboardComponent() {
               mode="single"
               selected={date}
               onSelect={setDate}
-              streakDates={streakDates} // Ahora son strings
+              streakDates={streakDates}
+              localeCode={locale}
               className="rounded-md border w-full"
               modifiersClassNames={{
-                streak: 'bg-green-500 text-white rounded-full', // Cambia 'streakDay' a 'streak'
+                streak: '!bg-green-500 !text-white rounded-full',
               }}
             />
           </CardContent>
