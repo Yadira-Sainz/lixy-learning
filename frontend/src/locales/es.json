@@ -113,7 +113,18 @@
     "recommended": "Recomendado",
     "practiceWeak": "Practica tus palabras más débiles",
     "nextWord": "Siguiente palabra",
-    "loading": "Cargando..."
+    "loading": "Cargando...",
+    "gamification": {
+      "points": "Puntos",
+      "pointsDesc": "Por palabras practicadas y aprendidas",
+      "pointsHowTo": "5 puntos por cada respuesta correcta. +20 de bonus cuando una palabra alcanza el nivel Learned o Known.",
+      "readingsCompleted": "Lecturas completadas",
+      "readingsCompletedDesc": "Del Centro de Lectura",
+      "readingsCompletedHowTo": "Completa una lectura y envía el cuestionario en el Centro de Lectura. 15 puntos por lectura.",
+      "medals": "Medallas",
+      "medalsEmpty": "Completa rachas para desbloquear medallas",
+      "medalsHowTo": "Obtén medallas completando tu sesión diaria en días consecutivos: 3, 7, 14, 30, 60 o 100 días."
+    }
   },
   "profile": {
     "changePhoto": "Cambiar foto de perfil",
@@ -175,7 +186,8 @@
     "completedReviewSuffix": "palabras.",
     "currentStreak": "Racha actual",
     "bestStreak": "Mejor racha",
-    "goToDashboard": "Ir al tablero"
+    "goToDashboard": "Ir al tablero",
+    "newBadgesUnlocked": "¡Nuevas medallas desbloqueadas!"
   },
   "collection": {
     "categoryName": "Nombre de categoría",

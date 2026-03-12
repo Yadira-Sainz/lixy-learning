@@ -113,7 +113,18 @@
     "recommended": "Recommended",
     "practiceWeak": "Practice your weakest words",
     "nextWord": "Next word",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "gamification": {
+      "points": "Points",
+      "pointsDesc": "For words practiced and learned",
+      "pointsHowTo": "5 points per correct answer. +20 bonus when a word reaches Learned or Known level.",
+      "readingsCompleted": "Readings completed",
+      "readingsCompletedDesc": "From the Reading Center",
+      "readingsCompletedHowTo": "Complete a reading and submit the quiz in the Reading Center. 15 points per reading.",
+      "medals": "Medals",
+      "medalsEmpty": "Complete streaks to unlock medals",
+      "medalsHowTo": "Earn medals by completing your daily session on consecutive days: 3, 7, 14, 30, 60 or 100 days."
+    }
   },
   "profile": {
     "changePhoto": "Change profile photo",
@@ -175,7 +186,8 @@
     "completedReviewSuffix": "words.",
     "currentStreak": "Current streak",
     "bestStreak": "Best streak",
-    "goToDashboard": "Go to dashboard"
+    "goToDashboard": "Go to dashboard",
+    "newBadgesUnlocked": "New badges unlocked!"
   },
   "collection": {
     "categoryName": "Category name",

@@ -145,9 +145,31 @@ export default function ReadingPage() {
     setQuizAnswers(prev => ({ ...prev, [questionIndex]: answer }))
   }
 
+  const hasRecordedReading = React.useRef(false)
+
   const handleQuizSubmit = () => {
     setQuizSubmitted(true)
   }
+
+  useEffect(() => {
+    if (!quizSubmitted || !token || categoryId === null || hasRecordedReading.current) return
+    hasRecordedReading.current = true
+    const correctCount = quizQuestions.reduce((acc, q, i) =>
+      acc + (quizAnswers[i] === q.correctAnswer ? 1 : 0), 0
+    )
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/reading-complete`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        categoryId: parseInt(categoryId),
+        readingIndex,
+        quizScore: correctCount,
+      }),
+    }).catch(err => console.error('Error recording reading completion:', err))
+  }, [quizSubmitted, token, categoryId, readingIndex, quizQuestions, quizAnswers])
 
   const generateAudio = async () => {
     if (!token || !generatedStory) return;
