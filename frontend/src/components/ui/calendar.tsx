@@ -3,14 +3,17 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DayPicker } from "react-day-picker";
-import { es } from "date-fns/locale";
+import { es, enUS, fr } from "date-fns/locale";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
-// Define la prop para las fechas de racha
+const LOCALE_MAP = { es, en: enUS, fr } as const;
+
+// Define la prop para las fechas de racha y locale
 export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
-  streakDates: string[]; // Agregamos esta prop
+  streakDates: string[];
+  localeCode?: 'es' | 'en' | 'fr';
 }
 
 function Calendar({
@@ -18,6 +21,7 @@ function Calendar({
   classNames,
   showOutsideDays = true,
   streakDates,
+  localeCode = 'es',
   ...props
 }: CalendarProps) {
   // Format date as YYYY-MM-DD in local timezone (toISOString uses UTC and can shift the date)
@@ -36,12 +40,12 @@ function Calendar({
 
   return (
     <DayPicker
-      locale={es} // Set the locale to Spanish
+      locale={LOCALE_MAP[localeCode]}
       showOutsideDays={showOutsideDays}
-      className={cn("p-3", className)}
+      className={cn("p-3 w-full", className)}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-        month: "space-y-4",
+        month: "space-y-4 w-full",
         caption: "flex justify-center pt-1 relative items-center",
         caption_label: "text-sm font-medium",
         nav: "space-x-1 flex items-center",
@@ -52,19 +56,20 @@ function Calendar({
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
         table: "w-full border-collapse space-y-1",
-        head_row: "flex",
+        head_row: "grid grid-cols-7 w-full",
         head_cell:
-          "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
-        row: "flex w-full mt-2",
-        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+          "text-muted-foreground rounded-md font-normal text-[0.8rem] flex items-center justify-center",
+        row: "grid grid-cols-7 w-full mt-2",
+        cell: "h-9 text-center text-sm p-0 relative flex items-center justify-center [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-9 w-9 p-0 font-normal aria-selected:opacity-100"
+          "h-9 w-full p-0 font-normal aria-selected:opacity-100 flex items-center justify-center"
         ),
         day_range_end: "day-range-end",
         day_selected:
           "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent text-accent-foreground",
+        day_today:
+          "bg-accent text-accent-foreground dark:bg-primary dark:!text-primary-foreground",
         day_outside:
           "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
         day_disabled: "text-muted-foreground opacity-50",
