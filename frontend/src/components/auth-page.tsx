@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { COUNTRIES } from "@/lib/countries"
 
 interface Language {
   language_id: number
@@ -237,7 +238,18 @@ export default function AuthPageComponent() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="country">{t('auth.country')}</Label>
-                <Input id="country" type="text" required value={country} onChange={(e) => setCountry(e.target.value)} />
+                <Select value={country} onValueChange={setCountry}>
+                  <SelectTrigger id="country">
+                    <SelectValue placeholder={t('auth.countryPlaceholder')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRIES.map((c) => (
+                      <SelectItem key={c.code} value={c.name}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="native_language">{t('auth.nativeLanguage')}</Label>

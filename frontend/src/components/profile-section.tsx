@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { EyeIcon, EyeOffIcon, KeyRound } from 'lucide-react';
+import { COUNTRIES, getCountryDisplayValue } from "@/lib/countries";
 
 const PLACEHOLDER_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300' fill='none'%3E%3Crect width='300' height='300' fill='%23e5e7eb'/%3E%3Ccircle cx='150' cy='120' r='50' fill='%239ca3af'/%3E%3Cellipse cx='150' cy='260' rx='90' ry='60' fill='%239ca3af'/%3E%3C/svg%3E";
 
@@ -56,7 +57,7 @@ export default function ProfileSectionComponent() {
         setEmail(user.email || '');
         setAge(user.age || ''); 
         setGender(user.gender || ''); 
-        setCountry(user.country || ''); 
+        setCountry(getCountryDisplayValue(user.country || '') || user.country || ''); 
         setNativeLanguage(user.native_language_id ? String(user.native_language_id) : ''); 
         setLearningLanguage(user.learning_language_id ? String(user.learning_language_id) : '');
         const profilePath = user.profile_image_url?.includes('/')
@@ -197,7 +198,21 @@ export default function ProfileSectionComponent() {
               </div>
               <div>
                 <Label htmlFor="country">{t('profile.country')}</Label>
-                <Input id="country" value={country} onChange={(e) => setCountry(e.target.value)} />
+                <Select value={country} onValueChange={setCountry}>
+                  <SelectTrigger id="country">
+                    <SelectValue placeholder={t('profile.countryPlaceholder')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRIES.map((c) => (
+                      <SelectItem key={c.code} value={c.name}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                    {country && !COUNTRIES.some((c) => c.name === country) && (
+                      <SelectItem value={country}>{country}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="native-language">{t('profile.nativeLanguage')}</Label>
