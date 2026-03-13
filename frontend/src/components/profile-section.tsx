@@ -7,23 +7,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useRouter } from 'next/navigation';
+
+const PLACEHOLDER_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300' fill='none'%3E%3Crect width='300' height='300' fill='%23e5e7eb'/%3E%3Ccircle cx='150' cy='120' r='50' fill='%239ca3af'/%3E%3Cellipse cx='150' cy='260' rx='90' ry='60' fill='%239ca3af'/%3E%3C/svg%3E";
 
 export default function ProfileSectionComponent() {
   const { t } = useLocale();
-  const [profileImage, setProfileImage] = useState("/placeholder.svg?height=300&width=300");
+  const [profileImage, setProfileImage] = useState(PLACEHOLDER_AVATAR);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [age, setAge] = useState<number | "">("");
   const [gender, setGender] = useState('');
-  const [country, setCountry] = useState(''); // New country state
+  const [country, setCountry] = useState('');
   const [nativeLanguage, setNativeLanguage] = useState(''); 
   const [learningLanguage, setLearningLanguage] = useState('');
   const [languages, setLanguages] = useState([]);
-
-  const router = useRouter(); // For redirecting
 
   // Fetch user data and available languages
   useEffect(() => {
@@ -39,7 +38,7 @@ export default function ProfileSectionComponent() {
         console.log('User data:', user); // Log user data for debugging
 
         // Set fetched user details in the form fields
-        setFirstName(user.first_name || ''); // Fallback to empty string if undefined
+        setFirstName(user.first_name || '');
         setLastName(user.last_name || '');
         setUsername(user.username || '');
         setEmail(user.email || '');
@@ -48,6 +47,15 @@ export default function ProfileSectionComponent() {
         setCountry(user.country || ''); 
         setNativeLanguage(user.native_language_id ? String(user.native_language_id) : ''); 
         setLearningLanguage(user.learning_language_id ? String(user.learning_language_id) : '');
+        const profilePath = user.profile_image_url?.includes('/')
+          ? user.profile_image_url
+          : user.profile_image_url
+            ? `profiles/${user.profile_image_url}`
+            : null;
+        const imgUrl = profilePath
+          ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/uploads/${profilePath}`
+          : PLACEHOLDER_AVATAR;
+        setProfileImage(imgUrl);
 
         // Fetch available languages
         const languageResponse = await axios.get(process.env.NEXT_PUBLIC_BACKEND_URL + '/languages');
@@ -61,9 +69,14 @@ export default function ProfileSectionComponent() {
     fetchUserData();
   }, []);
 
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [saveFeedback, setSaveFeedback] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setProfileImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfileImage(reader.result as string);
@@ -73,30 +86,45 @@ export default function ProfileSectionComponent() {
   };
 
   const handleSubmit = async () => {
-    const updatedUserInfo = {
-      first_name: firstName, // Use first name
-      last_name: lastName, // Use last name
-      username,
-      email,
-      password: '', // Add a password field if updating the password
-      age: age === "" ? null : age, // Handle age as number or null
-      gender,
-      country, // Send country
-      native_language_id: nativeLanguage,
-      learning_language_id: learningLanguage,
-    };
+    const token = localStorage.getItem('token');
+    const headers = { Authorization: `Bearer ${token}` };
 
     try {
+      if (profileImageFile) {
+        const formData = new FormData();
+        formData.append('image', profileImageFile);
+        await axios.post(
+          process.env.NEXT_PUBLIC_BACKEND_URL + '/api/upload-profile-image',
+          formData,
+          { headers }
+        );
+      }
+
+      const updatedUserInfo = {
+        first_name: firstName,
+        last_name: lastName,
+        username,
+        email,
+        password: '',
+        age: age === "" ? null : age,
+        gender,
+        country,
+        native_language_id: nativeLanguage,
+        learning_language_id: learningLanguage,
+      };
+
       await axios.put(process.env.NEXT_PUBLIC_BACKEND_URL + '/api/update-user', updatedUserInfo, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+        headers,
       });
-      alert(t('profile.updateSuccess'));
-      router.push('/tablero'); // Redirect to another page after successful update
+      window.dispatchEvent(new CustomEvent('profile-updated'));
+      setSaveError(false);
+      setSaveFeedback(true);
+      setTimeout(() => setSaveFeedback(false), 3000);
     } catch (error) {
       console.error("Error updating profile:", error);
-      alert(t('profile.updateFailed'));
+      setSaveFeedback(false);
+      setSaveError(true);
+      setTimeout(() => setSaveError(false), 5000);
     }
   };
 
@@ -194,7 +222,17 @@ export default function ProfileSectionComponent() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex justify-end">
+              <div className="flex justify-end items-center gap-4">
+                {saveFeedback && (
+                  <span className="text-sm text-green-600 dark:text-green-400 font-medium animate-in fade-in duration-200">
+                    {t('profile.updateSuccess')}
+                  </span>
+                )}
+                {saveError && (
+                  <span className="text-sm text-red-600 dark:text-red-400 font-medium animate-in fade-in duration-200">
+                    {t('profile.updateFailed')}
+                  </span>
+                )}
                 <Button onClick={handleSubmit}>{t('profile.saveChanges')}</Button>
               </div>
             </div>
