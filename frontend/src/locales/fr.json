@@ -10,7 +10,8 @@
     "reading": "Centre de lecture"
   },
   "common": {
-    "login": "Se connecter"
+    "login": "Se connecter",
+    "cancel": "Annuler"
   },
   "landing": {
     "title": "Explorez une nouvelle langue",
@@ -151,9 +152,17 @@
     "learningLanguage": "Langue à apprendre",
     "nativeLanguagePlaceholder": "Sélectionnez votre langue maternelle",
     "learningLanguagePlaceholder": "Sélectionnez la langue que vous apprenez",
+    "changePassword": "Changer le mot de passe",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "passwordMismatch": "Les mots de passe ne correspondent pas",
+    "currentPasswordWrong": "Le mot de passe actuel est incorrect",
+    "fillRequiredFields": "Veuillez remplir ce champ.",
     "saveChanges": "Enregistrer les modifications",
     "updateSuccess": "Profil mis à jour avec succès !",
-    "updateFailed": "Échec de la mise à jour du profil"
+    "updateFailed": "Échec de la mise à jour du profil",
+    "passwordChangedSuccess": "Mot de passe mis à jour avec succès"
   },
   "flashcardCenter": {
     "recent": "Récent",

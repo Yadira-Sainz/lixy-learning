@@ -108,6 +108,11 @@ class UpdateUserRequest(BaseModel):
     profile_image: str | None = None  # base64 data URL (data:image/...;base64,...)
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
 class GetImageUrlRequest(BaseModel):
     word: str
 
@@ -391,6 +396,27 @@ async def update_user(
         return dict(row) if row else {}
     except Exception as e:
         raise HTTPException(500, str(e))
+
+
+@app.post("/api/change-password")
+async def change_password(
+    req: ChangePasswordRequest,
+    user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    """Change password. Requires current password verification."""
+    if len(req.new_password) < 6:
+        raise HTTPException(400, "Password must be at least 6 characters")
+    current = _execute_query_one(conn, "SELECT password_hash FROM users WHERE user_id = %s", (user["userId"],))
+    if not current or not _verify_password(req.current_password, current["password_hash"]):
+        raise HTTPException(401, "Current password is incorrect")
+    hashed = _hash_password(req.new_password)
+    _execute_query(
+        conn,
+        "UPDATE users SET password_hash = %s WHERE user_id = %s",
+        (hashed, user["userId"]),
+    )
+    return {"message": "Password updated successfully"}
 
 
 @app.post("/login")

@@ -10,7 +10,8 @@
     "reading": "Centro de Lectura"
   },
   "common": {
-    "login": "Iniciar Sesión"
+    "login": "Iniciar Sesión",
+    "cancel": "Cancelar"
   },
   "landing": {
     "title": "Explora un nuevo idioma",
@@ -151,9 +152,17 @@
     "learningLanguage": "Idioma a aprender",
     "nativeLanguagePlaceholder": "Selecciona tu idioma nativo",
     "learningLanguagePlaceholder": "Selecciona el idioma que estás aprendiendo",
+    "changePassword": "Cambiar contraseña",
+    "currentPassword": "Contraseña actual",
+    "newPassword": "Nueva contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "passwordMismatch": "Las contraseñas no coinciden",
+    "currentPasswordWrong": "La contraseña actual es incorrecta",
+    "fillRequiredFields": "Por favor, complete este campo.",
     "saveChanges": "Guardar cambios",
     "updateSuccess": "¡Perfil actualizado correctamente!",
-    "updateFailed": "Error al actualizar el perfil"
+    "updateFailed": "Error al actualizar el perfil",
+    "passwordChangedSuccess": "Contraseña actualizada correctamente"
   },
   "flashcardCenter": {
     "recent": "Recientes",

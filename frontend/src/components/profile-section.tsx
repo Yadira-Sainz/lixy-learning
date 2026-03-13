@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { EyeIcon, EyeOffIcon, KeyRound } from 'lucide-react';
 
 const PLACEHOLDER_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300' fill='none'%3E%3Crect width='300' height='300' fill='%23e5e7eb'/%3E%3Ccircle cx='150' cy='120' r='50' fill='%239ca3af'/%3E%3Cellipse cx='150' cy='260' rx='90' ry='60' fill='%239ca3af'/%3E%3C/svg%3E";
 
@@ -23,6 +25,16 @@ export default function ProfileSectionComponent() {
   const [nativeLanguage, setNativeLanguage] = useState(''); 
   const [learningLanguage, setLearningLanguage] = useState('');
   const [languages, setLanguages] = useState([]);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordErrorField, setPasswordErrorField] = useState<'current' | 'new' | 'confirm' | null>(null);
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState(false);
 
   // Fetch user data and available languages
   useEffect(() => {
@@ -105,7 +117,6 @@ export default function ProfileSectionComponent() {
         last_name: lastName,
         username,
         email,
-        password: '',
         age: age === "" ? null : age,
         gender,
         country,
@@ -222,7 +233,30 @@ export default function ProfileSectionComponent() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex justify-end items-center gap-4">
+              {passwordChangeSuccess && (
+                <div className="rounded-lg bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 px-4 py-3 text-sm text-green-800 dark:text-green-200 font-medium animate-in fade-in duration-200">
+                  {t('profile.passwordChangedSuccess')}
+                </div>
+              )}
+              <div className="flex justify-between items-center gap-4 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setPasswordDialogOpen(true);
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setConfirmPassword('');
+                    setPasswordError('');
+                    setPasswordErrorField(null);
+                    setShowCurrentPassword(false);
+                    setShowNewPassword(false);
+                    setShowConfirmPassword(false);
+                  }}
+                >
+                  <KeyRound className="h-4 w-4 mr-2" />
+                  {t('profile.changePassword')}
+                </Button>
                 {saveFeedback && (
                   <span className="text-sm text-green-600 dark:text-green-400 font-medium animate-in fade-in duration-200">
                     {t('profile.updateSuccess')}
@@ -239,6 +273,175 @@ export default function ProfileSectionComponent() {
           </div>
         </div>
       </main>
+
+      <Dialog
+        open={passwordDialogOpen}
+        onOpenChange={(open) => {
+          setPasswordDialogOpen(open);
+          if (!open) {
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+            setPasswordError('');
+            setPasswordErrorField(null);
+            setShowCurrentPassword(false);
+            setShowNewPassword(false);
+            setShowConfirmPassword(false);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5" />
+              {t('profile.changePassword')}
+            </DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setPasswordError('');
+              setPasswordErrorField(null);
+              if (!currentPassword.trim()) {
+                setPasswordError(t('profile.fillRequiredFields'));
+                setPasswordErrorField('current');
+                return;
+              }
+              if (!newPassword.trim()) {
+                setPasswordError(t('profile.fillRequiredFields'));
+                setPasswordErrorField('new');
+                return;
+              }
+              if (!confirmPassword.trim()) {
+                setPasswordError(t('profile.fillRequiredFields'));
+                setPasswordErrorField('confirm');
+                return;
+              }
+              if (newPassword.length < 6) {
+                setPasswordError(t('auth.passwordMinLength'));
+                setPasswordErrorField('new');
+                return;
+              }
+              if (newPassword !== confirmPassword) {
+                setPasswordError(t('profile.passwordMismatch'));
+                setPasswordErrorField('confirm');
+                return;
+              }
+              try {
+                await axios.post(
+                  process.env.NEXT_PUBLIC_BACKEND_URL + '/api/change-password',
+                  { current_password: currentPassword, new_password: newPassword },
+                  { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+                );
+                setPasswordDialogOpen(false);
+                setCurrentPassword('');
+                setNewPassword('');
+                setConfirmPassword('');
+                setPasswordChangeSuccess(true);
+                setTimeout(() => setPasswordChangeSuccess(false), 4000);
+              } catch (err: unknown) {
+                const msg = axios.isAxiosError(err) && err.response?.status === 401
+                  ? t('profile.currentPasswordWrong')
+                  : t('profile.updateFailed');
+                setPasswordError(msg);
+                setPasswordErrorField('current');
+              }
+            }}
+            className="space-y-4"
+          >
+            <div>
+              <Label htmlFor="current-password">{t('profile.currentPassword')}</Label>
+              <div className="relative">
+                <Input
+                  id="current-password"
+                  type={showCurrentPassword ? 'text' : 'password'}
+                  value={currentPassword}
+                  onChange={(e) => { setCurrentPassword(e.target.value); setPasswordErrorField(null); }}
+                  autoComplete="off"
+                  data-lpignore="true"
+                  data-form-type="other"
+                  aria-invalid={passwordErrorField === 'current'}
+                  aria-describedby={passwordErrorField === 'current' ? 'current-password-error' : undefined}
+                  className={passwordErrorField === 'current' ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showCurrentPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showCurrentPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                </button>
+              </div>
+              {passwordErrorField === 'current' && passwordError && (
+                <p id="current-password-error" className="text-sm text-red-600 dark:text-red-400 mt-1">{passwordError}</p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="new-password-dialog">{t('profile.newPassword')}</Label>
+              <div className="relative">
+                <Input
+                  id="new-password-dialog"
+                  type={showNewPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => { setNewPassword(e.target.value); setPasswordErrorField(null); }}
+                  autoComplete="off"
+                  data-lpignore="true"
+                  data-form-type="other"
+                  aria-invalid={passwordErrorField === 'new'}
+                  aria-describedby={passwordErrorField === 'new' ? 'new-password-error' : undefined}
+                  className={passwordErrorField === 'new' ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showNewPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                </button>
+              </div>
+              {passwordErrorField === 'new' && passwordError && (
+                <p id="new-password-error" className="text-sm text-red-600 dark:text-red-400 mt-1">{passwordError}</p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="confirm-password-dialog">{t('profile.confirmPassword')}</Label>
+              <div className="relative">
+                <Input
+                  id="confirm-password-dialog"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => { setConfirmPassword(e.target.value); setPasswordErrorField(null); }}
+                  autoComplete="off"
+                  data-lpignore="true"
+                  data-form-type="other"
+                  aria-invalid={passwordErrorField === 'confirm'}
+                  aria-describedby={passwordErrorField === 'confirm' ? 'confirm-password-error' : undefined}
+                  className={passwordErrorField === 'confirm' ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirmPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                </button>
+              </div>
+              {passwordErrorField === 'confirm' && passwordError && (
+                <p id="confirm-password-error" className="text-sm text-red-600 dark:text-red-400 mt-1">{passwordError}</p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setPasswordDialogOpen(false)}>
+                {t('common.cancel')}
+              </Button>
+              <Button type="submit">{t('profile.saveChanges')}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
