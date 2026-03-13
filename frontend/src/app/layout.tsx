@@ -4,6 +4,7 @@ import NavbarComponent from '@/components/navbar';
 import FooterComponent from "@/components/footer";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LocaleProvider } from "@/contexts/locale-context";
+import InactivityLogout from "@/components/inactivity-logout";
 
 export const metadata: Metadata = {
   title: "LixyLearning",
@@ -25,6 +26,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <LocaleProvider>
+            <InactivityLogout />
             <NavbarComponent />
             <main className="flex-grow pt-safe">{children}</main>
             <FooterComponent />
