@@ -64,6 +64,7 @@
     "languageEn": "English",
     "languageFr": "Français",
     "dailyGoal": "Objectif de série quotidienne",
+    "dailyGoalDescription": "Nombre de jours consécutifs que vous souhaitez pratiquer. Affiché comme progression dans le tableau de bord.",
     "flashcards": "Flashcards",
     "cardsPerSession": "Cartes par session",
     "includeTranslation": "Inclure la traduction",
@@ -127,6 +128,8 @@
     "practiceWeak": "Pratiquez vos mots les plus faibles",
     "nextWord": "Mot suivant",
     "recommendedEmpty": "Pratiquez les flashcards pour voir vos mots les plus faibles ici",
+    "streakProgress": "Progrès vers l'objectif",
+    "streakGoalReached": "Objectif atteint !",
     "loading": "Chargement...",
     "gamification": {
       "points": "Points",

@@ -64,6 +64,7 @@
     "languageEn": "English",
     "languageFr": "Français",
     "dailyGoal": "Daily streak goal",
+    "dailyGoalDescription": "Number of consecutive days you want to practice. Shown as progress in the dashboard.",
     "flashcards": "Flashcards",
     "cardsPerSession": "Cards per session",
     "includeTranslation": "Include translation",
@@ -127,6 +128,8 @@
     "practiceWeak": "Practice your weakest words",
     "nextWord": "Next word",
     "recommendedEmpty": "Practice flashcards to see your weakest words here",
+    "streakProgress": "Progress to goal",
+    "streakGoalReached": "Goal reached!",
     "loading": "Loading...",
     "gamification": {
       "points": "Points",

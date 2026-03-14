@@ -64,6 +64,7 @@
     "languageEn": "English",
     "languageFr": "Français",
     "dailyGoal": "Meta de racha diaria",
+    "dailyGoalDescription": "Número de días consecutivos que quieres practicar. Se muestra como progreso en el tablero.",
     "flashcards": "Flashcards",
     "cardsPerSession": "Cartas por sesión",
     "includeTranslation": "Incluir traducción",
@@ -127,6 +128,8 @@
     "practiceWeak": "Practica tus palabras más débiles",
     "nextWord": "Siguiente palabra",
     "recommendedEmpty": "Practica flashcards para ver tus palabras más débiles aquí",
+    "streakProgress": "Progreso hacia la meta",
+    "streakGoalReached": "¡Meta alcanzada!",
     "loading": "Cargando...",
     "gamification": {
       "points": "Puntos",
