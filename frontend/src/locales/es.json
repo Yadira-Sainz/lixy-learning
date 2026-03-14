@@ -166,7 +166,10 @@
     "saveChanges": "Guardar cambios",
     "updateSuccess": "¡Perfil actualizado correctamente!",
     "updateFailed": "Error al actualizar el perfil",
-    "passwordChangedSuccess": "Contraseña actualizada correctamente"
+    "passwordChangedSuccess": "Contraseña actualizada correctamente",
+    "emailChangeConfirmTitle": "Confirmar cambio de email",
+    "emailChangeConfirmMessage": "Estás cambiando tu dirección de correo. Introduce tu contraseña actual para confirmar.",
+    "confirmEmailChange": "Confirmar cambio"
   },
   "flashcardCenter": {
     "loading": "Cargando categorías...",

@@ -166,7 +166,10 @@
     "saveChanges": "Enregistrer les modifications",
     "updateSuccess": "Profil mis à jour avec succès !",
     "updateFailed": "Échec de la mise à jour du profil",
-    "passwordChangedSuccess": "Mot de passe mis à jour avec succès"
+    "passwordChangedSuccess": "Mot de passe mis à jour avec succès",
+    "emailChangeConfirmTitle": "Confirmer le changement d'email",
+    "emailChangeConfirmMessage": "Vous modifiez votre adresse email. Entrez votre mot de passe actuel pour confirmer.",
+    "confirmEmailChange": "Confirmer le changement"
   },
   "flashcardCenter": {
     "loading": "Chargement des catégories...",

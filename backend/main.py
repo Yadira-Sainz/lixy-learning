@@ -99,6 +99,7 @@ class UpdateUserRequest(BaseModel):
     last_name: str | None = None
     username: str | None = None
     email: str | None = None
+    current_password: str | None = None  # Required when changing email
     password: str | None = None
     age: int | None = None
     gender: str | None = None
@@ -364,10 +365,15 @@ async def update_user(
     current = _execute_query_one(conn, "SELECT * FROM users WHERE user_id = %s", (user["userId"],))
     if not current:
         raise HTTPException(404, "User not found")
+    email = req.email if req.email is not None else current["email"]
+    if email != current["email"]:
+        if not req.current_password:
+            raise HTTPException(400, "Current password is required to change email")
+        if not _verify_password(req.current_password, current["password_hash"]):
+            raise HTTPException(401, "Current password is incorrect")
     hashed = None
     if req.password:
         hashed = _hash_password(req.password)
-    email = req.email if req.email is not None else current["email"]
     first_name = req.first_name if req.first_name is not None else current["first_name"]
     last_name = req.last_name if req.last_name is not None else current["last_name"]
     username = req.username if req.username is not None else current["username"]

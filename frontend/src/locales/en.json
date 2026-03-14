@@ -166,7 +166,10 @@
     "saveChanges": "Save changes",
     "updateSuccess": "Profile updated successfully!",
     "updateFailed": "Failed to update profile",
-    "passwordChangedSuccess": "Password updated successfully"
+    "passwordChangedSuccess": "Password updated successfully",
+    "emailChangeConfirmTitle": "Confirm email change",
+    "emailChangeConfirmMessage": "You are changing your email address. Enter your current password to confirm.",
+    "confirmEmailChange": "Confirm change"
   },
   "flashcardCenter": {
     "loading": "Loading categories...",

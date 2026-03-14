@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { EyeIcon, EyeOffIcon, KeyRound } from 'lucide-react';
+import { EyeIcon, EyeOffIcon, KeyRound, Mail } from 'lucide-react';
 import { COUNTRIES, getCountryDisplayValue } from "@/lib/countries";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -38,6 +38,11 @@ export default function ProfileSectionComponent() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordErrorField, setPasswordErrorField] = useState<'current' | 'new' | 'confirm' | null>(null);
   const [passwordChangeSuccess, setPasswordChangeSuccess] = useState(false);
+  const [originalEmail, setOriginalEmail] = useState('');
+  const [emailChangeDialogOpen, setEmailChangeDialogOpen] = useState(false);
+  const [emailChangePassword, setEmailChangePassword] = useState('');
+  const [emailChangePasswordError, setEmailChangePasswordError] = useState('');
+  const [showEmailChangePassword, setShowEmailChangePassword] = useState(false);
 
   // Fetch user data and available languages
   useEffect(() => {
@@ -57,7 +62,9 @@ export default function ProfileSectionComponent() {
         setFirstName(user.first_name || '');
         setLastName(user.last_name || '');
         setUsername(user.username || '');
-        setEmail(user.email || '');
+        const userEmail = user.email || '';
+        setEmail(userEmail);
+        setOriginalEmail(userEmail);
         setAge(user.age || ''); 
         setGender(user.gender || ''); 
         setCountry(getCountryDisplayValue(user.country || '') || user.country || ''); 
@@ -105,7 +112,7 @@ export default function ProfileSectionComponent() {
     }
   };
 
-  const handleSubmit = async () => {
+  const performSave = async (currentPasswordForEmail?: string) => {
     const token = localStorage.getItem('token');
     const headers = { Authorization: `Bearer ${token}` };
 
@@ -121,7 +128,7 @@ export default function ProfileSectionComponent() {
         );
       }
 
-      const updatedUserInfo = {
+      const updatedUserInfo: Record<string, unknown> = {
         first_name: firstName,
         last_name: lastName,
         username,
@@ -132,6 +139,9 @@ export default function ProfileSectionComponent() {
         native_language_id: nativeLanguage,
         learning_language_id: learningLanguage,
       };
+      if (currentPasswordForEmail) {
+        updatedUserInfo.current_password = currentPasswordForEmail;
+      }
 
       await axios.put(process.env.NEXT_PUBLIC_BACKEND_URL + '/api/update-user', updatedUserInfo, {
         headers,
@@ -140,14 +150,41 @@ export default function ProfileSectionComponent() {
       setSaveError(false);
       setSaveFeedback(true);
       setTimeout(() => setSaveFeedback(false), 3000);
+      setOriginalEmail(email);
+      setEmailChangeDialogOpen(false);
+      setEmailChangePassword('');
+      setEmailChangePasswordError('');
     } catch (error) {
       console.error("Error updating profile:", error);
-      setSaveFeedback(false);
-      setSaveError(true);
-      setTimeout(() => setSaveError(false), 5000);
+      if (axios.isAxiosError(error) && error.response?.status === 401 && currentPasswordForEmail) {
+        setEmailChangePasswordError(t('profile.currentPasswordWrong'));
+      } else {
+        setSaveFeedback(false);
+        setSaveError(true);
+        setTimeout(() => setSaveError(false), 5000);
+      }
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSubmit = async () => {
+    if (email.trim() !== originalEmail.trim()) {
+      setEmailChangePassword('');
+      setEmailChangePasswordError('');
+      setShowEmailChangePassword(false);
+      setEmailChangeDialogOpen(true);
+      return;
+    }
+    await performSave();
+  };
+
+  const handleEmailChangeConfirm = async () => {
+    if (!emailChangePassword.trim()) {
+      setEmailChangePasswordError(t('profile.fillRequiredFields'));
+      return;
+    }
+    await performSave(emailChangePassword);
   };
 
   if (isLoading) {
@@ -494,6 +531,68 @@ export default function ProfileSectionComponent() {
               <Button type="submit">{t('profile.saveChanges')}</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={emailChangeDialogOpen}
+        onOpenChange={(open) => {
+          setEmailChangeDialogOpen(open);
+          if (!open) {
+            setEmailChangePassword('');
+            setEmailChangePasswordError('');
+            setShowEmailChangePassword(false);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              {t('profile.emailChangeConfirmTitle')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">{t('profile.emailChangeConfirmMessage')}</p>
+            <p className="text-sm font-medium">
+              {originalEmail} → {email}
+            </p>
+          </div>
+          <div>
+            <Label htmlFor="email-change-password">{t('profile.currentPassword')}</Label>
+            <div className="relative">
+              <Input
+                id="email-change-password"
+                type={showEmailChangePassword ? 'text' : 'password'}
+                value={emailChangePassword}
+                onChange={(e) => { setEmailChangePassword(e.target.value); setEmailChangePasswordError(''); }}
+                autoComplete="off"
+                data-lpignore="true"
+                placeholder={t('profile.currentPassword')}
+                className={emailChangePasswordError ? 'border-red-500' : ''}
+              />
+              <button
+                type="button"
+                onClick={() => setShowEmailChangePassword((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label={showEmailChangePassword ? 'Hide password' : 'Show password'}
+              >
+                {showEmailChangePassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+              </button>
+            </div>
+            {emailChangePasswordError && (
+              <p className="text-sm text-red-600 dark:text-red-400 mt-1">{emailChangePasswordError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setEmailChangeDialogOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={handleEmailChangeConfirm} disabled={isSaving}>
+              {isSaving ? <LoadingSpinner size="sm" className="mr-2" /> : null}
+              {t('profile.confirmEmailChange')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </section>
