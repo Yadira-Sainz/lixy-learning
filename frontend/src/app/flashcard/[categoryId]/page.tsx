@@ -12,6 +12,7 @@ import axios from 'axios';
 import FlashcardDash from '../page';
 import { useRouter } from 'next/navigation';
 import StreakCompletionModal from '@/components/ui/streak-completion-modal';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 type Word = {
   vocabulary_id: number;
@@ -32,6 +33,7 @@ const FlashcardComponent: React.FC = () => {
   const { t } = useLocale();
   const { categoryId } = useParams<{ categoryId: string }>(); // Gets the categoryId parameter from the URL
   const [flashcards, setFlashcards] = useState<FlashcardType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showTranslation, setShowTranslation] = useState<boolean>(() => getIncludeTranslation());
   const [currentCardIndex, setCurrentCardIndex] = useState<number>(0); // Index of the current card
   const [isClient, setIsClient] = useState<boolean>(false);
@@ -48,6 +50,7 @@ const FlashcardComponent: React.FC = () => {
     const limit = getCardsPerSession();
 
     if (categoryId && token) {
+      setIsLoading(true);
       fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/daily-words/${categoryId}?limit=${limit}`, {
         method: 'GET',
         headers: {
@@ -69,7 +72,10 @@ const FlashcardComponent: React.FC = () => {
           }));
           setFlashcards(formattedData);
         })
-        .catch((error) => console.error('Error fetching data:', error));
+        .catch((error) => console.error('Error fetching data:', error))
+        .finally(() => setIsLoading(false));
+    } else {
+      setIsLoading(false);
     }
   }, [categoryId]);  
 
@@ -234,6 +240,23 @@ const handleCloseModal = () => {
       ) : part
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="w-full max-w-4xl mx-auto flex flex-col items-center justify-center py-16 space-y-4">
+        <LoadingSpinner size="lg" />
+        <p className="text-muted-foreground">{t('flashcard.loading')}</p>
+      </div>
+    );
+  }
+
+  if (flashcards.length === 0) {
+    return (
+      <div className="w-full max-w-4xl mx-auto flex flex-col items-center justify-center py-16">
+        <p className="text-muted-foreground">{t('flashcard.empty')}</p>
+      </div>
+    );
+  }
 
   return (
     <TooltipProvider>

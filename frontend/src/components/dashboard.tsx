@@ -9,6 +9,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Trophy, Flame, Star, Award, Zap, BookOpen } from 'lucide-react'
+import { Skeleton } from "@/components/ui/skeleton"
 
 const DifficultyChart = dynamic(
   () => import('./dashboard-charts').then((m) => m.DifficultyChart),
@@ -56,6 +57,7 @@ export function DashboardComponent() {
   const { t, locale } = useLocale()
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [currentWordIndex, setCurrentWordIndex] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
   const [streakDates, setStreakDates] = useState<string[]>([]);
   const [gamification, setGamification] = useState<GamificationData | null>(null);
   const [difficulty, setDifficulty] = useState<{ easy: number; medium: number; hard: number } | null>(null);
@@ -133,27 +135,50 @@ export function DashboardComponent() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) return;
-    fetchStreakDates()
-      .then(setStreakDates)
-      .catch(err => console.error("Error fetching streaks:", err));
-    fetchGamification()
-      .then(setGamification)
-      .catch(err => console.error("Error fetching gamification:", err));
-    fetchDifficulty()
-      .then(setDifficulty)
-      .catch(err => console.error("Error fetching difficulty:", err));
-    fetchUpcomingReviews()
-      .then(setUpcomingReviews)
-      .catch(err => console.error("Error fetching upcoming reviews:", err));
-    fetchProgress()
-      .then(setProgress)
-      .catch(err => console.error("Error fetching progress:", err));
-    fetchWeakWords()
-      .then(setWeakWords)
-      .catch(err => console.error("Error fetching weak words:", err));
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    Promise.all([
+      fetchStreakDates().catch(err => { console.error("Error fetching streaks:", err); return []; }),
+      fetchGamification().catch(() => null),
+      fetchDifficulty().catch(() => null),
+      fetchUpcomingReviews().catch(() => null),
+      fetchProgress().catch(() => null),
+      fetchWeakWords().catch(() => []),
+    ]).then(([streaks, gam, diff, upcoming, prog, weak]) => {
+      setStreakDates(streaks);
+      setGamification(gam);
+      setDifficulty(diff);
+      setUpcomingReviews(upcoming);
+      setProgress(prog);
+      setWeakWords(weak);
+    }).finally(() => setIsLoading(false));
   }, []);
   
+  if (isLoading) {
+    return (
+      <section id="tablero">
+        <div className="p-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Skeleton className="h-[280px]" />
+            <Skeleton className="h-[280px]" />
+            <Skeleton className="h-[280px]" />
+          </div>
+          <div className="flex items-center justify-center py-8 text-muted-foreground">
+            {t('dashboard.loading')}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section id="tablero">
       <div className="p-4">

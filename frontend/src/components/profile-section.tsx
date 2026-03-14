@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { EyeIcon, EyeOffIcon, KeyRound } from 'lucide-react';
 import { COUNTRIES, getCountryDisplayValue } from "@/lib/countries";
+import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const PLACEHOLDER_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300' fill='none'%3E%3Crect width='300' height='300' fill='%23e5e7eb'/%3E%3Ccircle cx='150' cy='120' r='50' fill='%239ca3af'/%3E%3Cellipse cx='150' cy='260' rx='90' ry='60' fill='%239ca3af'/%3E%3C/svg%3E";
 
@@ -40,6 +42,7 @@ export default function ProfileSectionComponent() {
   // Fetch user data and available languages
   useEffect(() => {
     const fetchUserData = async () => {
+      setIsLoading(true);
       try {
         // Fetch user data
         const userResponse = await axios.get(process.env.NEXT_PUBLIC_BACKEND_URL + '/api/user/profile', {
@@ -76,6 +79,8 @@ export default function ProfileSectionComponent() {
         setLanguages(languageResponse.data);
       } catch (error) {
         console.error("Error fetching user data or languages:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -85,6 +90,8 @@ export default function ProfileSectionComponent() {
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [saveFeedback, setSaveFeedback] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -102,6 +109,7 @@ export default function ProfileSectionComponent() {
     const token = localStorage.getItem('token');
     const headers = { Authorization: `Bearer ${token}` };
 
+    setIsSaving(true);
     try {
       if (profileImageFile) {
         const formData = new FormData();
@@ -137,8 +145,36 @@ export default function ProfileSectionComponent() {
       setSaveFeedback(false);
       setSaveError(true);
       setTimeout(() => setSaveError(false), 5000);
+    } finally {
+      setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <section id='perfil' className="min-h-screen bg-background">
+        <main className="p-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex flex-col md:flex-row gap-8">
+              <div className="w-full md:w-1/3 mb-6 md:mb-0">
+                <Skeleton className="aspect-square max-w-[300px] mx-auto rounded-lg mb-4" />
+              </div>
+              <div className="w-full md:w-2/3 space-y-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <div className="flex justify-center py-8 text-muted-foreground">
+                  {t('profile.loading')}
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </section>
+    );
+  }
 
   return (
     <section id='perfil' className="min-h-screen bg-background">
@@ -282,7 +318,10 @@ export default function ProfileSectionComponent() {
                     {t('profile.updateFailed')}
                   </span>
                 )}
-                <Button onClick={handleSubmit}>{t('profile.saveChanges')}</Button>
+                <Button onClick={handleSubmit} disabled={isSaving}>
+                  {isSaving ? <LoadingSpinner size="sm" className="mr-2" /> : null}
+                  {t('profile.saveChanges')}
+                </Button>
               </div>
             </div>
           </div>

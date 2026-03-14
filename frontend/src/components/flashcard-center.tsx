@@ -5,6 +5,7 @@ import { useLocale } from '@/contexts/locale-context';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from 'next/navigation';
 
 const recentSets = [
@@ -43,6 +44,7 @@ interface Vocabulary {
 export function FlashcardCenter() {
   const { t } = useLocale();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [vocabularySets, setVocabularySets] = useState<Record<number, Vocabulary[]>>({});
   const [currentCategory, setCurrentCategory] = useState<number | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -64,19 +66,24 @@ export function FlashcardCenter() {
     };
 
   const fetchCategories = async () => {
-    const token = localStorage.getItem('token'); // Obtener el token almacenado
-    const response = await fetch(process.env.NEXT_PUBLIC_BACKEND_URL + '/api/categories', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`, // Incluir el token en el encabezado
-      },
-    });
+    setIsLoading(true);
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(process.env.NEXT_PUBLIC_BACKEND_URL + '/api/categories', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
 
-    if (response.ok) {
-      const data: Category[] = await response.json();
-      setCategories(data);
-    } else {
-      console.error("Failed to fetch categories", response.status);
+      if (response.ok) {
+        const data: Category[] = await response.json();
+        setCategories(data);
+      } else {
+        console.error("Failed to fetch categories", response.status);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -177,6 +184,13 @@ export function FlashcardCenter() {
 
         <section>
           <h2 className="text-3xl font-bold mb-4">{t('flashcardCenter.collection')}</h2>
+          {isLoading ? (
+            <div className="grid md:grid-cols-3 gap-4">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Skeleton key={i} className="h-40" />
+              ))}
+            </div>
+          ) : (
           <div className="grid md:grid-cols-3 gap-4">
             {categories.map((category) => (
               <Card key={category.category_id} className="h-40" onClick={() => handleCategoryClick(category.category_id)}>
@@ -189,6 +203,7 @@ export function FlashcardCenter() {
               </Card>
             ))}
           </div>
+          )}
         </section>
 
         {currentCategory && (

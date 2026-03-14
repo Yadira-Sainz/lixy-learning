@@ -97,6 +97,7 @@
     "nativeLanguagePlaceholder": "Select native language",
     "learningLanguagePlaceholder": "Select language to learn",
     "noLanguages": "No languages available",
+    "loading": "Loading...",
     "fillAllFields": "Please fill in all fields",
     "invalidCredentials": "Invalid email or password",
     "invalidEmail": "Please enter a valid email address",
@@ -140,6 +141,7 @@
     }
   },
   "profile": {
+    "loading": "Loading profile...",
     "changePhoto": "Change profile photo",
     "firstName": "First name",
     "lastName": "Last name",
@@ -167,6 +169,7 @@
     "passwordChangedSuccess": "Password updated successfully"
   },
   "flashcardCenter": {
+    "loading": "Loading categories...",
     "recent": "Recent",
     "collection": "Collection",
     "clickToPractice": "Click to start practicing",
@@ -212,11 +215,14 @@
     "newBadgesUnlocked": "New badges unlocked!"
   },
   "collection": {
+    "loading": "Loading collection...",
     "categoryName": "Category name",
     "clickToView": "Click to view this reading",
     "reading": "Reading"
   },
   "flashcard": {
+    "loading": "Loading flashcards...",
+    "empty": "No flashcards available for this category.",
     "loadingImage": "Loading image...",
     "playAudio": "Play audio",
     "hideTranslation": "Hide translation",
