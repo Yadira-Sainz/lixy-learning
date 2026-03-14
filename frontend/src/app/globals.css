@@ -60,3 +60,12 @@ h1, h2, h3, h4, h5, h6 {
   background-color: rgb(34 197 94) !important;
   color: white !important;
 }
+
+/* Trofeo meta alcanzada - brillo suave */
+@keyframes trophy-glow {
+  0%, 100% { box-shadow: 0 0 12px rgba(245, 158, 11, 0.4); }
+  50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.7); }
+}
+.trophy-goal-badge {
+  animation: trophy-glow 2s ease-in-out infinite;
+}

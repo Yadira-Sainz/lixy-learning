@@ -10,7 +10,8 @@
     "reading": "Reading Center"
   },
   "common": {
-    "login": "Log in"
+    "login": "Log in",
+    "cancel": "Cancel"
   },
   "landing": {
     "title": "Explore a new language",
@@ -63,6 +64,7 @@
     "languageEn": "English",
     "languageFr": "Français",
     "dailyGoal": "Daily streak goal",
+    "dailyGoalDescription": "Number of consecutive days you want to practice. Shown as progress in the dashboard.",
     "flashcards": "Flashcards",
     "cardsPerSession": "Cards per session",
     "includeTranslation": "Include translation",
@@ -90,11 +92,13 @@
     "female": "Female",
     "other": "Other",
     "country": "Country",
+    "countryPlaceholder": "Select country",
     "nativeLanguage": "Native Language",
     "learningLanguage": "Language to Learn",
     "nativeLanguagePlaceholder": "Select native language",
     "learningLanguagePlaceholder": "Select language to learn",
     "noLanguages": "No languages available",
+    "loading": "Loading...",
     "fillAllFields": "Please fill in all fields",
     "invalidCredentials": "Invalid email or password",
     "invalidEmail": "Please enter a valid email address",
@@ -124,6 +128,8 @@
     "practiceWeak": "Practice your weakest words",
     "nextWord": "Next word",
     "recommendedEmpty": "Practice flashcards to see your weakest words here",
+    "streakProgress": "Progress to goal",
+    "streakGoalReached": "Goal reached!",
     "loading": "Loading...",
     "gamification": {
       "points": "Points",
@@ -138,6 +144,7 @@
     }
   },
   "profile": {
+    "loading": "Loading profile...",
     "changePhoto": "Change profile photo",
     "firstName": "First name",
     "lastName": "Last name",
@@ -147,15 +154,28 @@
     "gender": "Gender",
     "genderPlaceholder": "Select your gender",
     "country": "Country",
+    "countryPlaceholder": "Select your country",
     "nativeLanguage": "Native language",
     "learningLanguage": "Language to learn",
     "nativeLanguagePlaceholder": "Select your native language",
     "learningLanguagePlaceholder": "Select the language you are learning",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "passwordMismatch": "Passwords do not match",
+    "currentPasswordWrong": "Current password is incorrect",
+    "fillRequiredFields": "Please fill out this field.",
     "saveChanges": "Save changes",
     "updateSuccess": "Profile updated successfully!",
-    "updateFailed": "Failed to update profile"
+    "updateFailed": "Failed to update profile",
+    "passwordChangedSuccess": "Password updated successfully",
+    "emailChangeConfirmTitle": "Confirm email change",
+    "emailChangeConfirmMessage": "You are changing your email address. Enter your current password to confirm.",
+    "confirmEmailChange": "Confirm change"
   },
   "flashcardCenter": {
+    "loading": "Loading categories...",
     "recent": "Recent",
     "collection": "Collection",
     "clickToPractice": "Click to start practicing",
@@ -201,11 +221,14 @@
     "newBadgesUnlocked": "New badges unlocked!"
   },
   "collection": {
+    "loading": "Loading collection...",
     "categoryName": "Category name",
     "clickToView": "Click to view this reading",
     "reading": "Reading"
   },
   "flashcard": {
+    "loading": "Loading flashcards...",
+    "empty": "No flashcards available for this category.",
     "loadingImage": "Loading image...",
     "playAudio": "Play audio",
     "hideTranslation": "Hide translation",

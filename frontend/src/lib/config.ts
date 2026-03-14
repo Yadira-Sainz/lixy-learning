@@ -16,6 +16,16 @@ export function getStoredConfig(): StoredConfig | null {
   }
 }
 
+export function getDailyGoal(): number {
+  const config = getStoredConfig()
+  const value = config?.dailyGoal
+  if (value != null) {
+    const num = parseInt(value, 10)
+    if (!isNaN(num) && num > 0) return Math.min(num, 365)
+  }
+  return 7
+}
+
 export function getCardsPerSession(): number {
   const config = getStoredConfig()
   const value = config?.cardsPerSession

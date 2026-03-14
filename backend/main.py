@@ -6,7 +6,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 import httpx
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -58,6 +58,10 @@ def _verify_password(password: str, hashed: str) -> bool:
 AUDIOS_DIR = Path(__file__).parent / "audios"
 AUDIOS_DIR.mkdir(exist_ok=True)
 
+UPLOADS_DIR = Path(__file__).parent / "uploads"
+PROFILES_DIR = UPLOADS_DIR / "profiles"
+PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+
 
 # Pydantic models
 class GenerateSentenceRequest(BaseModel):
@@ -95,12 +99,19 @@ class UpdateUserRequest(BaseModel):
     last_name: str | None = None
     username: str | None = None
     email: str | None = None
+    current_password: str | None = None  # Required when changing email
     password: str | None = None
     age: int | None = None
     gender: str | None = None
     country: str | None = None
     native_language_id: int | None = None
     learning_language_id: int | None = None
+    profile_image: str | None = None  # base64 data URL (data:image/...;base64,...)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 
 class GetImageUrlRequest(BaseModel):
@@ -219,6 +230,7 @@ async def generate_audio(
 
 
 app.mount("/audios", StaticFiles(directory=str(AUDIOS_DIR)), name="audios")
+app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 
 @app.post("/register")
@@ -262,7 +274,7 @@ async def get_profile(
 ):
     row = _execute_query_one(
         conn,
-        "SELECT user_id, email, first_name, last_name, username, age, gender, country, native_language_id, learning_language_id FROM users WHERE user_id = %s",
+        "SELECT user_id, email, first_name, last_name, username, age, gender, country, native_language_id, learning_language_id, profile_image_url FROM users WHERE user_id = %s",
         (user["userId"],),
     )
     if not row:
@@ -277,12 +289,71 @@ async def user_details(
 ):
     row = _execute_query_one(
         conn,
-        "SELECT username, email, COALESCE(points, 0) as points FROM users WHERE user_id = %s",
+        "SELECT username, email, COALESCE(points, 0) as points, profile_image_url FROM users WHERE user_id = %s",
         (user["userId"],),
     )
     if not row:
         raise HTTPException(404, "User not found")
     return dict(row)
+
+
+def _save_profile_image(user_id: int, data_url: str) -> str | None:
+    """Save base64 data URL to file. Returns path like 'profiles/123.jpg' or None."""
+    if not data_url or not data_url.startswith("data:image/"):
+        return None
+    try:
+        header, b64 = data_url.split(",", 1)
+        ext = "jpg"
+        if "png" in header:
+            ext = "png"
+        elif "gif" in header:
+            ext = "gif"
+        elif "webp" in header:
+            ext = "webp"
+        data = base64.b64decode(b64)
+        path = PROFILES_DIR / f"{user_id}.{ext}"
+        path.write_bytes(data)
+        return f"profiles/{user_id}.{ext}"
+    except Exception as e:
+        print(f"[profile_image] base64 save failed: {e}")
+        return None
+
+
+@app.post("/api/upload-profile-image")
+async def upload_profile_image(
+    user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+    image: UploadFile = File(...),
+):
+    """Upload profile image via multipart form. More reliable than base64 in JSON."""
+    if not image.content_type or not image.content_type.startswith("image/"):
+        raise HTTPException(400, "File must be an image")
+    ext = "jpg"
+    if "png" in (image.content_type or ""):
+        ext = "png"
+    elif "gif" in (image.content_type or ""):
+        ext = "gif"
+    elif "webp" in (image.content_type or ""):
+        ext = "webp"
+    try:
+        data = await image.read()
+        if len(data) > 5 * 1024 * 1024:  # 5MB max
+            raise HTTPException(400, "Image too large (max 5MB)")
+        path = PROFILES_DIR / f"{user['userId']}.{ext}"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        profile_image_url = f"profiles/{user['userId']}.{ext}"
+        _execute_query(
+            conn,
+            "UPDATE users SET profile_image_url = %s WHERE user_id = %s",
+            (profile_image_url, user["userId"]),
+        )
+        return {"profile_image_url": profile_image_url}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[profile_image] upload failed: {e}")
+        raise HTTPException(500, "Failed to save profile image")
 
 
 @app.put("/api/update-user")
@@ -294,10 +365,15 @@ async def update_user(
     current = _execute_query_one(conn, "SELECT * FROM users WHERE user_id = %s", (user["userId"],))
     if not current:
         raise HTTPException(404, "User not found")
+    email = req.email if req.email is not None else current["email"]
+    if email != current["email"]:
+        if not req.current_password:
+            raise HTTPException(400, "Current password is required to change email")
+        if not _verify_password(req.current_password, current["password_hash"]):
+            raise HTTPException(401, "Current password is incorrect")
     hashed = None
     if req.password:
         hashed = _hash_password(req.password)
-    email = req.email if req.email is not None else current["email"]
     first_name = req.first_name if req.first_name is not None else current["first_name"]
     last_name = req.last_name if req.last_name is not None else current["last_name"]
     username = req.username if req.username is not None else current["username"]
@@ -306,18 +382,47 @@ async def update_user(
     country = req.country if req.country is not None else current["country"]
     native_language_id = req.native_language_id if req.native_language_id is not None else current["native_language_id"]
     learning_language_id = req.learning_language_id if req.learning_language_id is not None else current["learning_language_id"]
+
+    profile_image_url = current.get("profile_image_url")
+    if req.profile_image:
+        saved = _save_profile_image(user["userId"], req.profile_image)
+        if saved:
+            profile_image_url = saved
+
     try:
         _execute_query(
             conn,
             """UPDATE users SET email = %s, first_name = %s, last_name = %s, age = %s, gender = %s, country = %s,
-               native_language_id = %s, learning_language_id = %s, password_hash = COALESCE(%s, password_hash), username = %s
+               native_language_id = %s, learning_language_id = %s, password_hash = COALESCE(%s, password_hash), username = %s,
+               profile_image_url = COALESCE(%s, profile_image_url)
                WHERE user_id = %s""",
-            (email, first_name, last_name, age, gender, country, native_language_id, learning_language_id, hashed, username, user["userId"]),
+            (email, first_name, last_name, age, gender, country, native_language_id, learning_language_id, hashed, username, profile_image_url, user["userId"]),
         )
         row = _execute_query_one(conn, "SELECT * FROM users WHERE user_id = %s", (user["userId"],))
         return dict(row) if row else {}
     except Exception as e:
         raise HTTPException(500, str(e))
+
+
+@app.post("/api/change-password")
+async def change_password(
+    req: ChangePasswordRequest,
+    user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    """Change password. Requires current password verification."""
+    if len(req.new_password) < 6:
+        raise HTTPException(400, "Password must be at least 6 characters")
+    current = _execute_query_one(conn, "SELECT password_hash FROM users WHERE user_id = %s", (user["userId"],))
+    if not current or not _verify_password(req.current_password, current["password_hash"]):
+        raise HTTPException(401, "Current password is incorrect")
+    hashed = _hash_password(req.new_password)
+    _execute_query(
+        conn,
+        "UPDATE users SET password_hash = %s WHERE user_id = %s",
+        (hashed, user["userId"]),
+    )
+    return {"message": "Password updated successfully"}
 
 
 @app.post("/login")
@@ -635,15 +740,17 @@ async def get_streaks(
     yesterday = (now - timedelta(days=1)).date().isoformat()
     rows = _execute_query(
         conn,
-        "SELECT current_streak FROM daily_streaks WHERE user_id = %s AND (streak_date = %s OR streak_date = %s) ORDER BY streak_date DESC LIMIT 1",
+        "SELECT streak_date, current_streak FROM daily_streaks WHERE user_id = %s AND (streak_date = %s OR streak_date = %s) ORDER BY streak_date DESC LIMIT 1",
         (user["userId"], today, yesterday),
     )
     if not rows:
         return []
     current_streak = rows[0]["current_streak"]
+    last_streak_date = rows[0]["streak_date"]
+    # Use streak_date from DB as the last day of the streak (not "today")
     dates = []
     for i in range(current_streak):
-        d = (now - timedelta(days=i)).date().isoformat()
+        d = (last_streak_date - timedelta(days=i)).isoformat()
         dates.append(d)
     return dates
 
