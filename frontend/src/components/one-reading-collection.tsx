@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useLocale } from '@/contexts/locale-context'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 
 type Word = { id: number; word: string; definition: string; };
 
@@ -15,6 +16,7 @@ export default function OneReadingCollection() {
   const [categoryId, setCategoryId] = useState<string | null>(null)
   const [vocabulary, setVocabulary] = useState<Word[]>([])
   const [token, setToken] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     const storedToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -31,6 +33,7 @@ export default function OneReadingCollection() {
   }, [searchParams, t])
 
   const fetchVocabulary = async (categoryId: string, token: string) => {
+    setIsLoading(true)
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vocabulary/${categoryId}`, {
         method: 'GET',
@@ -47,6 +50,8 @@ export default function OneReadingCollection() {
       }
     } catch (error) {
       console.error('Error fetching vocabulary:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -67,6 +72,13 @@ export default function OneReadingCollection() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-4xl font-bold mb-8">{category}</h1>
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {lecturas.map((lectura, index) => (
           <Card 
@@ -83,6 +95,7 @@ export default function OneReadingCollection() {
           </Card>
         ))}
       </div>
+      )}
     </div>
   )
 }

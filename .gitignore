@@ -31,6 +31,9 @@ frontend/dist
 backend/build
 backend/dist
 
+# User uploads
+backend/uploads/
+
 # node modules
 backend/node_modules
 frontend/node_modules

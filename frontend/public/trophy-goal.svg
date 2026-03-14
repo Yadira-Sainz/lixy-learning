@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 80" fill="none">
+  <!-- Trofeo blanco para fondo dorado - forma clásica reconocible -->
+  <defs>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <!-- Copa -->
+  <ellipse cx="32" cy="28" rx="14" ry="4" fill="white"/>
+  <path d="M18 28 L18 48 Q18 56 32 58 Q46 56 46 48 L46 28" fill="white" filter="url(#shadow)"/>
+  <!-- Asas -->
+  <path d="M18 32 Q8 32 8 40 Q8 48 18 48" fill="none" stroke="white" stroke-width="4" stroke-linecap="round"/>
+  <path d="M46 32 Q56 32 56 40 Q56 48 46 48" fill="none" stroke="white" stroke-width="4" stroke-linecap="round"/>
+  <!-- Base -->
+  <rect x="26" y="58" width="12" height="6" fill="white"/>
+  <rect x="22" y="64" width="20" height="6" rx="2" fill="white"/>
+  <!-- Estrella -->
+  <path d="M32 12 L34 20 L42 20 L36 25 L38 33 L32 28 L26 33 L28 25 L22 20 L30 20 Z" fill="white" filter="url(#shadow)"/>
+</svg>

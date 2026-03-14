@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { COUNTRIES } from "@/lib/countries"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 interface Language {
   language_id: number
@@ -32,6 +34,8 @@ export default function AuthPageComponent() {
   const [learningLanguage, setLearningLanguage] = useState('')
   const [loginError, setLoginError] = useState('')
   const [signupError, setSignupError] = useState('')
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
+  const [isSigningUp, setIsSigningUp] = useState(false)
   const searchParams = useSearchParams()
   const router = useRouter()
   const [languages, setLanguages] = useState<Language[]>([])
@@ -60,21 +64,24 @@ export default function AuthPageComponent() {
   }
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      setLoginError(t('auth.fillAllFields'))
+      return
+    }
+    setIsLoggingIn(true)
+    setLoginError('')
     try {
-      if (!email || !password) {
-        setLoginError(t('auth.fillAllFields'))
-        return
-      }
       const response = await axios.post(process.env.NEXT_PUBLIC_BACKEND_URL + '/login', {
         email,
         password,
       })
       localStorage.setItem('token', response.data.token)
-      setLoginError('')
       window.dispatchEvent(new CustomEvent('auth-change', { detail: { loggedIn: true } }))
       router.push('/tablero')
     } catch (error) {
       setLoginError(t('auth.invalidCredentials'))
+    } finally {
+      setIsLoggingIn(false)
     }
   }
 
@@ -104,6 +111,8 @@ export default function AuthPageComponent() {
       return
     }
 
+    setIsSigningUp(true)
+    setSignupError('')
     try {
       const generatedUsername = generateUsername(email)
 
@@ -121,11 +130,12 @@ export default function AuthPageComponent() {
       })
 
       localStorage.setItem('token', response.data.token)
-      setSignupError('')
       window.dispatchEvent(new CustomEvent('auth-change', { detail: { loggedIn: true } }))
       router.push('/tablero')
     } catch (error) {
       setSignupError(t('auth.signupError'))
+    } finally {
+      setIsSigningUp(false)
     }
   }
 
@@ -178,7 +188,10 @@ export default function AuthPageComponent() {
                 </div>
               </div>
               {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
-              <Button onClick={handleLogin} className="w-full">{t('auth.login')}</Button>
+              <Button onClick={handleLogin} className="w-full" disabled={isLoggingIn}>
+                {isLoggingIn ? <LoadingSpinner size="sm" className="mr-2" /> : null}
+                {t('auth.login')}
+              </Button>
             </TabsContent>
             <TabsContent value="signup" className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -237,7 +250,18 @@ export default function AuthPageComponent() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="country">{t('auth.country')}</Label>
-                <Input id="country" type="text" required value={country} onChange={(e) => setCountry(e.target.value)} />
+                <Select value={country} onValueChange={setCountry}>
+                  <SelectTrigger id="country">
+                    <SelectValue placeholder={t('auth.countryPlaceholder')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRIES.map((c) => (
+                      <SelectItem key={c.code} value={c.name}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="native_language">{t('auth.nativeLanguage')}</Label>
@@ -278,7 +302,10 @@ export default function AuthPageComponent() {
                 </Select>
               </div>
               {signupError && <p className="text-red-500 text-sm">{signupError}</p>}
-              <Button onClick={handleSignup} className="w-full">{t('auth.signup')}</Button>
+              <Button onClick={handleSignup} className="w-full" disabled={isSigningUp}>
+                {isSigningUp ? <LoadingSpinner size="sm" className="mr-2" /> : null}
+                {t('auth.signup')}
+              </Button>
             </TabsContent>
           </Tabs>
         </CardContent>

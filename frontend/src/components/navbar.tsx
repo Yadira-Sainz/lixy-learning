@@ -154,14 +154,24 @@ export default function NavbarComponent({ isLandingPage: isLandingPageProp = fal
                 </button>
               ))}
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <div className="md:hidden">
                 <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(!isMenuOpen)}>
                   <Menu />
                 </Button>
               </div>
               {isLoggedIn ? (
-                <UserMenu />
+                <>
+                  {isLandingPage && (
+                    <button
+                      onClick={() => router.push('/tablero')}
+                      className={`hidden md:inline-flex px-3 py-2 mx-2 rounded-md text-sm font-medium transition-all duration-300 text-foreground hover:bg-accent ${isScrolled ? 'text-xs' : 'text-sm'}`}
+                    >
+                      {t('nav.dashboard')}
+                    </button>
+                  )}
+                  <UserMenu />
+                </>
               ) : (
                 <Button
                   variant="outline"
@@ -188,13 +198,25 @@ export default function NavbarComponent({ isLandingPage: isLandingPageProp = fal
               {t(item.key)}
             </button>
           ))}
-          {isLoggedIn && !isProfileOrSettings && (
-            <button
-              onClick={() => router.push('/perfil')}
-              className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent"
-            >
-              {t('nav.profile')}
-            </button>
+          {isLoggedIn && (
+            <>
+              {isLandingPage && (
+                <button
+                  onClick={() => { router.push('/tablero'); setIsMenuOpen(false); }}
+                  className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent"
+                >
+                  {t('nav.dashboard')}
+                </button>
+              )}
+              {!isProfileOrSettings && (
+                <button
+                  onClick={() => { router.push('/perfil'); setIsMenuOpen(false); }}
+                  className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent"
+                >
+                  {t('nav.profile')}
+                </button>
+              )}
+            </>
           )}
           {!isLoggedIn && (
             <Button variant="outline" className="w-full mt-2 border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-700 hover:text-emerald-700" onClick={handleLoginClick}>

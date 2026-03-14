@@ -10,7 +10,8 @@
     "reading": "Centro de Lectura"
   },
   "common": {
-    "login": "Iniciar Sesión"
+    "login": "Iniciar Sesión",
+    "cancel": "Cancelar"
   },
   "landing": {
     "title": "Explora un nuevo idioma",
@@ -63,6 +64,7 @@
     "languageEn": "English",
     "languageFr": "Français",
     "dailyGoal": "Meta de racha diaria",
+    "dailyGoalDescription": "Número de días consecutivos que quieres practicar. Se muestra como progreso en el tablero.",
     "flashcards": "Flashcards",
     "cardsPerSession": "Cartas por sesión",
     "includeTranslation": "Incluir traducción",
@@ -90,11 +92,13 @@
     "female": "Femenino",
     "other": "Otro",
     "country": "País",
+    "countryPlaceholder": "Seleccionar país",
     "nativeLanguage": "Idioma Nativo",
     "learningLanguage": "Idioma a Aprender",
     "nativeLanguagePlaceholder": "Seleccionar idioma nativo",
     "learningLanguagePlaceholder": "Seleccionar idioma a aprender",
     "noLanguages": "No hay idiomas disponibles",
+    "loading": "Cargando...",
     "fillAllFields": "Por favor, complete todos los campos",
     "invalidCredentials": "Correo o contraseña inválidos",
     "invalidEmail": "Por favor, ingrese un correo electrónico válido",
@@ -124,6 +128,8 @@
     "practiceWeak": "Practica tus palabras más débiles",
     "nextWord": "Siguiente palabra",
     "recommendedEmpty": "Practica flashcards para ver tus palabras más débiles aquí",
+    "streakProgress": "Progreso hacia la meta",
+    "streakGoalReached": "¡Meta alcanzada!",
     "loading": "Cargando...",
     "gamification": {
       "points": "Puntos",
@@ -138,6 +144,7 @@
     }
   },
   "profile": {
+    "loading": "Cargando perfil...",
     "changePhoto": "Cambiar foto de perfil",
     "firstName": "Nombre",
     "lastName": "Apellido",
@@ -147,15 +154,28 @@
     "gender": "Género",
     "genderPlaceholder": "Selecciona tu género",
     "country": "País",
+    "countryPlaceholder": "Selecciona tu país",
     "nativeLanguage": "Idioma nativo",
     "learningLanguage": "Idioma a aprender",
     "nativeLanguagePlaceholder": "Selecciona tu idioma nativo",
     "learningLanguagePlaceholder": "Selecciona el idioma que estás aprendiendo",
+    "changePassword": "Cambiar contraseña",
+    "currentPassword": "Contraseña actual",
+    "newPassword": "Nueva contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "passwordMismatch": "Las contraseñas no coinciden",
+    "currentPasswordWrong": "La contraseña actual es incorrecta",
+    "fillRequiredFields": "Por favor, complete este campo.",
     "saveChanges": "Guardar cambios",
     "updateSuccess": "¡Perfil actualizado correctamente!",
-    "updateFailed": "Error al actualizar el perfil"
+    "updateFailed": "Error al actualizar el perfil",
+    "passwordChangedSuccess": "Contraseña actualizada correctamente",
+    "emailChangeConfirmTitle": "Confirmar cambio de email",
+    "emailChangeConfirmMessage": "Estás cambiando tu dirección de correo. Introduce tu contraseña actual para confirmar.",
+    "confirmEmailChange": "Confirmar cambio"
   },
   "flashcardCenter": {
+    "loading": "Cargando categorías...",
     "recent": "Recientes",
     "collection": "Colección",
     "clickToPractice": "Haz clic para empezar a practicar",
@@ -201,11 +221,14 @@
     "newBadgesUnlocked": "¡Nuevas medallas desbloqueadas!"
   },
   "collection": {
+    "loading": "Cargando colección...",
     "categoryName": "Nombre de categoría",
     "clickToView": "Haga clic para ver esta lectura",
     "reading": "Lectura"
   },
   "flashcard": {
+    "loading": "Cargando flashcards...",
+    "empty": "No hay flashcards disponibles para esta categoría.",
     "loadingImage": "Cargando imagen...",
     "playAudio": "Play audio",
     "hideTranslation": "Hide translation",

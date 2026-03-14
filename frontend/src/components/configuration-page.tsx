@@ -41,7 +41,7 @@ export default function ConfigurationPageComponent() {
   // Pending state - only applied when user clicks "Guardar cambios"
   const [pendingTheme, setPendingTheme] = useState<string>('system')
   const [pendingLocale, setPendingLocale] = useState<string>('es')
-  const [pendingDailyGoal, setPendingDailyGoal] = useState('10')
+  const [pendingDailyGoal, setPendingDailyGoal] = useState('7')
   const [pendingCardsPerSession, setPendingCardsPerSession] = useState('20')
   const [pendingIncludeTranslation, setPendingIncludeTranslation] = useState(true)
   const [saveFeedback, setSaveFeedback] = useState(false)
@@ -161,6 +161,8 @@ export default function ConfigurationPageComponent() {
               <Input 
                 id="daily-goal" 
                 type="number" 
+                min={1}
+                max={365}
                 value={pendingDailyGoal}
                 onChange={(e) => setPendingDailyGoal(e.target.value)}
               />
