@@ -103,8 +103,13 @@
     "invalidCredentials": "E-mail ou mot de passe invalide",
     "invalidEmail": "Veuillez entrer une adresse e-mail valide",
     "passwordMinLength": "Le mot de passe doit contenir au moins 6 caractères",
+    "passwordNeedsUppercase": "Le mot de passe doit contenir au moins une majuscule (requis par Cognito)",
     "invalidAge": "Veuillez entrer un âge valide",
-    "signupError": "Erreur d'inscription. Veuillez réessayer."
+    "signupError": "Erreur d'inscription. Veuillez réessayer.",
+    "verificationCodeSent": "Nous avons envoyé un code de vérification à votre e-mail.",
+    "enterVerificationCode": "Entrez le code",
+    "verify": "Vérifier",
+    "back": "Retour"
   },
   "dashboard": {
     "dailyStreak": "Série quotidienne",

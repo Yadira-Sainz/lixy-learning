@@ -17,7 +17,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 
 from db import get_db
-from auth import get_current_user
+from auth import get_current_user, get_cognito_token_payload
 from story_generator import generate_content
 
 load_dotenv()
@@ -112,6 +112,18 @@ class UpdateUserRequest(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
+
+
+class CognitoSyncProfileRequest(BaseModel):
+    """Profile data for first-time Cognito user creation."""
+    first_name: str
+    last_name: str
+    username: str
+    age: int | None = None
+    gender: str | None = None
+    country: str | None = None
+    native_language: int
+    learning_language: int
 
 
 class GetImageUrlRequest(BaseModel):
@@ -369,7 +381,9 @@ async def update_user(
     if email != current["email"]:
         if not req.current_password:
             raise HTTPException(400, "Current password is required to change email")
-        if not _verify_password(req.current_password, current["password_hash"]):
+        if current.get("cognito_sub") and not current.get("password_hash"):
+            raise HTTPException(400, "Cognito users cannot change email through this form")
+        if not _verify_password(req.current_password, current["password_hash"] or ""):
             raise HTTPException(401, "Current password is incorrect")
     hashed = None
     if req.password:
@@ -413,8 +427,12 @@ async def change_password(
     """Change password. Requires current password verification."""
     if len(req.new_password) < 6:
         raise HTTPException(400, "Password must be at least 6 characters")
-    current = _execute_query_one(conn, "SELECT password_hash FROM users WHERE user_id = %s", (user["userId"],))
-    if not current or not _verify_password(req.current_password, current["password_hash"]):
+    current = _execute_query_one(conn, "SELECT password_hash, cognito_sub FROM users WHERE user_id = %s", (user["userId"],))
+    if not current:
+        raise HTTPException(404, "User not found")
+    if current.get("cognito_sub") and not current.get("password_hash"):
+        raise HTTPException(400, "Cognito users must change password in Cognito")
+    if not _verify_password(req.current_password, current["password_hash"] or ""):
         raise HTTPException(401, "Current password is incorrect")
     hashed = _hash_password(req.new_password)
     _execute_query(
@@ -428,7 +446,7 @@ async def change_password(
 @app.post("/login")
 async def login(req: LoginRequest, conn=Depends(get_db)):
     row = _execute_query_one(conn, "SELECT * FROM users WHERE email = %s", (req.email,))
-    if not row or not _verify_password(req.password, row["password_hash"]):
+    if not row or not row.get("password_hash") or not _verify_password(req.password, row["password_hash"]):
         raise HTTPException(401, "Invalid email or password")
     token = jwt.encode(
         {"userId": row["user_id"], "exp": datetime.utcnow() + timedelta(hours=1)},
@@ -436,6 +454,54 @@ async def login(req: LoginRequest, conn=Depends(get_db)):
         algorithm="HS256",
     )
     return {"token": token}
+
+
+@app.post("/api/cognito/sync-profile")
+async def cognito_sync_profile(
+    req: CognitoSyncProfileRequest,
+    cognito_payload: dict = Depends(get_cognito_token_payload),
+    conn=Depends(get_db),
+):
+    """
+    Create or update app user linked to Cognito identity.
+    Call this after Cognito sign-in with the Id Token.
+    For new users, profile data is required. For existing users, updates are optional.
+    """
+    cognito_sub = cognito_payload.get("sub")
+    email = cognito_payload.get("email") or cognito_payload.get("cognito:username")
+    if not cognito_sub or not email:
+        raise HTTPException(400, "Invalid Cognito token: missing sub or email")
+
+    existing_by_sub = _execute_query_one(conn, "SELECT user_id FROM users WHERE cognito_sub = %s", (cognito_sub,))
+    if existing_by_sub:
+        return {"message": "Profile already synced", "userId": existing_by_sub["user_id"]}
+
+    existing_by_email = _execute_query_one(conn, "SELECT user_id FROM users WHERE email = %s", (email,))
+    if existing_by_email:
+        _execute_query(conn, "UPDATE users SET cognito_sub = %s WHERE user_id = %s", (cognito_sub, existing_by_email["user_id"]))
+        return {"message": "Profile linked to Cognito", "userId": existing_by_email["user_id"]}
+
+    rows = _execute_query(
+        conn,
+        """INSERT INTO users (
+            username, email, first_name, last_name, cognito_sub,
+            age, gender, country, native_language_id, learning_language_id
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING user_id""",
+        (
+            req.username,
+            email,
+            req.first_name,
+            req.last_name,
+            cognito_sub,
+            req.age,
+            req.gender,
+            req.country,
+            req.native_language,
+            req.learning_language,
+        ),
+    )
+    user_id = rows[0]["user_id"] if rows else None
+    return {"message": "Profile synced", "userId": user_id}
 
 
 @app.get("/languages")

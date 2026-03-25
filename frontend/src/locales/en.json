@@ -103,8 +103,13 @@
     "invalidCredentials": "Invalid email or password",
     "invalidEmail": "Please enter a valid email address",
     "passwordMinLength": "Password must be at least 6 characters",
+    "passwordNeedsUppercase": "Password must include at least one uppercase letter (required by Cognito)",
     "invalidAge": "Please enter a valid age",
-    "signupError": "Registration error. Please try again."
+    "signupError": "Registration error. Please try again.",
+    "verificationCodeSent": "We sent a verification code to your email.",
+    "enterVerificationCode": "Enter the code",
+    "verify": "Verify",
+    "back": "Back"
   },
   "dashboard": {
     "dailyStreak": "Daily Streak",

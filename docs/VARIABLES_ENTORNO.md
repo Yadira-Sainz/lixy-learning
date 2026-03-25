@@ -55,9 +55,21 @@ Documentación de todas las variables de entorno requeridas para el proyecto. **
 ### Autenticación
 
 #### JWT_SECRET
-- **Uso:** Firma y verificación de tokens JWT
+- **Uso:** Firma y verificación de tokens JWT (autenticación tradicional)
 - **Generar:** `openssl rand -base64 32`
 - **Seguridad:** Usar un valor largo y aleatorio; nunca el valor por defecto en producción
+
+#### AWS Cognito (opcional)
+Si usas Cognito para autenticación, configura estas variables en **backend** y **frontend**:
+
+| Variable (Backend) | Variable (Frontend) | Descripción |
+|-------------------|---------------------|-------------|
+| COGNITO_REGION | NEXT_PUBLIC_COGNITO_REGION | Región AWS (ej: us-east-1) |
+| COGNITO_USER_POOL_ID | NEXT_PUBLIC_COGNITO_USER_POOL_ID | ID del User Pool |
+| COGNITO_CLIENT_ID | NEXT_PUBLIC_COGNITO_CLIENT_ID | Client ID de la app |
+| - | NEXT_PUBLIC_USE_COGNITO | `true` para activar Cognito en frontend |
+
+Ver [docs/COGNITO_SETUP.md](COGNITO_SETUP.md) para la guía completa.
 
 ---
 

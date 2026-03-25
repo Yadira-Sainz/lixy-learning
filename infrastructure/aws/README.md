@@ -7,6 +7,9 @@ Plantillas y referencias para desplegar LixyLearning en AWS.
 | Archivo | Descripción |
 |---------|-------------|
 | `ec2-staging-cloudformation.yaml` | Plantilla CloudFormation para EC2 staging (t3.micro + Security Group) |
+| `cognito-user-pool.yaml` | Plantilla CloudFormation para Cognito User Pool (autenticación) |
+
+Ver [docs/COGNITO_SETUP.md](../../docs/COGNITO_SETUP.md) para la guía de integración con Cognito.
 
 ## Recursos creados por la plantilla
 
