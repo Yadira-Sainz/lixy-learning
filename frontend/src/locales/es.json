@@ -42,11 +42,16 @@
   "contact": {
     "title": "Contáctanos",
     "subtitle": "¿Tienes alguna pregunta o necesitas ayuda? Nuestro equipo está aquí para ayudarte. Completa el formulario a continuación y te responderemos lo antes posible.",
+    "loading": "Cargando…",
+    "unavailable": "El contacto por correo no está disponible en este momento.",
     "name": "Nombre",
     "email": "E-mail",
     "subject": "Asunto",
     "message": "Mensaje",
-    "send": "Enviar"
+    "send": "Enviar",
+    "sending": "Enviando…",
+    "sendSuccess": "Mensaje enviado. Te responderemos pronto.",
+    "sendError": "No se pudo enviar el mensaje. Inténtalo más tarde."
   },
   "config": {
     "general": "Configuración General",

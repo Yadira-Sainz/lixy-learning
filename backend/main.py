@@ -1,16 +1,19 @@
 import os
 import base64
 import asyncio
+import time
+import traceback
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
 
 import httpx
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
+import resend
+from fastapi import FastAPI, Depends, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 import bcrypt
 from jose import jwt
 from openai import OpenAI
@@ -141,7 +144,65 @@ class ReadingCompleteRequest(BaseModel):
     quizScore: int | None = None
 
 
+class ContactMessageRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    email: str = Field(..., min_length=3, max_length=254)
+    subject: str = Field(..., min_length=1, max_length=200)
+    message: str = Field(..., min_length=1, max_length=10000)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        v = v.strip()
+        if "@" not in v or len(v.split("@")) != 2:
+            raise ValueError("Invalid email")
+        return v
+
+
 POINTS_PER_READING = 15
+
+# Simple rate limit for public contact endpoint (IP -> list of unix times)
+_contact_rate: dict[str, list[float]] = {}
+CONTACT_RATE_WINDOW_SEC = 300
+CONTACT_RATE_MAX = 8
+
+
+def _contact_rate_check(ip: str) -> None:
+    now = time.time()
+    if ip not in _contact_rate:
+        _contact_rate[ip] = []
+    _contact_rate[ip] = [t for t in _contact_rate[ip] if now - t < CONTACT_RATE_WINDOW_SEC]
+    if len(_contact_rate[ip]) >= CONTACT_RATE_MAX:
+        raise HTTPException(429, "Too many messages. Try again later.")
+    _contact_rate[ip].append(now)
+
+
+def _contact_resend_configured() -> bool:
+    """Envío vía API Resend (https://resend.com/docs/send-with-python). Sin SMTP."""
+    return bool(
+        os.environ.get("RESEND_API_KEY", "").strip()
+        and os.environ.get("RESEND_FROM_EMAIL", "").strip()
+        and os.environ.get("CONTACT_TO_EMAIL", "").strip()
+    )
+
+
+def _send_contact_resend(req: ContactMessageRequest) -> None:
+    resend.api_key = os.environ["RESEND_API_KEY"].strip()
+    to_addr = os.environ["CONTACT_TO_EMAIL"].strip()
+    from_addr = os.environ["RESEND_FROM_EMAIL"].strip()
+    text_body = (
+        f"Nombre: {req.name}\n"
+        f"Correo del visitante: {req.email}\n\n"
+        f"Mensaje:\n{req.message}\n"
+    )
+    params = {
+        "from": from_addr,
+        "to": [to_addr],
+        "subject": f"[LixyLearning] {req.subject}",
+        "text": text_body,
+        "reply_to": req.email.strip(),
+    }
+    resend.Emails.send(params)
 
 
 def _execute_query(conn, query: str, params: tuple = ()):
@@ -158,6 +219,31 @@ def _execute_query_one(conn, query: str, params: tuple = ()):
 
 
 # Routes
+
+
+@app.get("/api/contact/status")
+async def contact_status():
+    """Indica si Resend está configurado para el formulario de contacto."""
+    ok = _contact_resend_configured()
+    return {"smtpConfigured": ok, "configured": ok}
+
+
+@app.post("/api/contact")
+async def contact_post(req: ContactMessageRequest, request: Request):
+    """Recibe el mensaje del visitante y lo envía con la API Resend."""
+    if not _contact_resend_configured():
+        raise HTTPException(503, "Contact email is not configured on the server")
+    ip = request.client.host if request.client else "unknown"
+    _contact_rate_check(ip)
+    try:
+        await asyncio.to_thread(_send_contact_resend, req)
+    except Exception as e:
+        print(f"[contact] Resend error: {e!r}")
+        traceback.print_exc()
+        raise HTTPException(502, "Could not send message. Try again later.")
+    return {"ok": True}
+
+
 @app.post("/api/generate-sentence")
 async def generate_sentence(
     req: GenerateSentenceRequest,

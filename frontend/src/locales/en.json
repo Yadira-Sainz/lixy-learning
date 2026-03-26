@@ -42,11 +42,16 @@
   "contact": {
     "title": "Contact us",
     "subtitle": "Do you have any questions or need help? Our team is here to help you. Fill out the form below and we will get back to you as soon as possible.",
+    "loading": "Loading…",
+    "unavailable": "Email contact is not available at the moment.",
     "name": "Name",
     "email": "E-mail",
     "subject": "Subject",
     "message": "Message",
-    "send": "Send"
+    "send": "Send",
+    "sending": "Sending…",
+    "sendSuccess": "Message sent. We will get back to you soon.",
+    "sendError": "Could not send the message. Please try again later."
   },
   "config": {
     "general": "General Settings",

@@ -41,12 +41,17 @@
   },
   "contact": {
     "title": "Contactez-nous",
-    "subtitle": "Avez-vous des questions ou besoin d'aide ? Notre équipe est là pour vous aider. Remplissez le formulaire ci-dessous et nous vous répondrons dès que possible.",
+    "subtitle": "Des questions ou besoin d'aide ? Notre équipe est là pour vous aider. Remplissez le formulaire ci-dessous et nous vous répondrons dès que possible.",
+    "loading": "Chargement…",
+    "unavailable": "Le contact par e-mail n'est pas disponible pour le moment.",
     "name": "Nom",
     "email": "E-mail",
     "subject": "Sujet",
     "message": "Message",
-    "send": "Envoyer"
+    "send": "Envoyer",
+    "sending": "Envoi…",
+    "sendSuccess": "Message envoyé. Nous vous répondrons bientôt.",
+    "sendError": "Impossible d'envoyer le message. Réessayez plus tard."
   },
   "config": {
     "general": "Paramètres généraux",
