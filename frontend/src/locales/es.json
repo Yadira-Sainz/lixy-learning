@@ -51,7 +51,9 @@
     "send": "Enviar",
     "sending": "Enviando…",
     "sendSuccess": "Mensaje enviado. Te responderemos pronto.",
-    "sendError": "No se pudo enviar el mensaje. Inténtalo más tarde."
+    "sendError": "No se pudo enviar el mensaje. Inténtalo más tarde.",
+    "validationFillFields": "Completa todos los campos obligatorios.",
+    "validationEmailInvalid": "Introduce un correo electrónico válido."
   },
   "config": {
     "general": "Configuración General",

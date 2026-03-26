@@ -51,7 +51,9 @@
     "send": "Send",
     "sending": "Sending…",
     "sendSuccess": "Message sent. We will get back to you soon.",
-    "sendError": "Could not send the message. Please try again later."
+    "sendError": "Could not send the message. Please try again later.",
+    "validationFillFields": "Please fill in all required fields.",
+    "validationEmailInvalid": "Please enter a valid email address."
   },
   "config": {
     "general": "General Settings",
