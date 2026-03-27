@@ -41,12 +41,57 @@ const BY_NAME_KEY: Record<string, string> = {
   grammar: BY_ID[10]!,
 };
 
+/** Nombre normalizado → id canónico (mismas claves que BY_NAME_KEY). */
+const NAME_TO_ID: Record<string, number> = {
+  family: 1,
+  "work/business": 2,
+  work: 2,
+  business: 2,
+  education: 3,
+  food: 4,
+  "travel/places": 5,
+  travel: 5,
+  places: 5,
+  health: 6,
+  "hobbies/leisure": 7,
+  hobbies: 7,
+  leisure: 7,
+  "nature/environment": 8,
+  nature: 8,
+  environment: 8,
+  technology: 9,
+  "grammar/function word": 10,
+  grammar: 10,
+};
+
 function normalizeName(name: string): string {
   return name
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
+}
+
+/**
+ * Resuelve el id de categoría conocido (1–10) a partir del id numérico o del nombre.
+ * Útil para temas/iconos alineados con las colecciones del seed SQL.
+ */
+export function resolveCategoryId(
+  categoryId: string | number | null | undefined,
+  categoryName: string
+): number | null {
+  if (categoryId != null && categoryId !== "") {
+    const n =
+      typeof categoryId === "string" ? parseInt(categoryId, 10) : categoryId;
+    if (Number.isFinite(n) && BY_ID[n as number]) return n as number;
+  }
+  const key = normalizeName(categoryName);
+  const direct = NAME_TO_ID[key];
+  if (direct != null) return direct;
+  for (const [needle, id] of Object.entries(NAME_TO_ID)) {
+    if (key.includes(needle) || needle.includes(key)) return id;
+  }
+  return null;
 }
 
 export function getCategoryCollectionImageSrc(
