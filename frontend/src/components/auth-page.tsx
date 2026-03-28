@@ -13,7 +13,15 @@ import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { COUNTRIES } from "@/lib/countries"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { isCognitoEnabled, signIn as cognitoSignIn, signUp as cognitoSignUp, confirmSignUp } from "@/lib/cognito"
+import {
+  isCognitoEnabled,
+  isOAuthConfigured,
+  startOAuthRedirect,
+  type OAuthProviderId,
+  signIn as cognitoSignIn,
+  signUp as cognitoSignUp,
+  confirmSignUp,
+} from "@/lib/cognito"
 
 interface Language {
   language_id: number
@@ -53,6 +61,7 @@ export default function AuthPageComponent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [languages, setLanguages] = useState<Language[]>([])
+  const [oauthLoading, setOauthLoading] = useState<OAuthProviderId | null>(null)
 
   useEffect(() => {
     const fetchLanguages = async () => {
@@ -75,6 +84,18 @@ export default function AuthPageComponent() {
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword)
+  }
+
+  const handleOAuth = async (provider: OAuthProviderId) => {
+    setLoginError('')
+    setSignupError('')
+    try {
+      setOauthLoading(provider)
+      await startOAuthRedirect(provider)
+    } catch (e) {
+      setOauthLoading(null)
+      setLoginError(e instanceof Error ? e.message : t('auth.oauthFailed'))
+    }
   }
 
   const handleLogin = async () => {
@@ -223,6 +244,8 @@ export default function AuthPageComponent() {
     }
   }
 
+  const showOAuth = isCognitoEnabled() && isOAuthConfigured()
+
   return (
     <div className="flex justify-center items-center min-h-screen p-4">
       <Card className="w-full max-w-md">
@@ -233,6 +256,40 @@ export default function AuthPageComponent() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {showOAuth && (
+            <div className="space-y-3 mb-4">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">{t('auth.continueWith')}</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={oauthLoading !== null}
+                  onClick={() => void handleOAuth('google')}
+                >
+                  {oauthLoading === 'google' ? <LoadingSpinner size="sm" className="mr-2" /> : null}
+                  {t('auth.google')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={oauthLoading !== null}
+                  onClick={() => void handleOAuth('microsoft')}
+                >
+                  {oauthLoading === 'microsoft' ? <LoadingSpinner size="sm" className="mr-2" /> : null}
+                  {t('auth.microsoft')}
+                </Button>
+              </div>
+            </div>
+          )}
           <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger 

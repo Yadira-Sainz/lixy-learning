@@ -42,7 +42,7 @@ AWS ofrece un asistente rápido ("Get started for free in less than five minutes
    - **Sign-in identifiers:** Marca solo **Email**
    - **Self-registration:** Dejar **Enable self-registration** activado
    - **Required attributes:** Puedes dejarlo vacío (el email ya es el identificador)
-   - **Add a return URL:** Déjalo vacío (no usamos la interfaz hospedada de Cognito)
+   - **Add a return URL:** Si solo usarás email/contraseña, puedes dejarlo vacío. Para **Google/Microsoft** (Hosted UI) necesitas un dominio de Cognito y URLs de callback; ver la sección [OAuth con Google y Microsoft](#oauth-con-google-y-microsoft) más abajo.
 
 4. Haz clic en **Create user directory**
 
@@ -150,6 +150,12 @@ docker exec -i lixylearning-postgres psql -U postgres -d lixylearning_db < db/sq
    NEXT_PUBLIC_COGNITO_REGION=TU_REGION
    NEXT_PUBLIC_COGNITO_USER_POOL_ID=TU_USER_POOL_ID
    NEXT_PUBLIC_COGNITO_CLIENT_ID=TU_CLIENT_ID
+
+   # Solo si usas Google/Microsoft (Hosted UI OAuth):
+   # COGNITO_DOMAIN=TU_PREFIJO_DOMINIO
+   # COGNITO_OAUTH_REDIRECT_URI=https://tu-dominio/auth/callback
+   # NEXT_PUBLIC_COGNITO_DOMAIN=TU_PREFIJO_DOMINIO
+   # NEXT_PUBLIC_COGNITO_OAUTH_REDIRECT_URI=https://tu-dominio/auth/callback
    ```
 
    Reemplaza:
@@ -199,6 +205,117 @@ Si todo va bien, deberías entrar al tablero como con el login normal.
 | No llega el correo de verificación | Revisa spam; en Cognito usa "Send email with Cognito" (sin SES) |
 | Error al ejecutar la migración | Verifica que el contenedor `lixylearning-postgres` esté corriendo: `docker ps` |
 | "Password does not conform to policy" al registrarse | Cognito exige mayúscula por defecto. Usa una contraseña con mayúscula (ej: `Test159!`) o en Cognito: User pool → Sign-in experience → Password policy → Desmarca "Require uppercase" si prefieres |
+| Los botones Google/Microsoft no aparecen | Faltan `NEXT_PUBLIC_COGNITO_DOMAIN` y `NEXT_PUBLIC_COGNITO_OAUTH_REDIRECT_URI` (y el mismo `COGNITO_OAUTH_REDIRECT_URI` en backend), o el frontend no se reconstruyó |
+| `redirect_uri does not match` o error en el callback | La URL de callback en `.env` debe ser **idéntica** a la configurada en Cognito (App client → Hosted UI) y usar `https` en producción |
+| `Invalid identity provider` | En Cognito, anota el nombre exacto del proveedor (p. ej. `Google`, `Microsoft`) y, si difiere, usa `NEXT_PUBLIC_COGNITO_IDP_GOOGLE` / `NEXT_PUBLIC_COGNITO_IDP_MICROSOFT` |
+
+---
+
+## OAuth con Google y Microsoft
+
+La app usa **OAuth 2.0 con PKCE**: al pulsar Google o Microsoft en tu web, el navegador va a Cognito y de ahí al proveedor; al volver, la ruta `/auth/callback` intercambia el código por el Id token.
+
+### ¿Basta con configurar solo Google?
+
+**No.** Google y **Microsoft son proveedores distintos**. Cada uno hay que darlo de alta en Cognito por separado (credenciales distintas: Google Cloud vs Microsoft Azure). Si solo añades Google, el botón Microsoft de la app **no** funcionará hasta que completes la configuración de Microsoft (y lo marques en el app client).
+
+---
+
+### Antes de nada (una sola vez por pool)
+
+1. **Dominio de Cognito**  
+   User pool → **Branding** → **Domain**: anota la URL base `https://TU-PREFIJO.auth.REGION.amazoncognito.com` (ya la tienes si aparece “Active”).
+
+2. **Callback de tu aplicación**  
+   App client **LixyLearning** → pestaña **Login pages** → **Edit** (Managed login pages) → **Allowed callback URLs** debe incluir **exactamente** la misma URL que en tu `.env`, por ejemplo `https://tu-dominio/auth/callback`.  
+   **Authorization code grant** activado; scopes recomendados: `openid`, `email`, `profile`.
+
+---
+
+### Google — paso a paso
+
+1. **Google Cloud Console** (https://console.cloud.google.com) → crea o elige un proyecto.
+
+2. **APIs y servicios** → **Pantalla de consentimiento OAuth**: configura tipo **Externo** (o interno si solo Workspace), usuario de prueba si hace falta.
+
+3. **Credenciales** → **Crear credenciales** → **ID de cliente OAuth** → tipo **Aplicación web**.
+
+4. En **URIs de redireccionamiento autorizados** añade **solo** la URL que Cognito usa para hablar con Google (no es la de LixyLearning). Cognito te la muestra al configurar el proveedor; suele ser:
+   ```text
+   https://TU-PREFIJO.auth.REGION.amazoncognito.com/oauth2/idpresponse
+   ```
+   Sustituye `TU-PREFIJO` y `REGION` por los de tu dominio de Cognito (ej. `mx-central-1fxal08nex` y `mx-central-1`).
+
+5. Copia **ID de cliente** y **Secreto del cliente**.
+
+6. **AWS Cognito** → tu User pool → **Authentication** → **Social and external providers** → **Add identity provider** → elige **Google** → pega **Client ID** y **Client secret** → **Save**.
+
+7. **Atributos (recomendado):** en el proveedor Google, revisa el mapeo de atributos (email, nombre) para que el email llegue al token.
+
+8. **Activar Google en tu app client:**  
+   **Applications** → **App clients** → **LixyLearning** → **Login pages** → **Edit** → en **Identity providers** marca **Google** (además de “Cognito user pool” si quieres email/contraseña) → **Save changes**.
+
+9. En el `.env`, el nombre por defecto del proveedor en la URL es `Google`. Si Cognito mostrara otro nombre, usa `NEXT_PUBLIC_COGNITO_IDP_GOOGLE`.
+
+---
+
+### Microsoft — paso a paso (es independiente de Google)
+
+Debes repetir un flujo parecido en **Microsoft Entra ID (Azure AD)** y luego en Cognito.
+
+1. **Portal Azure** (https://portal.azure.com) → **Microsoft Entra ID** → **Registros de aplicaciones** → **Nuevo registro**.  
+   - Nombre: ej. `LixyLearning Cognito`.  
+   - **URI de redirección** → **Web**: pon la URL de Cognito para el IdP (igual que con Google):
+   ```text
+   https://TU-PREFIJO.auth.REGION.amazoncognito.com/oauth2/idpresponse
+   ```
+
+2. Anota **Id. de aplicación (cliente)** y en **Certificados y secretos** crea un **secreto de cliente** y cópialo.
+
+3. Anota también el **Id. de directorio (inquilino)** si el asistente de Cognito lo pide.
+
+4. **AWS Cognito** → **Social and external providers** → **Add identity provider**:
+   - Si tu consola muestra la tarjeta **Microsoft** o **Microsoft Entra ID**, ábrela y sigue el asistente con Client ID, secret y tenant.
+   - Si **no** aparece Microsoft como tarjeta, usa **OpenID Connect (OIDC)** y configura el emisor (issuer) y endpoints según [la documentación de AWS para registrar OIDC con Azure AD](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-oidc-idp.html). En la práctica muchas cuentas ya tienen el asistente **Microsoft** integrado.
+
+5. **Activar Microsoft en el app client:** igual que con Google: **LixyLearning** → **Login pages** → **Edit** → **Identity providers** → marca **Microsoft** → guardar.
+
+6. Variable de entorno: por defecto la app usa el nombre `Microsoft` en la URL (`NEXT_PUBLIC_COGNITO_IDP_MICROSOFT`). Debe coincidir con el **nombre del proveedor** que veas en Cognito en la lista de proveedores federados.
+
+---
+
+### Resumen rápido
+
+| Pregunta | Respuesta |
+|----------|-----------|
+| ¿Solo elijo Google en la pantalla y ya sirve para Microsoft? | **No.** Microsoft requiere registro en Azure + proveedor en Cognito + marcarlo en el app client. |
+| ¿Misma callback URL en `.env` para ambos? | **Sí** (`https://tu-dominio/auth/callback`); es la URL de **tu web**, no la de Google/Microsoft. |
+| ¿Dónde va la URL `...amazoncognito.com/oauth2/idpresponse`? | En **Google Cloud** y en **Azure**, como URI de redirección de **su** aplicación OAuth. |
+
+### Variables de entorno (además de las de Cognito ya usadas)
+
+En el **backend** y el **frontend** la URL de callback debe coincidir **carácter por carácter**:
+
+```
+COGNITO_DOMAIN=TU_PREFIJO_DOMINIO
+COGNITO_OAUTH_REDIRECT_URI=https://tu-dominio/auth/callback
+
+NEXT_PUBLIC_COGNITO_DOMAIN=TU_PREFIJO_DOMINIO
+NEXT_PUBLIC_COGNITO_OAUTH_REDIRECT_URI=https://tu-dominio/auth/callback
+```
+
+Opcional, si en Cognito los proveedores tienen otro nombre:
+
+```
+NEXT_PUBLIC_COGNITO_IDP_GOOGLE=Google
+NEXT_PUBLIC_COGNITO_IDP_MICROSOFT=Microsoft
+```
+
+Tras cambiar variables `NEXT_PUBLIC_*`, reconstruye el frontend (`docker-compose up -d --build` o `npm run build`).
+
+### Comportamiento en la app
+
+- Tras el primer inicio con Google/Microsoft, el perfil se crea en PostgreSQL usando el **email y nombre** del Id token y los **dos primeros idiomas** de la tabla `languages` como idioma nativo y de aprendizaje por defecto. El usuario puede cambiarlos después en ajustes si la app lo permite.
 
 ---
 

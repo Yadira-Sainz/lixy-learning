@@ -126,9 +126,13 @@ Si usas Cognito para autenticación, configura estas variables en **backend** y 
 | COGNITO_REGION | NEXT_PUBLIC_COGNITO_REGION | Región AWS (ej: us-east-1) |
 | COGNITO_USER_POOL_ID | NEXT_PUBLIC_COGNITO_USER_POOL_ID | ID del User Pool |
 | COGNITO_CLIENT_ID | NEXT_PUBLIC_COGNITO_CLIENT_ID | Client ID de la app |
+| COGNITO_DOMAIN | NEXT_PUBLIC_COGNITO_DOMAIN | Prefijo del dominio hospedado de Cognito (Hosted UI), sin `https://` ni `.auth...` |
+| COGNITO_OAUTH_REDIRECT_URI | NEXT_PUBLIC_COGNITO_OAUTH_REDIRECT_URI | URL exacta de callback OAuth (ej: `https://tu-dominio/auth/callback`); debe coincidir en backend, frontend y consola Cognito |
 | - | NEXT_PUBLIC_USE_COGNITO | `true` para activar Cognito en frontend |
+| - | NEXT_PUBLIC_COGNITO_IDP_GOOGLE (opc.) | Nombre del proveedor Google en Cognito (por defecto `Google`) |
+| - | NEXT_PUBLIC_COGNITO_IDP_MICROSOFT (opc.) | Nombre del proveedor Microsoft en Cognito (por defecto `Microsoft`) |
 
-Ver [docs/COGNITO_SETUP.md](COGNITO_SETUP.md) para la guía completa.
+Ver [docs/COGNITO_SETUP.md](COGNITO_SETUP.md) para la guía completa (incluye OAuth con Google y Microsoft).
 
 ---
 

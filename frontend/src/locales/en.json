@@ -116,7 +116,18 @@
     "verificationCodeSent": "We sent a verification code to your email.",
     "enterVerificationCode": "Enter the code",
     "verify": "Verify",
-    "back": "Back"
+    "back": "Back",
+    "continueWith": "Or continue with",
+    "google": "Google",
+    "microsoft": "Microsoft",
+    "oauthFailed": "Could not sign in with the provider. Please try again.",
+    "oauthCompleting": "Completing sign-in…",
+    "oauthMissingParams": "Authorization code is missing. Try again from the login page.",
+    "oauthInvalidSession": "Invalid or expired sign-in session. Please try again.",
+    "oauthNotConfigured": "OAuth is not configured (callback URL).",
+    "oauthNoToken": "Identity token was not returned.",
+    "oauthNoEmail": "The provider did not return an email address.",
+    "backToLogin": "Back to sign in"
   },
   "dashboard": {
     "dailyStreak": "Daily Streak",

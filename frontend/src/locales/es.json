@@ -116,7 +116,18 @@
     "verificationCodeSent": "Enviamos un código de verificación a tu correo.",
     "enterVerificationCode": "Ingresa el código",
     "verify": "Verificar",
-    "back": "Atrás"
+    "back": "Atrás",
+    "continueWith": "O continuar con",
+    "google": "Google",
+    "microsoft": "Microsoft",
+    "oauthFailed": "No se pudo iniciar sesión con el proveedor. Intente de nuevo.",
+    "oauthCompleting": "Completando inicio de sesión…",
+    "oauthMissingParams": "Falta el código de autorización. Vuelva a intentar desde el inicio de sesión.",
+    "oauthInvalidSession": "Sesión de inicio inválida o expirada. Intente de nuevo.",
+    "oauthNotConfigured": "OAuth no está configurado (URL de callback).",
+    "oauthNoToken": "No se recibió el token de identidad.",
+    "oauthNoEmail": "El proveedor no devolvió un correo electrónico.",
+    "backToLogin": "Volver al inicio de sesión"
   },
   "dashboard": {
     "dailyStreak": "Racha Diaria",

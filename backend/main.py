@@ -129,6 +129,14 @@ class CognitoSyncProfileRequest(BaseModel):
     learning_language: int
 
 
+class CognitoOAuthExchangeRequest(BaseModel):
+    """Authorization code + PKCE verifier from Cognito Hosted UI OAuth redirect."""
+
+    code: str
+    code_verifier: str
+    redirect_uri: str
+
+
 class GetImageUrlRequest(BaseModel):
     word: str
 
@@ -540,6 +548,55 @@ async def login(req: LoginRequest, conn=Depends(get_db)):
         algorithm="HS256",
     )
     return {"token": token}
+
+
+@app.post("/api/cognito/oauth-exchange")
+async def cognito_oauth_exchange(req: CognitoOAuthExchangeRequest):
+    """
+    Exchange Cognito Hosted UI authorization code for tokens (public client + PKCE).
+    Redirect URI must match the app client callback URL and COGNITO_OAUTH_REDIRECT_URI.
+    """
+    domain_prefix = (os.environ.get("COGNITO_DOMAIN") or "").strip()
+    region = (os.environ.get("COGNITO_REGION") or "").strip()
+    client_id = (os.environ.get("COGNITO_CLIENT_ID") or "").strip()
+    expected_redirect = (os.environ.get("COGNITO_OAUTH_REDIRECT_URI") or "").strip()
+    if not domain_prefix or not region or not client_id or not expected_redirect:
+        raise HTTPException(503, "OAuth is not configured (missing COGNITO_DOMAIN, COGNITO_REGION, COGNITO_CLIENT_ID, or COGNITO_OAUTH_REDIRECT_URI)")
+    if req.redirect_uri != expected_redirect:
+        raise HTTPException(400, "redirect_uri does not match server configuration")
+
+    token_url = f"https://{domain_prefix}.auth.{region}.amazoncognito.com/oauth2/token"
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.post(
+                token_url,
+                data={
+                    "grant_type": "authorization_code",
+                    "client_id": client_id,
+                    "code": req.code,
+                    "redirect_uri": req.redirect_uri,
+                    "code_verifier": req.code_verifier,
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                timeout=20.0,
+            )
+        except httpx.HTTPError as e:
+            raise HTTPException(502, f"Token endpoint error: {e}") from e
+
+    try:
+        body = resp.json()
+    except Exception:
+        raise HTTPException(502, "Invalid response from Cognito token endpoint")
+
+    if resp.status_code != 200:
+        err = body.get("error", "unknown_error")
+        desc = body.get("error_description", "")
+        raise HTTPException(400, f"Cognito OAuth error: {err} {desc}".strip())
+
+    id_token = body.get("id_token")
+    if not id_token:
+        raise HTTPException(502, "Cognito did not return id_token")
+    return {"id_token": id_token}
 
 
 @app.post("/api/cognito/sync-profile")

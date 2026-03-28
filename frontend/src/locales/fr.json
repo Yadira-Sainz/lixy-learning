@@ -116,7 +116,18 @@
     "verificationCodeSent": "Nous avons envoyé un code de vérification à votre e-mail.",
     "enterVerificationCode": "Entrez le code",
     "verify": "Vérifier",
-    "back": "Retour"
+    "back": "Retour",
+    "continueWith": "Ou continuer avec",
+    "google": "Google",
+    "microsoft": "Microsoft",
+    "oauthFailed": "Impossible de se connecter avec ce fournisseur. Réessayez.",
+    "oauthCompleting": "Finalisation de la connexion…",
+    "oauthMissingParams": "Code d'autorisation manquant. Réessayez depuis la page de connexion.",
+    "oauthInvalidSession": "Session de connexion invalide ou expirée. Réessayez.",
+    "oauthNotConfigured": "OAuth n'est pas configuré (URL de rappel).",
+    "oauthNoToken": "Le jeton d'identité n'a pas été reçu.",
+    "oauthNoEmail": "Le fournisseur n'a pas renvoyé d'adresse e-mail.",
+    "backToLogin": "Retour à la connexion"
   },
   "dashboard": {
     "dailyStreak": "Série quotidienne",

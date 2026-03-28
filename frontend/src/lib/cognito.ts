@@ -162,3 +162,124 @@ export function confirmSignUp(email: string, code: string): Promise<void> {
     });
   });
 }
+
+const PKCE_VERIFIER_KEY = "cognito_pkce_verifier";
+const PKCE_STATE_KEY = "cognito_pkce_state";
+
+function base64UrlEncode(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+async function sha256Base64Url(plain: string): Promise<string> {
+  const data = new TextEncoder().encode(plain);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return base64UrlEncode(new Uint8Array(hash));
+}
+
+function randomVerifier(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return base64UrlEncode(bytes);
+}
+
+function randomState(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return base64UrlEncode(bytes);
+}
+
+function hostedUiBaseUrl(): string | null {
+  const prefix = (process.env.NEXT_PUBLIC_COGNITO_DOMAIN || "").trim();
+  const region = (process.env.NEXT_PUBLIC_COGNITO_REGION || "").trim();
+  if (!prefix || !region) {
+    return null;
+  }
+  return `https://${prefix}.auth.${region}.amazoncognito.com`;
+}
+
+/**
+ * True when Cognito Hosted UI OAuth can be used (domain prefix, region, client id, callback URL).
+ */
+export function isOAuthConfigured(): boolean {
+  if (!isCognitoEnabled()) {
+    return false;
+  }
+  const redirect = (process.env.NEXT_PUBLIC_COGNITO_OAUTH_REDIRECT_URI || "").trim();
+  if (!redirect || !hostedUiBaseUrl()) {
+    return false;
+  }
+  return true;
+}
+
+export type OAuthProviderId = "google" | "microsoft";
+
+function cognitoIdentityProviderName(provider: OAuthProviderId): string {
+  if (provider === "google") {
+    return (process.env.NEXT_PUBLIC_COGNITO_IDP_GOOGLE || "Google").trim();
+  }
+  return (process.env.NEXT_PUBLIC_COGNITO_IDP_MICROSOFT || "Microsoft").trim();
+}
+
+/**
+ * Starts Cognito Hosted UI OAuth (PKCE): stores verifier/state and redirects the browser.
+ * Only call in the browser.
+ */
+export async function startOAuthRedirect(provider: OAuthProviderId): Promise<void> {
+  if (typeof window === "undefined") {
+    throw new Error("OAuth must be started in the browser");
+  }
+  const base = hostedUiBaseUrl();
+  const clientId = (process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || "").trim();
+  const redirectUri = (process.env.NEXT_PUBLIC_COGNITO_OAUTH_REDIRECT_URI || "").trim();
+  if (!base || !clientId || !redirectUri) {
+    throw new Error("OAuth is not fully configured");
+  }
+
+  const verifier = randomVerifier();
+  const challenge = await sha256Base64Url(verifier);
+  const state = randomState();
+  sessionStorage.setItem(PKCE_VERIFIER_KEY, verifier);
+  sessionStorage.setItem(PKCE_STATE_KEY, state);
+
+  const idp = cognitoIdentityProviderName(provider);
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    state,
+    scope: "openid email profile",
+    code_challenge: challenge,
+    code_challenge_method: "S256",
+    identity_provider: idp,
+  });
+
+  window.location.assign(`${base}/oauth2/authorize?${params.toString()}`);
+}
+
+/**
+ * Decode Cognito Id token payload (JWT) without verifying signature — use only after server exchange.
+ * Uses UTF-8 decoding so names with accents (e.g. from Google) do not break JSON.parse.
+ */
+export function decodeIdTokenPayload(idToken: string): Record<string, unknown> {
+  const parts = idToken.split(".");
+  if (parts.length !== 3) {
+    throw new Error("Invalid token");
+  }
+  const segment = parts[1];
+  const padded = segment + "=".repeat((4 - (segment.length % 4)) % 4);
+  const base64 = padded.replace(/-/g, "+").replace(/_/g, "/");
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  const json = new TextDecoder("utf-8").decode(bytes);
+  return JSON.parse(json) as Record<string, unknown>;
+}

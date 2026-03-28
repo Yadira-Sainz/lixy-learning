@@ -49,12 +49,14 @@ def _verify_cognito_token(token: str) -> dict | None:
         if not key_data:
             return None
         public_key = jwk.construct(key_data)
+        # OAuth code flow Id tokens include at_hash; python-jose requires access_token to verify it.
+        # We only receive the Id token on API calls; signature + aud + exp are still enforced.
         payload = jwt.decode(
             token,
             public_key,
             algorithms=["RS256"],
             audience=COGNITO_CLIENT_ID,
-            options={"verify_aud": True},
+            options={"verify_aud": True, "verify_at_hash": False},
         )
         if payload.get("token_use") != "id":
             return None
