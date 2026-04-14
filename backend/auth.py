@@ -77,6 +77,21 @@ def _verify_legacy_token(token: str) -> dict | None:
         return None
 
 
+def cognito_email_from_payload(payload: dict) -> str | None:
+    """
+    Email for sync-profile: Cognito/Google use email; Microsoft often sends preferred_username or upn.
+    """
+    for key in ("email", "cognito:username"):
+        v = payload.get(key)
+        if isinstance(v, str) and "@" in v:
+            return v.strip()
+    for key in ("preferred_username", "upn"):
+        v = payload.get(key)
+        if isinstance(v, str) and "@" in v:
+            return v.strip()
+    return None
+
+
 def get_cognito_token_payload(
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
 ) -> dict:

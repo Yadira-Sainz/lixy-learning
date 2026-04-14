@@ -51,7 +51,8 @@ services:
     build: ./db
     container_name: lixylearning-postgres
     ports:
-      - "5432:5432"
+      # Solo localhost: evita exposición pública de Postgres en EC2 (ataques al puerto 5432).
+      - "127.0.0.1:5432:5432"
     env_file:
       - .env
     volumes:

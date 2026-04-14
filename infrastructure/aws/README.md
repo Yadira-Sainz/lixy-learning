@@ -8,6 +8,8 @@ Plantillas y referencias para desplegar LixyLearning en AWS.
 |---------|-------------|
 | `ec2-staging-cloudformation.yaml` | Plantilla CloudFormation para EC2 staging (t3.micro + Security Group) |
 | `cognito-user-pool.yaml` | Plantilla CloudFormation para Cognito User Pool (autenticación) |
+| `update-microsoft-oidc-provider.sh` | Reaplica el IdP OIDC **Microsoft** (client id, secreto, issuer, scopes) por CLI |
+| `diagnose-cognito-oauth.sh` | Muestra callbacks, OAuth flows y proveedor Microsoft del User Pool (sin secretos) |
 
 Ver [docs/COGNITO_SETUP.md](../../docs/COGNITO_SETUP.md) para la guía de integración con Cognito.
 

@@ -208,6 +208,7 @@ Si todo va bien, deberías entrar al tablero como con el login normal.
 | Los botones Google/Microsoft no aparecen | Faltan `NEXT_PUBLIC_COGNITO_DOMAIN` y `NEXT_PUBLIC_COGNITO_OAUTH_REDIRECT_URI` (y el mismo `COGNITO_OAUTH_REDIRECT_URI` en backend), o el frontend no se reconstruyó |
 | `redirect_uri does not match` o error en el callback | La URL de callback en `.env` debe ser **idéntica** a la configurada en Cognito (App client → Hosted UI) y usar `https` en producción |
 | `Invalid identity provider` | En Cognito, anota el nombre exacto del proveedor (p. ej. `Google`, `Microsoft`) y, si difiere, usa `NEXT_PUBLIC_COGNITO_IDP_GOOGLE` / `NEXT_PUBLIC_COGNITO_IDP_MICROSOFT` |
+| HTTP **400** en `*.amazoncognito.com/error?code=...` | Fallo **después** de Microsoft: Cognito no puede completar el intercambio con Entra. No compartas esa URL (lleva datos sensibles). Revisa **secreto de cliente** en Azure (Value actual) y vuelve a aplicarlo en Cognito (`infrastructure/aws/update-microsoft-oidc-provider.sh`). Ejecuta `infrastructure/aws/diagnose-cognito-oauth.sh` y confirma que el app client tiene **Microsoft** en `SupportedIdentityProviders`, **Authorization code grant** y la **callback** exacta. En Entra: **Token configuration** → claim opcional **email** en el ID token. |
 
 ---
 
@@ -281,6 +282,10 @@ Debes repetir un flujo parecido en **Microsoft Entra ID (Azure AD)** y luego en 
 5. **Activar Microsoft en el app client:** igual que con Google: **LixyLearning** → **Login pages** → **Edit** → **Identity providers** → marca **Microsoft** → guardar.
 
 6. Variable de entorno: por defecto la app usa el nombre `Microsoft` en la URL (`NEXT_PUBLIC_COGNITO_IDP_MICROSOFT`). Debe coincidir con el **nombre del proveedor** que veas en Cognito en la lista de proveedores federados.
+
+7. **Si tras iniciar sesión en Microsoft ves HTTP 400 en** `*.amazoncognito.com/error` **(pero el correo de consentimiento de Microsoft sí llegó):** el fallo es en Cognito al intercambiar el código con Entra, no en tu app. Revisa **Client secret** (Value en Azure, no el Secret ID), que el **app client** tenga marcado **Microsoft**, y el issuer recomendado para cuentas varias: `https://login.microsoftonline.com/common/v2.0`. En la consola de Cognito a veces **Authorization / Token / JWKS** se muestran como vacíos aunque el servicio use el documento de descubrimiento; puedes **forzar la misma configuración por CLI** con `infrastructure/aws/update-microsoft-oidc-provider.sh` (ver `infrastructure/aws/README.md`).
+
+8. **Opcional en Entra:** Registro de aplicaciones → **Token configuration** → **Add optional claim** → **ID** → marca **email** para que el claim `email` vaya más a menudo en el token (útil con el mapeo `email` → `email` en Cognito).
 
 ---
 

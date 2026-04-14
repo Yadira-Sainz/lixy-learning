@@ -123,9 +123,17 @@ export default function CallbackContent() {
           throw new Error(t("auth.oauthNoToken"));
         }
 
+        const preferred =
+          typeof payload.preferred_username === "string" ? payload.preferred_username : "";
+        const upn = typeof payload.upn === "string" ? payload.upn : "";
         const email =
           (typeof payload.email === "string" && payload.email) ||
-          (typeof payload["cognito:username"] === "string" && payload["cognito:username"]) ||
+          (typeof payload["cognito:username"] === "string" &&
+          payload["cognito:username"].includes("@")
+            ? payload["cognito:username"]
+            : "") ||
+          (preferred.includes("@") ? preferred : "") ||
+          (upn.includes("@") ? upn : "") ||
           "";
         if (!email) {
           throw new Error(t("auth.oauthNoEmail"));

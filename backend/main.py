@@ -20,7 +20,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 
 from db import get_db
-from auth import get_current_user, get_cognito_token_payload
+from auth import get_current_user, get_cognito_token_payload, cognito_email_from_payload
 from story_generator import generate_content
 
 load_dotenv()
@@ -611,7 +611,7 @@ async def cognito_sync_profile(
     For new users, profile data is required. For existing users, updates are optional.
     """
     cognito_sub = cognito_payload.get("sub")
-    email = cognito_payload.get("email") or cognito_payload.get("cognito:username")
+    email = cognito_email_from_payload(cognito_payload)
     if not cognito_sub or not email:
         raise HTTPException(400, "Invalid Cognito token: missing sub or email")
 
