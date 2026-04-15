@@ -306,6 +306,13 @@ export default function AuthPageComponent() {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="login" className="space-y-4">
+              <form
+                className="space-y-4"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  void handleLogin()
+                }}
+              >
               <div className="space-y-2">
                 <Label htmlFor="email">{t('auth.email')}</Label>
                 <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -329,10 +336,11 @@ export default function AuthPageComponent() {
                 </div>
               </div>
               {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
-              <Button onClick={handleLogin} className="w-full" disabled={isLoggingIn}>
+              <Button type="submit" className="w-full" disabled={isLoggingIn}>
                 {isLoggingIn ? <LoadingSpinner size="sm" className="mr-2" /> : null}
                 {t('auth.login')}
               </Button>
+              </form>
             </TabsContent>
             <TabsContent value="signup" className="space-y-4">
               {showVerification ? (
