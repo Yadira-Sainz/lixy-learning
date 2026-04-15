@@ -42,11 +42,18 @@
   "contact": {
     "title": "Contact us",
     "subtitle": "Do you have any questions or need help? Our team is here to help you. Fill out the form below and we will get back to you as soon as possible.",
+    "loading": "Loading…",
+    "unavailable": "Email contact is not available at the moment.",
     "name": "Name",
     "email": "E-mail",
     "subject": "Subject",
     "message": "Message",
-    "send": "Send"
+    "send": "Send",
+    "sending": "Sending…",
+    "sendSuccess": "Message sent. We will get back to you soon.",
+    "sendError": "Could not send the message. Please try again later.",
+    "validationFillFields": "Please fill in all required fields.",
+    "validationEmailInvalid": "Please enter a valid email address."
   },
   "config": {
     "general": "General Settings",
@@ -103,8 +110,24 @@
     "invalidCredentials": "Invalid email or password",
     "invalidEmail": "Please enter a valid email address",
     "passwordMinLength": "Password must be at least 6 characters",
+    "passwordNeedsUppercase": "Password must include at least one uppercase letter (required by Cognito)",
     "invalidAge": "Please enter a valid age",
-    "signupError": "Registration error. Please try again."
+    "signupError": "Registration error. Please try again.",
+    "verificationCodeSent": "We sent a verification code to your email.",
+    "enterVerificationCode": "Enter the code",
+    "verify": "Verify",
+    "back": "Back",
+    "continueWith": "Or continue with",
+    "google": "Google",
+    "microsoft": "Microsoft",
+    "oauthFailed": "Could not sign in with the provider. Please try again.",
+    "oauthCompleting": "Completing sign-in…",
+    "oauthMissingParams": "Authorization code is missing. Try again from the login page.",
+    "oauthInvalidSession": "Invalid or expired sign-in session. Please try again.",
+    "oauthNotConfigured": "OAuth is not configured (callback URL).",
+    "oauthNoToken": "Identity token was not returned.",
+    "oauthNoEmail": "The provider did not return an email address.",
+    "backToLogin": "Back to sign in"
   },
   "dashboard": {
     "dailyStreak": "Daily Streak",

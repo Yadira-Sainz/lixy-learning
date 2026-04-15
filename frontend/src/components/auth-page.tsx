@@ -13,6 +13,15 @@ import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { COUNTRIES } from "@/lib/countries"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import {
+  isCognitoEnabled,
+  isOAuthConfigured,
+  startOAuthRedirect,
+  type OAuthProviderId,
+  signIn as cognitoSignIn,
+  signUp as cognitoSignUp,
+  confirmSignUp,
+} from "@/lib/cognito"
 
 interface Language {
   language_id: number
@@ -36,9 +45,23 @@ export default function AuthPageComponent() {
   const [signupError, setSignupError] = useState('')
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [isSigningUp, setIsSigningUp] = useState(false)
+  const [showVerification, setShowVerification] = useState(false)
+  const [verificationCode, setVerificationCode] = useState('')
+  const [isConfirming, setIsConfirming] = useState(false)
+  const [pendingSignupData, setPendingSignupData] = useState<{
+    username: string
+    firstName: string
+    lastName: string
+    age: string
+    gender: string
+    country: string
+    nativeLanguage: string
+    learningLanguage: string
+  } | null>(null)
   const searchParams = useSearchParams()
   const router = useRouter()
   const [languages, setLanguages] = useState<Language[]>([])
+  const [oauthLoading, setOauthLoading] = useState<OAuthProviderId | null>(null)
 
   useEffect(() => {
     const fetchLanguages = async () => {
@@ -63,6 +86,18 @@ export default function AuthPageComponent() {
     setShowPassword(!showPassword)
   }
 
+  const handleOAuth = async (provider: OAuthProviderId) => {
+    setLoginError('')
+    setSignupError('')
+    try {
+      setOauthLoading(provider)
+      await startOAuthRedirect(provider)
+    } catch (e) {
+      setOauthLoading(null)
+      setLoginError(e instanceof Error ? e.message : t('auth.oauthFailed'))
+    }
+  }
+
   const handleLogin = async () => {
     if (!email || !password) {
       setLoginError(t('auth.fillAllFields'))
@@ -71,15 +106,32 @@ export default function AuthPageComponent() {
     setIsLoggingIn(true)
     setLoginError('')
     try {
-      const response = await axios.post(process.env.NEXT_PUBLIC_BACKEND_URL + '/login', {
-        email,
-        password,
-      })
-      localStorage.setItem('token', response.data.token)
-      window.dispatchEvent(new CustomEvent('auth-change', { detail: { loggedIn: true } }))
-      router.push('/tablero')
+      if (isCognitoEnabled()) {
+        try {
+          const idToken = await cognitoSignIn(email, password)
+          localStorage.setItem('token', idToken)
+          window.dispatchEvent(new CustomEvent('auth-change', { detail: { loggedIn: true } }))
+          router.push('/tablero')
+          return
+        } catch (cognitoErr) {
+          try {
+            const response = await axios.post(process.env.NEXT_PUBLIC_BACKEND_URL + '/login', { email, password })
+            localStorage.setItem('token', response.data.token)
+            window.dispatchEvent(new CustomEvent('auth-change', { detail: { loggedIn: true } }))
+            router.push('/tablero')
+            return
+          } catch {
+            throw cognitoErr
+          }
+        }
+      } else {
+        const response = await axios.post(process.env.NEXT_PUBLIC_BACKEND_URL + '/login', { email, password })
+        localStorage.setItem('token', response.data.token)
+        window.dispatchEvent(new CustomEvent('auth-change', { detail: { loggedIn: true } }))
+        router.push('/tablero')
+      }
     } catch (error) {
-      setLoginError(t('auth.invalidCredentials'))
+      setLoginError(error instanceof Error ? error.message : t('auth.invalidCredentials'))
     } finally {
       setIsLoggingIn(false)
     }
@@ -106,6 +158,11 @@ export default function AuthPageComponent() {
       return
     }
 
+    if (isCognitoEnabled() && !/[A-Z]/.test(password)) {
+      setSignupError(t('auth.passwordNeedsUppercase'))
+      return
+    }
+
     if (isNaN(Number(age)) || Number(age) <= 0) {
       setSignupError(t('auth.invalidAge'))
       return
@@ -114,30 +171,80 @@ export default function AuthPageComponent() {
     setIsSigningUp(true)
     setSignupError('')
     try {
-      const generatedUsername = generateUsername(email)
-
-      const response = await axios.post(process.env.NEXT_PUBLIC_BACKEND_URL + '/register', {
-        username: generatedUsername,
-        first_name: firstName,
-        last_name: lastName,
-        email,
-        password,
-        age,
-        gender,
-        country,
-        native_language: nativeLanguage,
-        learning_language: learningLanguage,
-      })
-
-      localStorage.setItem('token', response.data.token)
-      window.dispatchEvent(new CustomEvent('auth-change', { detail: { loggedIn: true } }))
-      router.push('/tablero')
+      if (isCognitoEnabled()) {
+        await cognitoSignUp(email, password, { given_name: firstName, family_name: lastName })
+        setPendingSignupData({
+          username: generateUsername(email),
+          firstName,
+          lastName,
+          age,
+          gender,
+          country,
+          nativeLanguage,
+          learningLanguage,
+        })
+        setShowVerification(true)
+      } else {
+        const generatedUsername = generateUsername(email)
+        const response = await axios.post(process.env.NEXT_PUBLIC_BACKEND_URL + '/register', {
+          username: generatedUsername,
+          first_name: firstName,
+          last_name: lastName,
+          email,
+          password,
+          age,
+          gender,
+          country,
+          native_language: nativeLanguage,
+          learning_language: learningLanguage,
+        })
+        localStorage.setItem('token', response.data.token)
+        window.dispatchEvent(new CustomEvent('auth-change', { detail: { loggedIn: true } }))
+        router.push('/tablero')
+      }
     } catch (error) {
-      setSignupError(t('auth.signupError'))
+      setSignupError(error instanceof Error ? error.message : t('auth.signupError'))
     } finally {
       setIsSigningUp(false)
     }
   }
+
+  const handleConfirmVerification = async () => {
+    if (!verificationCode.trim()) {
+      setSignupError(t('auth.fillAllFields'))
+      return
+    }
+    if (!pendingSignupData) return
+    setIsConfirming(true)
+    setSignupError('')
+    try {
+      await confirmSignUp(email, verificationCode.trim())
+      const idToken = await cognitoSignIn(email, password)
+      await axios.post(
+        process.env.NEXT_PUBLIC_BACKEND_URL + '/api/cognito/sync-profile',
+        {
+          username: pendingSignupData.username,
+          first_name: pendingSignupData.firstName,
+          last_name: pendingSignupData.lastName,
+          age: Number(pendingSignupData.age) || undefined,
+          gender: pendingSignupData.gender || undefined,
+          country: pendingSignupData.country || undefined,
+          native_language: Number(pendingSignupData.nativeLanguage),
+          learning_language: Number(pendingSignupData.learningLanguage),
+        },
+        { headers: { Authorization: `Bearer ${idToken}` } }
+      )
+      localStorage.setItem('token', idToken)
+      window.dispatchEvent(new CustomEvent('auth-change', { detail: { loggedIn: true } }))
+      router.push('/tablero')
+    } catch (error) {
+      setSignupError(error instanceof Error ? error.message : t('auth.signupError'))
+    } finally {
+      setIsConfirming(false)
+    }
+  }
+
+  const showOAuth = isCognitoEnabled() && isOAuthConfigured()
 
   return (
     <div className="flex justify-center items-center min-h-screen p-4">
@@ -149,6 +256,40 @@ export default function AuthPageComponent() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {showOAuth && (
+            <div className="space-y-3 mb-4">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">{t('auth.continueWith')}</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={oauthLoading !== null}
+                  onClick={() => void handleOAuth('google')}
+                >
+                  {oauthLoading === 'google' ? <LoadingSpinner size="sm" className="mr-2" /> : null}
+                  {t('auth.google')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={oauthLoading !== null}
+                  onClick={() => void handleOAuth('microsoft')}
+                >
+                  {oauthLoading === 'microsoft' ? <LoadingSpinner size="sm" className="mr-2" /> : null}
+                  {t('auth.microsoft')}
+                </Button>
+              </div>
+            </div>
+          )}
           <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger 
@@ -165,6 +306,13 @@ export default function AuthPageComponent() {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="login" className="space-y-4">
+              <form
+                className="space-y-4"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  void handleLogin()
+                }}
+              >
               <div className="space-y-2">
                 <Label htmlFor="email">{t('auth.email')}</Label>
                 <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -188,12 +336,38 @@ export default function AuthPageComponent() {
                 </div>
               </div>
               {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
-              <Button onClick={handleLogin} className="w-full" disabled={isLoggingIn}>
+              <Button type="submit" className="w-full" disabled={isLoggingIn}>
                 {isLoggingIn ? <LoadingSpinner size="sm" className="mr-2" /> : null}
                 {t('auth.login')}
               </Button>
+              </form>
             </TabsContent>
             <TabsContent value="signup" className="space-y-4">
+              {showVerification ? (
+                <>
+                  <p className="text-sm text-muted-foreground">{t('auth.verificationCodeSent')}</p>
+                  <div className="space-y-2">
+                    <Label htmlFor="verification_code">{t('auth.enterVerificationCode')}</Label>
+                    <Input
+                      id="verification_code"
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value)}
+                      placeholder="123456"
+                    />
+                  </div>
+                  {signupError && <p className="text-red-500 text-sm">{signupError}</p>}
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => { setShowVerification(false); setPendingSignupData(null); setSignupError(''); }} disabled={isConfirming}>
+                      {t('auth.back')}
+                    </Button>
+                    <Button onClick={handleConfirmVerification} disabled={isConfirming} className="flex-1">
+                      {isConfirming ? <LoadingSpinner size="sm" className="mr-2" /> : null}
+                      {t('auth.verify')}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+              <>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="first_name">{t('auth.firstName')}</Label>
@@ -306,6 +480,8 @@ export default function AuthPageComponent() {
                 {isSigningUp ? <LoadingSpinner size="sm" className="mr-2" /> : null}
                 {t('auth.signup')}
               </Button>
+              </>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>

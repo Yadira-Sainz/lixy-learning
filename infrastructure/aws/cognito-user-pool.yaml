@@ -1,0 +1,88 @@
+# CloudFormation - AWS Cognito User Pool para LixyLearning
+# Uso: aws cloudformation create-stack --stack-name lixylearning-cognito \
+#   --template-body file://cognito-user-pool.yaml
+#
+# Outputs: UserPoolId, UserPoolClientId, Region
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'LixyLearning - Cognito User Pool para autenticación'
+
+Parameters:
+  AppName:
+    Type: String
+    Default: lixylearning
+    Description: Prefijo para recursos
+
+Resources:
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub '${AppName}-users'
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      MfaConfiguration: OFF
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 6
+          RequireUppercase: false
+          RequireLowercase: false
+          RequireNumbers: false
+          RequireSymbols: false
+      Schema:
+        - Name: email
+          Required: true
+          Mutable: true
+        - Name: name
+          Required: false
+          Mutable: true
+        - Name: given_name
+          Required: false
+          Mutable: true
+        - Name: family_name
+          Required: false
+          Mutable: true
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+      UserPoolTags:
+        Project: lixylearning
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub '${AppName}-web-client'
+      UserPoolId: !Ref CognitoUserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_SRP_AUTH
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+
+Outputs:
+  UserPoolId:
+    Description: ID del User Pool de Cognito
+    Value: !Ref CognitoUserPool
+    Export:
+      Name: !Sub '${AppName}-UserPoolId'
+  UserPoolClientId:
+    Description: Client ID para la app web
+    Value: !Ref CognitoUserPoolClient
+    Export:
+      Name: !Sub '${AppName}-UserPoolClientId'
+  Region:
+    Description: Región AWS
+    Value: !Ref AWS::Region
+    Export:
+      Name: !Sub '${AppName}-CognitoRegion'
