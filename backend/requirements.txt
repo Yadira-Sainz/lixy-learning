@@ -7,3 +7,4 @@ python-jose[cryptography]==3.3.0
 bcrypt>=4.0.0
 openai==1.55.3
 httpx==0.28.1
+resend>=2.0.0

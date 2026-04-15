@@ -42,11 +42,18 @@
   "contact": {
     "title": "Contáctanos",
     "subtitle": "¿Tienes alguna pregunta o necesitas ayuda? Nuestro equipo está aquí para ayudarte. Completa el formulario a continuación y te responderemos lo antes posible.",
+    "loading": "Cargando…",
+    "unavailable": "El contacto por correo no está disponible en este momento.",
     "name": "Nombre",
     "email": "E-mail",
     "subject": "Asunto",
     "message": "Mensaje",
-    "send": "Enviar"
+    "send": "Enviar",
+    "sending": "Enviando…",
+    "sendSuccess": "Mensaje enviado. Te responderemos pronto.",
+    "sendError": "No se pudo enviar el mensaje. Inténtalo más tarde.",
+    "validationFillFields": "Completa todos los campos obligatorios.",
+    "validationEmailInvalid": "Introduce un correo electrónico válido."
   },
   "config": {
     "general": "Configuración General",
@@ -103,8 +110,24 @@
     "invalidCredentials": "Correo o contraseña inválidos",
     "invalidEmail": "Por favor, ingrese un correo electrónico válido",
     "passwordMinLength": "La contraseña debe tener al menos 6 caracteres",
+    "passwordNeedsUppercase": "La contraseña debe incluir al menos una letra mayúscula (requerido por Cognito)",
     "invalidAge": "Por favor, ingrese una edad válida",
-    "signupError": "Error al registrarse. Por favor intente nuevamente."
+    "signupError": "Error al registrarse. Por favor intente nuevamente.",
+    "verificationCodeSent": "Enviamos un código de verificación a tu correo.",
+    "enterVerificationCode": "Ingresa el código",
+    "verify": "Verificar",
+    "back": "Atrás",
+    "continueWith": "O continuar con",
+    "google": "Google",
+    "microsoft": "Microsoft",
+    "oauthFailed": "No se pudo iniciar sesión con el proveedor. Intente de nuevo.",
+    "oauthCompleting": "Completando inicio de sesión…",
+    "oauthMissingParams": "Falta el código de autorización. Vuelva a intentar desde el inicio de sesión.",
+    "oauthInvalidSession": "Sesión de inicio inválida o expirada. Intente de nuevo.",
+    "oauthNotConfigured": "OAuth no está configurado (URL de callback).",
+    "oauthNoToken": "No se recibió el token de identidad.",
+    "oauthNoEmail": "El proveedor no devolvió un correo electrónico.",
+    "backToLogin": "Volver al inicio de sesión"
   },
   "dashboard": {
     "dailyStreak": "Racha Diaria",

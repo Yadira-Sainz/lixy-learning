@@ -1,23 +1,26 @@
 import os
 import base64
 import asyncio
+import time
+import traceback
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
 
 import httpx
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
+import resend
+from fastapi import FastAPI, Depends, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 import bcrypt
 from jose import jwt
 from openai import OpenAI
 from dotenv import load_dotenv
 
 from db import get_db
-from auth import get_current_user
+from auth import get_current_user, get_cognito_token_payload, cognito_email_from_payload
 from story_generator import generate_content
 
 load_dotenv()
@@ -114,6 +117,26 @@ class ChangePasswordRequest(BaseModel):
     new_password: str
 
 
+class CognitoSyncProfileRequest(BaseModel):
+    """Profile data for first-time Cognito user creation."""
+    first_name: str
+    last_name: str
+    username: str
+    age: int | None = None
+    gender: str | None = None
+    country: str | None = None
+    native_language: int
+    learning_language: int
+
+
+class CognitoOAuthExchangeRequest(BaseModel):
+    """Authorization code + PKCE verifier from Cognito Hosted UI OAuth redirect."""
+
+    code: str
+    code_verifier: str
+    redirect_uri: str
+
+
 class GetImageUrlRequest(BaseModel):
     word: str
 
@@ -129,7 +152,65 @@ class ReadingCompleteRequest(BaseModel):
     quizScore: int | None = None
 
 
+class ContactMessageRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    email: str = Field(..., min_length=3, max_length=254)
+    subject: str = Field(..., min_length=1, max_length=200)
+    message: str = Field(..., min_length=1, max_length=10000)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        v = v.strip()
+        if "@" not in v or len(v.split("@")) != 2:
+            raise ValueError("Invalid email")
+        return v
+
+
 POINTS_PER_READING = 15
+
+# Simple rate limit for public contact endpoint (IP -> list of unix times)
+_contact_rate: dict[str, list[float]] = {}
+CONTACT_RATE_WINDOW_SEC = 300
+CONTACT_RATE_MAX = 8
+
+
+def _contact_rate_check(ip: str) -> None:
+    now = time.time()
+    if ip not in _contact_rate:
+        _contact_rate[ip] = []
+    _contact_rate[ip] = [t for t in _contact_rate[ip] if now - t < CONTACT_RATE_WINDOW_SEC]
+    if len(_contact_rate[ip]) >= CONTACT_RATE_MAX:
+        raise HTTPException(429, "Too many messages. Try again later.")
+    _contact_rate[ip].append(now)
+
+
+def _contact_resend_configured() -> bool:
+    """Envío vía API Resend (https://resend.com/docs/send-with-python). Sin SMTP."""
+    return bool(
+        os.environ.get("RESEND_API_KEY", "").strip()
+        and os.environ.get("RESEND_FROM_EMAIL", "").strip()
+        and os.environ.get("CONTACT_TO_EMAIL", "").strip()
+    )
+
+
+def _send_contact_resend(req: ContactMessageRequest) -> None:
+    resend.api_key = os.environ["RESEND_API_KEY"].strip()
+    to_addr = os.environ["CONTACT_TO_EMAIL"].strip()
+    from_addr = os.environ["RESEND_FROM_EMAIL"].strip()
+    text_body = (
+        f"Nombre: {req.name}\n"
+        f"Correo del visitante: {req.email}\n\n"
+        f"Mensaje:\n{req.message}\n"
+    )
+    params = {
+        "from": from_addr,
+        "to": [to_addr],
+        "subject": f"[LixyLearning] {req.subject}",
+        "text": text_body,
+        "reply_to": req.email.strip(),
+    }
+    resend.Emails.send(params)
 
 
 def _execute_query(conn, query: str, params: tuple = ()):
@@ -146,6 +227,31 @@ def _execute_query_one(conn, query: str, params: tuple = ()):
 
 
 # Routes
+
+
+@app.get("/api/contact/status")
+async def contact_status():
+    """Indica si Resend está configurado para el formulario de contacto."""
+    ok = _contact_resend_configured()
+    return {"smtpConfigured": ok, "configured": ok}
+
+
+@app.post("/api/contact")
+async def contact_post(req: ContactMessageRequest, request: Request):
+    """Recibe el mensaje del visitante y lo envía con la API Resend."""
+    if not _contact_resend_configured():
+        raise HTTPException(503, "Contact email is not configured on the server")
+    ip = request.client.host if request.client else "unknown"
+    _contact_rate_check(ip)
+    try:
+        await asyncio.to_thread(_send_contact_resend, req)
+    except Exception as e:
+        print(f"[contact] Resend error: {e!r}")
+        traceback.print_exc()
+        raise HTTPException(502, "Could not send message. Try again later.")
+    return {"ok": True}
+
+
 @app.post("/api/generate-sentence")
 async def generate_sentence(
     req: GenerateSentenceRequest,
@@ -369,7 +475,9 @@ async def update_user(
     if email != current["email"]:
         if not req.current_password:
             raise HTTPException(400, "Current password is required to change email")
-        if not _verify_password(req.current_password, current["password_hash"]):
+        if current.get("cognito_sub") and not current.get("password_hash"):
+            raise HTTPException(400, "Cognito users cannot change email through this form")
+        if not _verify_password(req.current_password, current["password_hash"] or ""):
             raise HTTPException(401, "Current password is incorrect")
     hashed = None
     if req.password:
@@ -413,8 +521,12 @@ async def change_password(
     """Change password. Requires current password verification."""
     if len(req.new_password) < 6:
         raise HTTPException(400, "Password must be at least 6 characters")
-    current = _execute_query_one(conn, "SELECT password_hash FROM users WHERE user_id = %s", (user["userId"],))
-    if not current or not _verify_password(req.current_password, current["password_hash"]):
+    current = _execute_query_one(conn, "SELECT password_hash, cognito_sub FROM users WHERE user_id = %s", (user["userId"],))
+    if not current:
+        raise HTTPException(404, "User not found")
+    if current.get("cognito_sub") and not current.get("password_hash"):
+        raise HTTPException(400, "Cognito users must change password in Cognito")
+    if not _verify_password(req.current_password, current["password_hash"] or ""):
         raise HTTPException(401, "Current password is incorrect")
     hashed = _hash_password(req.new_password)
     _execute_query(
@@ -428,7 +540,7 @@ async def change_password(
 @app.post("/login")
 async def login(req: LoginRequest, conn=Depends(get_db)):
     row = _execute_query_one(conn, "SELECT * FROM users WHERE email = %s", (req.email,))
-    if not row or not _verify_password(req.password, row["password_hash"]):
+    if not row or not row.get("password_hash") or not _verify_password(req.password, row["password_hash"]):
         raise HTTPException(401, "Invalid email or password")
     token = jwt.encode(
         {"userId": row["user_id"], "exp": datetime.utcnow() + timedelta(hours=1)},
@@ -436,6 +548,103 @@ async def login(req: LoginRequest, conn=Depends(get_db)):
         algorithm="HS256",
     )
     return {"token": token}
+
+
+@app.post("/api/cognito/oauth-exchange")
+async def cognito_oauth_exchange(req: CognitoOAuthExchangeRequest):
+    """
+    Exchange Cognito Hosted UI authorization code for tokens (public client + PKCE).
+    Redirect URI must match the app client callback URL and COGNITO_OAUTH_REDIRECT_URI.
+    """
+    domain_prefix = (os.environ.get("COGNITO_DOMAIN") or "").strip()
+    region = (os.environ.get("COGNITO_REGION") or "").strip()
+    client_id = (os.environ.get("COGNITO_CLIENT_ID") or "").strip()
+    expected_redirect = (os.environ.get("COGNITO_OAUTH_REDIRECT_URI") or "").strip()
+    if not domain_prefix or not region or not client_id or not expected_redirect:
+        raise HTTPException(503, "OAuth is not configured (missing COGNITO_DOMAIN, COGNITO_REGION, COGNITO_CLIENT_ID, or COGNITO_OAUTH_REDIRECT_URI)")
+    if req.redirect_uri != expected_redirect:
+        raise HTTPException(400, "redirect_uri does not match server configuration")
+
+    token_url = f"https://{domain_prefix}.auth.{region}.amazoncognito.com/oauth2/token"
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.post(
+                token_url,
+                data={
+                    "grant_type": "authorization_code",
+                    "client_id": client_id,
+                    "code": req.code,
+                    "redirect_uri": req.redirect_uri,
+                    "code_verifier": req.code_verifier,
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                timeout=20.0,
+            )
+        except httpx.HTTPError as e:
+            raise HTTPException(502, f"Token endpoint error: {e}") from e
+
+    try:
+        body = resp.json()
+    except Exception:
+        raise HTTPException(502, "Invalid response from Cognito token endpoint")
+
+    if resp.status_code != 200:
+        err = body.get("error", "unknown_error")
+        desc = body.get("error_description", "")
+        raise HTTPException(400, f"Cognito OAuth error: {err} {desc}".strip())
+
+    id_token = body.get("id_token")
+    if not id_token:
+        raise HTTPException(502, "Cognito did not return id_token")
+    return {"id_token": id_token}
+
+
+@app.post("/api/cognito/sync-profile")
+async def cognito_sync_profile(
+    req: CognitoSyncProfileRequest,
+    cognito_payload: dict = Depends(get_cognito_token_payload),
+    conn=Depends(get_db),
+):
+    """
+    Create or update app user linked to Cognito identity.
+    Call this after Cognito sign-in with the Id Token.
+    For new users, profile data is required. For existing users, updates are optional.
+    """
+    cognito_sub = cognito_payload.get("sub")
+    email = cognito_email_from_payload(cognito_payload)
+    if not cognito_sub or not email:
+        raise HTTPException(400, "Invalid Cognito token: missing sub or email")
+
+    existing_by_sub = _execute_query_one(conn, "SELECT user_id FROM users WHERE cognito_sub = %s", (cognito_sub,))
+    if existing_by_sub:
+        return {"message": "Profile already synced", "userId": existing_by_sub["user_id"]}
+
+    existing_by_email = _execute_query_one(conn, "SELECT user_id FROM users WHERE email = %s", (email,))
+    if existing_by_email:
+        _execute_query(conn, "UPDATE users SET cognito_sub = %s WHERE user_id = %s", (cognito_sub, existing_by_email["user_id"]))
+        return {"message": "Profile linked to Cognito", "userId": existing_by_email["user_id"]}
+
+    rows = _execute_query(
+        conn,
+        """INSERT INTO users (
+            username, email, first_name, last_name, cognito_sub,
+            age, gender, country, native_language_id, learning_language_id
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING user_id""",
+        (
+            req.username,
+            email,
+            req.first_name,
+            req.last_name,
+            cognito_sub,
+            req.age,
+            req.gender,
+            req.country,
+            req.native_language,
+            req.learning_language,
+        ),
+    )
+    user_id = rows[0]["user_id"] if rows else None
+    return {"message": "Profile synced", "userId": user_id}
 
 
 @app.get("/languages")

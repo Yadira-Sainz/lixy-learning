@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from 'next/navigation';
+import { CollectionCategoryCard } from "@/components/collection-category-card";
 
 const recentSets = [
   { id: 1, titleKey: "flashcardCenter.reinforceWeak" },
@@ -187,20 +188,19 @@ export function FlashcardCenter() {
           {isLoading ? (
             <div className="grid md:grid-cols-3 gap-4">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Skeleton key={i} className="h-40" />
+                <Skeleton key={i} className="h-72 rounded-xl" />
               ))}
             </div>
           ) : (
           <div className="grid md:grid-cols-3 gap-4">
             {categories.map((category) => (
-              <Card key={category.category_id} className="h-40" onClick={() => handleCategoryClick(category.category_id)}>
-                <CardHeader>
-                  <CardTitle>{category.category_name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-500">{t('flashcardCenter.clickToViewCategory')}</p>
-                </CardContent>
-              </Card>
+              <CollectionCategoryCard
+                key={category.category_id}
+                categoryId={category.category_id}
+                categoryName={category.category_name}
+                hint={t('flashcardCenter.clickToViewCategory')}
+                onClick={() => handleCategoryClick(category.category_id)}
+              />
             ))}
           </div>
           )}

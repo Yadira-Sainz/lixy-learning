@@ -41,12 +41,19 @@
   },
   "contact": {
     "title": "Contactez-nous",
-    "subtitle": "Avez-vous des questions ou besoin d'aide ? Notre équipe est là pour vous aider. Remplissez le formulaire ci-dessous et nous vous répondrons dès que possible.",
+    "subtitle": "Des questions ou besoin d'aide ? Notre équipe est là pour vous aider. Remplissez le formulaire ci-dessous et nous vous répondrons dès que possible.",
+    "loading": "Chargement…",
+    "unavailable": "Le contact par e-mail n'est pas disponible pour le moment.",
     "name": "Nom",
     "email": "E-mail",
     "subject": "Sujet",
     "message": "Message",
-    "send": "Envoyer"
+    "send": "Envoyer",
+    "sending": "Envoi…",
+    "sendSuccess": "Message envoyé. Nous vous répondrons bientôt.",
+    "sendError": "Impossible d'envoyer le message. Réessayez plus tard.",
+    "validationFillFields": "Veuillez remplir tous les champs obligatoires.",
+    "validationEmailInvalid": "Veuillez saisir une adresse e-mail valide."
   },
   "config": {
     "general": "Paramètres généraux",
@@ -103,8 +110,24 @@
     "invalidCredentials": "E-mail ou mot de passe invalide",
     "invalidEmail": "Veuillez entrer une adresse e-mail valide",
     "passwordMinLength": "Le mot de passe doit contenir au moins 6 caractères",
+    "passwordNeedsUppercase": "Le mot de passe doit contenir au moins une majuscule (requis par Cognito)",
     "invalidAge": "Veuillez entrer un âge valide",
-    "signupError": "Erreur d'inscription. Veuillez réessayer."
+    "signupError": "Erreur d'inscription. Veuillez réessayer.",
+    "verificationCodeSent": "Nous avons envoyé un code de vérification à votre e-mail.",
+    "enterVerificationCode": "Entrez le code",
+    "verify": "Vérifier",
+    "back": "Retour",
+    "continueWith": "Ou continuer avec",
+    "google": "Google",
+    "microsoft": "Microsoft",
+    "oauthFailed": "Impossible de se connecter avec ce fournisseur. Réessayez.",
+    "oauthCompleting": "Finalisation de la connexion…",
+    "oauthMissingParams": "Code d'autorisation manquant. Réessayez depuis la page de connexion.",
+    "oauthInvalidSession": "Session de connexion invalide ou expirée. Réessayez.",
+    "oauthNotConfigured": "OAuth n'est pas configuré (URL de rappel).",
+    "oauthNoToken": "Le jeton d'identité n'a pas été reçu.",
+    "oauthNoEmail": "Le fournisseur n'a pas renvoyé d'adresse e-mail.",
+    "backToLogin": "Retour à la connexion"
   },
   "dashboard": {
     "dailyStreak": "Série quotidienne",

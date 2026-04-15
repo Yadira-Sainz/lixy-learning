@@ -316,6 +316,7 @@ Edita y reemplaza todos los valores con tus credenciales reales. **No uses valor
 Variables críticas:
 - `NEXT_PUBLIC_BACKEND_URL`: `https://tu-dominio.duckdns.org` o `https://lixylearning.zapto.org` (según tu proveedor DNS)
 - `NEXT_PUBLIC_FRONTEND_URL`: misma URL que el backend si usas reverse proxy
+- `NEXT_PUBLIC_CONTACT_EMAIL` (opcional): correo mostrado en la landing. El **envío del formulario** usa la API **Resend** en el backend (`RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `CONTACT_TO_EMAIL`). Ver [docs/VARIABLES_ENTORNO.md](VARIABLES_ENTORNO.md).
 - `DATABASE_URL`: `postgresql://postgres:TU_PASSWORD@postgres:5432/lixylearning_db`
 - Todas las API keys
 

@@ -6,6 +6,7 @@ import { useLocale } from '@/contexts/locale-context'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { CollectionCategoryCard } from "@/components/collection-category-card"
 
 const recentSets = [
   { id: 1, titleKey: "readingCenter.reinforceWeak" },
@@ -136,18 +137,13 @@ export function ReadingCenterComponent() {
           ) : (
             <div className="grid md:grid-cols-3 gap-4">
               {categories.map((category) => (
-                <Card 
-                  key={category.category_id} 
-                  className="h-40 cursor-pointer hover:shadow-lg transition-shadow duration-300"
+                <CollectionCategoryCard
+                  key={category.category_id}
+                  categoryId={category.category_id}
+                  categoryName={category.category_name}
+                  hint={t('readingCenter.clickToViewCategory')}
                   onClick={() => handleCategoryClick(category.category_id, category.category_name)}
-                >
-                  <CardHeader>
-                    <CardTitle>{category.category_name}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-gray-500">{t('readingCenter.clickToViewCategory')}</p>
-                  </CardContent>
-                </Card>
+                />
               ))}
             </div>
           )}

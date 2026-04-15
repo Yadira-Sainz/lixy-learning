@@ -5,6 +5,13 @@ services:
       dockerfile: Dockerfile.dev
       args:
         NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://localhost:5001}
+        NEXT_PUBLIC_USE_COGNITO: ${NEXT_PUBLIC_USE_COGNITO:-false}
+        NEXT_PUBLIC_COGNITO_REGION: ${NEXT_PUBLIC_COGNITO_REGION:-}
+        NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${NEXT_PUBLIC_COGNITO_USER_POOL_ID:-}
+        NEXT_PUBLIC_COGNITO_CLIENT_ID: ${NEXT_PUBLIC_COGNITO_CLIENT_ID:-}
+        NEXT_PUBLIC_COGNITO_DOMAIN: ${NEXT_PUBLIC_COGNITO_DOMAIN:-}
+        NEXT_PUBLIC_COGNITO_OAUTH_REDIRECT_URI: ${NEXT_PUBLIC_COGNITO_OAUTH_REDIRECT_URI:-}
+        NEXT_PUBLIC_CONTACT_EMAIL: ${NEXT_PUBLIC_CONTACT_EMAIL:-}
     container_name: lixylearning-frontend
     ports:
       - "3000:3000"
@@ -44,7 +51,8 @@ services:
     build: ./db
     container_name: lixylearning-postgres
     ports:
-      - "5432:5432"
+      # Solo localhost: evita exposición pública de Postgres en EC2 (ataques al puerto 5432).
+      - "127.0.0.1:5432:5432"
     env_file:
       - .env
     volumes:

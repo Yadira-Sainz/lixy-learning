@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useLocale } from '@/contexts/locale-context'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { getReadingCollectionTheme } from '@/lib/category-reading-theme'
+import { cn } from '@/lib/utils'
 
 type Word = { id: number; word: string; definition: string; };
 
@@ -69,29 +71,59 @@ export default function OneReadingCollection() {
     "Lectura 6", "Lectura 7", "Lectura 8", "Lectura 9",
   ]
 
+  const theme = useMemo(
+    () => getReadingCollectionTheme(categoryId, category),
+    [categoryId, category]
+  )
+  const CategoryIcon = theme.Icon
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-4xl font-bold mb-8">{category}</h1>
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-32" />
+            <Skeleton key={i} className="h-28 rounded-xl" />
           ))}
         </div>
       ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {lecturas.map((lectura, index) => (
-          <Card 
-            key={index} 
-            className="hover:shadow-lg transition-shadow duration-300 cursor-pointer" 
+          <Card
+            key={index}
+            className={cn(
+              "cursor-pointer overflow-hidden border-l-4 transition-shadow duration-300 hover:shadow-lg",
+              theme.borderL
+            )}
             onClick={() => handleReadingClick(index)}
           >
-            <CardHeader>
-              <CardTitle className="text-xl">{lectura}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">{t('collection.clickToView')}</p>
-            </CardContent>
+            <div className="flex gap-4 p-5 sm:p-6">
+              <div className="relative shrink-0">
+                <div
+                  className={cn(
+                    "flex h-16 w-16 items-center justify-center rounded-2xl shadow-inner",
+                    theme.iconBg
+                  )}
+                >
+                  <CategoryIcon
+                    className={cn("h-8 w-8", theme.iconFg)}
+                    aria-hidden
+                  />
+                </div>
+                <span
+                  className="absolute -bottom-1 -right-1 flex h-7 min-w-[1.75rem] items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground shadow-sm"
+                  aria-hidden
+                >
+                  {index + 1}
+                </span>
+              </div>
+              <div className="min-w-0 flex-1 space-y-2">
+                <CardTitle className="text-xl leading-tight">{lectura}</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {t('collection.clickToView')}
+                </p>
+              </div>
+            </div>
           </Card>
         ))}
       </div>

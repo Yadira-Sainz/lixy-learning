@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbo",
-    "build": "next build",
-    "start": "next start",
+    "build": "next build && node scripts/copy-standalone-assets.cjs",
+    "start": "node .next/standalone/server.js",
     "lint": "next lint"
   },
   "dependencies": {
@@ -22,6 +22,7 @@
     "@radix-ui/react-tabs": "^1.1.0",
     "@radix-ui/react-tooltip": "^1.1.2",
     "@svgr/webpack": "^8.1.0",
+    "amazon-cognito-identity-js": "^6.3.16",
     "axios": "^1.7.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
@@ -34,6 +35,7 @@
     "react-dom": "^18",
     "react-router-dom": "^6.26.2",
     "recharts": "^2.12.7",
+    "sharp": "^0.33.5",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7"
   },
