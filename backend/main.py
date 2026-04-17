@@ -22,10 +22,12 @@ from dotenv import load_dotenv
 from db import get_db
 from auth import get_current_user, get_cognito_token_payload, cognito_email_from_payload
 from story_generator import generate_content
+from admin_api import router as admin_router
 
 load_dotenv()
 
 app = FastAPI()
+app.include_router(admin_router, prefix="/api/admin", tags=["admin"])
 
 app.add_middleware(
     CORSMiddleware,
