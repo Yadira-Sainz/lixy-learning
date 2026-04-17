@@ -121,6 +121,47 @@ def _lookup_user_by_cognito_sub(conn, cognito_sub: str) -> dict | None:
         return dict(row) if row else None
 
 
+def _parse_admin_email_allowlist() -> set[str]:
+    raw = os.environ.get("ADMIN_EMAILS", "").strip()
+    if not raw:
+        return set()
+    return {part.strip().lower() for part in raw.split(",") if part.strip()}
+
+
+def _parse_admin_user_ids() -> set[int]:
+    raw = os.environ.get("ADMIN_USER_IDS", "").strip()
+    if not raw:
+        return set()
+    out: set[int] = set()
+    for part in raw.split(","):
+        part = part.strip()
+        if part.isdigit():
+            out.add(int(part))
+    return out
+
+
+def is_user_admin(conn, user_id: int) -> bool:
+    """
+    Admin allowlist via env ADMIN_USER_IDS (comma-separated integers)
+    and/or ADMIN_EMAILS (comma-separated emails, case-insensitive).
+    If neither is configured, no user is admin.
+    """
+    if user_id in _parse_admin_user_ids():
+        return True
+    emails = _parse_admin_email_allowlist()
+    if not emails:
+        return False
+    with conn.cursor() as cur:
+        cur.execute("SELECT email FROM users WHERE user_id = %s", (user_id,))
+        row = cur.fetchone()
+    if not row:
+        return False
+    email = row.get("email") if isinstance(row, dict) else row[0]
+    if not email or not isinstance(email, str):
+        return False
+    return email.strip().lower() in emails
+
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
     conn=Depends(get_db),
@@ -155,3 +196,16 @@ def get_current_user(
         status_code=status.HTTP_403_FORBIDDEN,
         detail="Invalid token.",
     )
+
+
+def require_admin(
+    user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+) -> dict:
+    """Raises 403 unless the current user is in the admin allowlist."""
+    if not is_user_admin(conn, user["userId"]):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return user

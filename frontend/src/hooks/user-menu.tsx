@@ -2,13 +2,15 @@ import * as React from "react";
 import Link from "next/link";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Settings, User, LogOut, Zap } from "lucide-react";
+import { Settings, User, LogOut, Zap, LayoutDashboard } from "lucide-react";
 import axios from "axios";
 import { useRouter } from 'next/navigation';
 import { useLocale } from '@/contexts/locale-context';
+import { useAdminAccess } from '@/hooks/use-admin-access';
 
 export default function UserMenu() {
   const { t } = useLocale();
+  const { isAdmin } = useAdminAccess();
   const [userDetails, setUserDetails] = React.useState({ username: '', email: '', points: 0, profile_image_url: '' as string | null });
   const [imgError, setImgError] = React.useState(false);
   const [imgCacheBuster, setImgCacheBuster] = React.useState(0);
@@ -123,6 +125,12 @@ export default function UserMenu() {
           </div>
         </div>
         <div className="mt-4 space-y-2">
+          {isAdmin && (
+            <Link href="/admin" className="flex items-center text-sm text-primary font-medium">
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              {t('nav.admin')}
+            </Link>
+          )}
           <Link href="/perfil" className="flex items-center text-sm">
             <User className="mr-2 h-4 w-4" />
             {t('userMenu.profile')}
