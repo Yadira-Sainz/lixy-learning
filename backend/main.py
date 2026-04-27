@@ -1,8 +1,10 @@
 import os
+import re
 import base64
 import asyncio
 import time
 import traceback
+import unicodedata
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
@@ -141,6 +143,9 @@ class CognitoOAuthExchangeRequest(BaseModel):
 
 class GetImageUrlRequest(BaseModel):
     word: str
+    vocabulary_id: int | None = None
+    definition: str | None = None
+    force_refresh: bool = False
 
 
 class UpdateProgressRequest(BaseModel):
@@ -706,37 +711,209 @@ async def _check_image_url(url: str) -> bool:
         return False
 
 
+_PIXABAY_STOPWORDS = frozenset(
+    """
+    the a an of to in on for and or is are was were be been being with by from as at
+    this that these those it its we you they he she them their our your my me i
+    un una uno el la los las lo al del de en por para con sin sobre entre hacia
+    que quien cual como cuando donde cuanto muy mas menos tambien tampoco pero
+    y o a se es son ser ha han haber hay sea sido si no ni ya
+    """.split()
+)
+
+
+def _fold_accents(s: str) -> str:
+    if not s:
+        return ""
+    return "".join(
+        c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn"
+    )
+
+
+def _definition_keywords(definition: str | None, max_words: int = 5) -> list[str]:
+    if not definition or not definition.strip():
+        return []
+    raw = re.findall(r"[A-Za-zÀ-ÿ']+", definition.lower())
+    seen: set[str] = set()
+    out: list[str] = []
+    for tok in raw:
+        tok = tok.strip("'")
+        if len(tok) < 3 or tok in _PIXABAY_STOPWORDS:
+            continue
+        if tok in seen:
+            continue
+        seen.add(tok)
+        out.append(tok)
+    out.sort(key=len, reverse=True)
+    return out[:max_words]
+
+
+def _pixabay_q_variants(word: str, definition: str | None) -> list[str]:
+    w = re.sub(r"[^\w\sÀ-ÿ'-]", "", word, flags=re.UNICODE).strip()
+    if not w:
+        w = (word or "").strip()
+    w = w[:80]
+    keys = _definition_keywords(definition)
+    variants: list[str] = []
+    if keys:
+        combo = f"{w} {' '.join(keys)}".strip()
+        if len(combo) <= 100:
+            variants.append(combo)
+        if len(keys) >= 2:
+            combo2 = f"{w} {keys[0]} {keys[1]}".strip()
+            if combo2 not in variants and len(combo2) <= 100:
+                variants.append(combo2)
+        if len(keys) >= 1:
+            combo3 = f"{w} {keys[0]}".strip()
+            if combo3 not in variants and len(combo3) <= 100:
+                variants.append(combo3)
+    if w:
+        variants.append(w[:100])
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for v in variants:
+        v = v.strip()
+        if v and v not in seen:
+            seen.add(v)
+            ordered.append(v)
+    if not ordered:
+        ordered = [(word or "").strip()[:100] or "photo"]
+    return ordered
+
+
+def _pixabay_tag_tokens(tags_str: str) -> set[str]:
+    s = _fold_accents((tags_str or "").lower())
+    tokens: set[str] = set()
+    for part in re.split(r"[,;]+", s):
+        for t in part.split():
+            t = re.sub(r"[^\w-]", "", t)
+            if len(t) >= 2:
+                tokens.add(t)
+    return tokens
+
+
+def _pixabay_score_hit(hit: dict, w_fold: str, def_keys: list[str]) -> tuple[int, int]:
+    tag_tok = _pixabay_tag_tokens(hit.get("tags") or "")
+    score = 0
+    if w_fold and w_fold in tag_tok:
+        score += 14
+    elif w_fold and len(w_fold) >= 4:
+        for tt in tag_tok:
+            if w_fold == tt or (len(tt) >= 4 and (w_fold in tt or tt in w_fold)):
+                score += 6
+                break
+    for k in def_keys:
+        kf = _fold_accents(k.lower())
+        if not kf:
+            continue
+        if kf in tag_tok:
+            score += 5
+        elif len(kf) >= 4 and any(len(tt) >= 4 and (kf in tt or tt in kf) for tt in tag_tok):
+            score += 2
+    likes = int(hit.get("likes") or 0)
+    return (score, likes)
+
+
+def _pick_best_pixabay_hit(hits: list[dict], word: str, def_keys: list[str]) -> dict | None:
+    if not hits:
+        return None
+    w_fold = _fold_accents(word.strip().lower())
+    best = max(hits, key=lambda h: _pixabay_score_hit(h, w_fold, def_keys))
+    return best
+
+
+async def _pixabay_best_image_url(
+    client: httpx.AsyncClient, api_key: str, word: str, definition: str | None
+) -> str | None:
+    def_keys = _definition_keywords(definition)
+    best_hit: dict | None = None
+    best_key: tuple[int, int] = (-1, -1)
+    for qstr in _pixabay_q_variants(word, definition):
+        url = (
+            f"https://pixabay.com/api/?key={api_key}&q={quote(qstr)}"
+            "&image_type=photo&per_page=40&safesearch=true"
+        )
+        r = await client.get(url)
+        if r.status_code != 200:
+            continue
+        data = r.json()
+        hits = data.get("hits") or []
+        if not hits:
+            continue
+        candidate = _pick_best_pixabay_hit(hits, word, def_keys)
+        if not candidate:
+            continue
+        sc = _pixabay_score_hit(candidate, _fold_accents(word.strip().lower()), def_keys)
+        if sc > best_key or (sc == best_key and best_hit is None):
+            best_key = sc
+            best_hit = candidate
+        if sc[0] >= 10:
+            break
+    if not best_hit:
+        return None
+    return best_hit.get("webformatURL") or best_hit.get("largeImageURL")
+
+
 @app.post("/api/get-image-url")
 async def get_image_url(
     req: GetImageUrlRequest,
     user: dict = Depends(get_current_user),
     conn=Depends(get_db),
 ):
-    if not req.word:
+    word = (req.word or "").strip()
+    if not word:
         raise HTTPException(400, "Word is required")
-    row = _execute_query_one(
-        conn,
-        "SELECT image_url FROM vocabulary WHERE word = %s",
-        (req.word,),
-    )
-    if row and row.get("image_url"):
-        if await _check_image_url(row["image_url"]):
-            return {"imageUrl": row["image_url"]}
+    vid = req.vocabulary_id
+    if not req.force_refresh:
+        if vid is not None:
+            row = _execute_query_one(
+                conn,
+                "SELECT image_url FROM vocabulary WHERE vocabulary_id = %s",
+                (vid,),
+            )
+        else:
+            row = _execute_query_one(
+                conn,
+                "SELECT image_url FROM vocabulary WHERE word = %s LIMIT 1",
+                (word,),
+            )
+        if row and row.get("image_url"):
+            if await _check_image_url(row["image_url"]):
+                return {"imageUrl": row["image_url"]}
     api_key = os.environ.get("PIXABAY_API_KEY")
     if not api_key:
         raise HTTPException(500, "Image search not configured. Add PIXABAY_API_KEY to .env")
-    async with httpx.AsyncClient() as client:
-        r = await client.get(
-            f"https://pixabay.com/api/?key={api_key}&q={quote(req.word)}&image_type=photo&per_page=3&safesearch=true"
-        )
-    data = r.json()
-    if data.get("hits"):
-        url = data["hits"][0].get("webformatURL") or data["hits"][0].get("largeImageURL")
-        _execute_query(
-            conn,
-            "UPDATE vocabulary SET image_url = %s WHERE word = %s",
-            (url, req.word),
-        )
+    definition = (req.definition or "").strip() or None
+    if not definition:
+        if vid is not None:
+            row_def = _execute_query_one(
+                conn,
+                "SELECT definition FROM vocabulary WHERE vocabulary_id = %s",
+                (vid,),
+            )
+        else:
+            row_def = _execute_query_one(
+                conn,
+                "SELECT definition FROM vocabulary WHERE word = %s LIMIT 1",
+                (word,),
+            )
+        if row_def and row_def.get("definition"):
+            definition = (row_def["definition"] or "").strip() or None
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        url = await _pixabay_best_image_url(client, api_key, word, definition)
+    if url:
+        if vid is not None:
+            _execute_query(
+                conn,
+                "UPDATE vocabulary SET image_url = %s WHERE vocabulary_id = %s",
+                (url, vid),
+            )
+        else:
+            _execute_query(
+                conn,
+                "UPDATE vocabulary SET image_url = %s WHERE word = %s",
+                (url, word),
+            )
         return {"imageUrl": url}
     raise HTTPException(404, "No image found for the word")
 
