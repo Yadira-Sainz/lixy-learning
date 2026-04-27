@@ -310,5 +310,17 @@
     "showTranslation": "Show translation",
     "correct": "Correcto",
     "incorrect": "Incorrecto"
+  },
+  "placement": {
+    "title": "Examen rápido de nivel",
+    "intro": "Responde 8 preguntas eligiendo el significado correcto. Así ajustamos tu punto de partida y rellenamos las gráficas del tablero con datos reales.",
+    "loading": "Cargando preguntas…",
+    "loadError": "No se pudieron cargar las preguntas.",
+    "submitError": "No se pudo guardar el resultado. Inténtalo de nuevo.",
+    "retry": "Reintentar",
+    "pickMeaning": "Elige la definición que mejor corresponda a la palabra.",
+    "progress": "Pregunta {current} de {total}",
+    "saving": "Guardando…",
+    "needLogin": "Inicia sesión para continuar."
   }
 }

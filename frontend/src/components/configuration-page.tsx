@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { DEFAULT_DAILY_GOAL, DEFAULT_CARDS_PER_SESSION } from '@/lib/config'
 
 const sections = [
   { id: 'general', titleKey: 'config.general' },
@@ -41,8 +42,8 @@ export default function ConfigurationPageComponent() {
   // Pending state - only applied when user clicks "Guardar cambios"
   const [pendingTheme, setPendingTheme] = useState<string>('system')
   const [pendingLocale, setPendingLocale] = useState<string>('es')
-  const [pendingDailyGoal, setPendingDailyGoal] = useState('7')
-  const [pendingCardsPerSession, setPendingCardsPerSession] = useState('20')
+  const [pendingDailyGoal, setPendingDailyGoal] = useState(String(DEFAULT_DAILY_GOAL))
+  const [pendingCardsPerSession, setPendingCardsPerSession] = useState(String(DEFAULT_CARDS_PER_SESSION))
   const [pendingIncludeTranslation, setPendingIncludeTranslation] = useState(true)
   const [saveFeedback, setSaveFeedback] = useState(false)
 

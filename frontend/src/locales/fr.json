@@ -310,5 +310,17 @@
     "showTranslation": "Afficher la traduction",
     "correct": "Correct",
     "incorrect": "Incorrect"
+  },
+  "placement": {
+    "title": "Test de niveau rapide",
+    "intro": "Répondez à 8 questions en choisissant le bon sens. Cela définit votre point de départ et remplit les graphiques du tableau de bord avec des données réelles.",
+    "loading": "Chargement des questions…",
+    "loadError": "Impossible de charger les questions.",
+    "submitError": "Impossible d'enregistrer les résultats. Réessayez.",
+    "retry": "Réessayer",
+    "pickMeaning": "Choisissez la définition qui correspond le mieux au mot.",
+    "progress": "Question {current} sur {total}",
+    "saving": "Enregistrement…",
+    "needLogin": "Connectez-vous pour continuer."
   }
 }

@@ -1,5 +1,6 @@
 import os
 import re
+import random
 import base64
 import asyncio
 import time
@@ -153,6 +154,15 @@ class UpdateProgressRequest(BaseModel):
     correct: bool
 
 
+class PlacementAnswerIn(BaseModel):
+    vocabulary_id: int
+    selected_option: str = Field(..., max_length=8000)
+
+
+class PlacementSubmitRequest(BaseModel):
+    answers: list[PlacementAnswerIn]
+
+
 class ReadingCompleteRequest(BaseModel):
     categoryId: int
     readingIndex: int
@@ -175,6 +185,9 @@ class ContactMessageRequest(BaseModel):
 
 
 POINTS_PER_READING = 15
+POINTS_PER_CORRECT = 5
+POINTS_WORD_LEARNED = 20  # Bonus when word reaches Learned (4) or Known (5)
+PLACEMENT_QUESTION_COUNT = 8
 
 # Simple rate limit for public contact endpoint (IP -> list of unix times)
 _contact_rate: dict[str, list[float]] = {}
@@ -624,12 +637,20 @@ async def cognito_sync_profile(
 
     existing_by_sub = _execute_query_one(conn, "SELECT user_id FROM users WHERE cognito_sub = %s", (cognito_sub,))
     if existing_by_sub:
-        return {"message": "Profile already synced", "userId": existing_by_sub["user_id"]}
+        return {
+            "message": "Profile already synced",
+            "userId": existing_by_sub["user_id"],
+            "isNewUser": False,
+        }
 
     existing_by_email = _execute_query_one(conn, "SELECT user_id FROM users WHERE email = %s", (email,))
     if existing_by_email:
         _execute_query(conn, "UPDATE users SET cognito_sub = %s WHERE user_id = %s", (cognito_sub, existing_by_email["user_id"]))
-        return {"message": "Profile linked to Cognito", "userId": existing_by_email["user_id"]}
+        return {
+            "message": "Profile linked to Cognito",
+            "userId": existing_by_email["user_id"],
+            "isNewUser": False,
+        }
 
     rows = _execute_query(
         conn,
@@ -651,7 +672,7 @@ async def cognito_sync_profile(
         ),
     )
     user_id = rows[0]["user_id"] if rows else None
-    return {"message": "Profile synced", "userId": user_id}
+    return {"message": "Profile synced", "userId": user_id, "isNewUser": True}
 
 
 @app.get("/languages")
@@ -918,10 +939,75 @@ async def get_image_url(
     raise HTTPException(404, "No image found for the word")
 
 
-def _calculate_next_review_date(familiarity_level_id: int) -> datetime:
-    now = datetime.utcnow()
+def _calculate_next_review_date(familiarity_level_id: int, base: datetime | None = None) -> datetime:
+    ref = base if base is not None else datetime.utcnow()
     days = {1: 1, 2: 2, 3: 5, 4: 7, 5: 14}.get(familiarity_level_id, 1)
-    return now + timedelta(days=days)
+    return ref + timedelta(days=days)
+
+
+def _norm_def(s: str | None) -> str:
+    if not s:
+        return ""
+    return " ".join(s.split()).strip().lower()
+
+
+def _apply_single_progress_update(
+    conn,
+    user_id: int,
+    word_id: int,
+    correct: bool,
+    *,
+    last_reviewed_at: datetime | None = None,
+) -> int:
+    """Upserts familiarity for one word like flashcard progress. Returns points earned."""
+    ref = last_reviewed_at if last_reviewed_at is not None else datetime.utcnow()
+    progress = _execute_query_one(
+        conn,
+        "SELECT familiarity_level_id, correct_answers, incorrect_answers FROM familiarity WHERE user_id = %s AND word_id = %s",
+        (user_id, word_id),
+    )
+    if not progress:
+        fid, ca, ia = 1, (1 if correct else 0), (0 if correct else 1)
+        next_date = _calculate_next_review_date(fid, base=ref)
+        _execute_query(
+            conn,
+            """INSERT INTO familiarity (user_id, word_id, familiarity_level_id, correct_answers, incorrect_answers, last_reviewed, next_review_date)
+               VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+            (user_id, word_id, fid, ca, ia, ref, next_date),
+        )
+        points_earned = POINTS_PER_CORRECT if correct else 0
+        if points_earned > 0:
+            _award_points(conn, user_id, points_earned)
+        return points_earned
+    fid = progress["familiarity_level_id"]
+    ca = progress["correct_answers"] + (1 if correct else 0)
+    ia = progress["incorrect_answers"] + (0 if correct else 1)
+    old_fid = fid
+    if correct:
+        if fid == 1 and ca >= 1:
+            fid = 2
+        elif fid == 2 and ca >= 3:
+            fid = 3
+        elif fid == 3 and ca >= 5:
+            fid = 4
+        elif fid == 4 and ca >= 7:
+            fid = 5
+    else:
+        if fid > 1:
+            fid = 2
+    next_date = _calculate_next_review_date(fid, base=ref)
+    _execute_query(
+        conn,
+        """UPDATE familiarity SET familiarity_level_id = %s, correct_answers = %s, incorrect_answers = %s, last_reviewed = %s, next_review_date = %s
+           WHERE user_id = %s AND word_id = %s""",
+        (fid, ca, ia, ref, next_date, user_id, word_id),
+    )
+    points_earned = POINTS_PER_CORRECT if correct else 0
+    if correct and fid >= 4 and old_fid < 4:
+        points_earned += POINTS_WORD_LEARNED
+    if points_earned > 0:
+        _award_points(conn, user_id, points_earned)
+    return points_earned
 
 
 def _award_points(conn, user_id: int, points: int):
@@ -978,63 +1064,125 @@ async def next_session(
     return [dict(r) for r in rows]
 
 
-POINTS_PER_CORRECT = 5
-POINTS_WORD_LEARNED = 20  # Bonus when word reaches Learned (4) or Known (5)
-
-
 @app.post("/api/update-progress")
 async def update_progress(
     req: UpdateProgressRequest,
     user: dict = Depends(get_current_user),
     conn=Depends(get_db),
 ):
-    progress = _execute_query_one(
-        conn,
-        "SELECT familiarity_level_id, correct_answers, incorrect_answers FROM familiarity WHERE user_id = %s AND word_id = %s",
-        (user["userId"], req.wordId),
-    )
-    if not progress:
-        fid, ca, ia = 1, (1 if req.correct else 0), (0 if req.correct else 1)
-        next_date = _calculate_next_review_date(fid)
-        _execute_query(
-            conn,
-            """INSERT INTO familiarity (user_id, word_id, familiarity_level_id, correct_answers, incorrect_answers, last_reviewed, next_review_date)
-               VALUES (%s, %s, %s, %s, %s, NOW(), %s)""",
-            (user["userId"], req.wordId, fid, ca, ia, next_date),
-        )
-        points_earned = POINTS_PER_CORRECT if req.correct else 0
-        if points_earned > 0:
-            _award_points(conn, user["userId"], points_earned)
-        return {"message": "Progress created successfully", "pointsEarned": points_earned}
-    fid = progress["familiarity_level_id"]
-    ca = progress["correct_answers"] + (1 if req.correct else 0)
-    ia = progress["incorrect_answers"] + (0 if req.correct else 1)
-    old_fid = fid
-    if req.correct:
-        if fid == 1 and ca >= 1:
-            fid = 2
-        elif fid == 2 and ca >= 3:
-            fid = 3
-        elif fid == 3 and ca >= 5:
-            fid = 4
-        elif fid == 4 and ca >= 7:
-            fid = 5
-    else:
-        if fid > 1:
-            fid = 2
-    next_date = _calculate_next_review_date(fid)
-    _execute_query(
-        conn,
-        """UPDATE familiarity SET familiarity_level_id = %s, correct_answers = %s, incorrect_answers = %s, last_reviewed = NOW(), next_review_date = %s
-           WHERE user_id = %s AND word_id = %s""",
-        (fid, ca, ia, next_date, user["userId"], req.wordId),
-    )
-    points_earned = POINTS_PER_CORRECT if req.correct else 0
-    if req.correct and fid >= 4 and old_fid < 4:
-        points_earned += POINTS_WORD_LEARNED
-    if points_earned > 0:
-        _award_points(conn, user["userId"], points_earned)
+    points_earned = _apply_single_progress_update(conn, user["userId"], req.wordId, req.correct)
     return {"message": "Progress updated successfully", "pointsEarned": points_earned}
+
+
+@app.get("/api/placement/status")
+async def placement_status(
+    user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    row = _execute_query_one(
+        conn,
+        "SELECT COUNT(*)::int AS c FROM familiarity WHERE user_id = %s",
+        (user["userId"],),
+    )
+    c = int(row["c"]) if row else 0
+    return {"needsPlacement": c == 0}
+
+
+@app.get("/api/placement/quiz")
+async def placement_quiz(
+    user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    count_row = _execute_query_one(
+        conn,
+        "SELECT COUNT(*)::int AS c FROM familiarity WHERE user_id = %s",
+        (user["userId"],),
+    )
+    if not count_row or int(count_row["c"]) > 0:
+        raise HTTPException(400, "Placement already completed")
+
+    rows = _execute_query(
+        conn,
+        """SELECT vocabulary_id, word, definition FROM vocabulary
+           WHERE definition IS NOT NULL AND TRIM(definition) <> ''
+           ORDER BY RANDOM() LIMIT %s""",
+        (PLACEMENT_QUESTION_COUNT,),
+    )
+    if len(rows) < PLACEMENT_QUESTION_COUNT:
+        raise HTTPException(503, "Not enough vocabulary for placement quiz")
+
+    questions: list[dict] = []
+    for r in rows:
+        vid = r["vocabulary_id"]
+        word = r["word"]
+        correct = (r["definition"] or "").strip()
+        wrong_pool = _execute_query(
+            conn,
+            """SELECT definition FROM vocabulary
+               WHERE vocabulary_id <> %s AND definition IS NOT NULL AND TRIM(definition) <> ''
+               ORDER BY RANDOM() LIMIT 40""",
+            (vid,),
+        )
+        wrongs: list[str] = []
+        seen = {_norm_def(correct)}
+        for w in wrong_pool:
+            d = (w["definition"] or "").strip()
+            nd = _norm_def(d)
+            if nd and nd not in seen:
+                wrongs.append(d)
+                seen.add(nd)
+            if len(wrongs) >= 3:
+                break
+        if len(wrongs) < 3:
+            raise HTTPException(503, "Not enough distractor definitions for placement quiz")
+        options = [correct] + wrongs[:3]
+        random.shuffle(options)
+        questions.append({"vocabularyId": int(vid), "word": word, "options": options})
+    return {"questions": questions}
+
+
+@app.post("/api/placement/submit")
+async def placement_submit(
+    req: PlacementSubmitRequest,
+    user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    if len(req.answers) != PLACEMENT_QUESTION_COUNT:
+        raise HTTPException(400, f"Expected {PLACEMENT_QUESTION_COUNT} answers")
+
+    count_row = _execute_query_one(
+        conn,
+        "SELECT COUNT(*)::int AS c FROM familiarity WHERE user_id = %s",
+        (user["userId"],),
+    )
+    if not count_row or int(count_row["c"]) > 0:
+        raise HTTPException(400, "Placement already completed")
+
+    seen_ids: set[int] = set()
+    correct_total = 0
+    for i, ans in enumerate(req.answers):
+        if ans.vocabulary_id in seen_ids:
+            raise HTTPException(400, "Duplicate vocabulary_id in answers")
+        seen_ids.add(ans.vocabulary_id)
+        row = _execute_query_one(
+            conn,
+            "SELECT definition FROM vocabulary WHERE vocabulary_id = %s",
+            (ans.vocabulary_id,),
+        )
+        if not row:
+            raise HTTPException(400, "Invalid vocabulary_id")
+        actual = (row["definition"] or "").strip()
+        ok = _norm_def(ans.selected_option) == _norm_def(actual)
+        if ok:
+            correct_total += 1
+        ref = datetime.utcnow() - timedelta(days=(i % 8))
+        _apply_single_progress_update(conn, user["userId"], ans.vocabulary_id, ok, last_reviewed_at=ref)
+
+    return {
+        "message": "Placement recorded",
+        "correctCount": correct_total,
+        "questionCount": PLACEMENT_QUESTION_COUNT,
+    }
 
 
 @app.get("/api/daily-words/{category_id}")

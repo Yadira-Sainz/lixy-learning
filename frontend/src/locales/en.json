@@ -310,5 +310,17 @@
     "showTranslation": "Show translation",
     "correct": "Correct",
     "incorrect": "Incorrect"
+  },
+  "placement": {
+    "title": "Quick level check",
+    "intro": "Answer 8 questions by picking the correct meaning. This sets your starting point and fills dashboard charts with real data.",
+    "loading": "Loading questions…",
+    "loadError": "Could not load questions.",
+    "submitError": "Could not save your results. Please try again.",
+    "retry": "Retry",
+    "pickMeaning": "Pick the definition that best matches the word.",
+    "progress": "Question {current} of {total}",
+    "saving": "Saving…",
+    "needLogin": "Log in to continue."
   }
 }
