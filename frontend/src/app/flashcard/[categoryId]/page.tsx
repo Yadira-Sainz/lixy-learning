@@ -79,11 +79,22 @@ const FlashcardComponent: React.FC = () => {
     }
   }, [categoryId]);  
 
-  const fetchImageUrl = async (word: string): Promise<string> => {
+  const fetchImageUrl = async (
+    word: string,
+    definition?: string,
+    vocabularyId?: number
+  ): Promise<string> => {
     try {
       const token = localStorage.getItem('token');
+      const body: { word: string; definition?: string; vocabulary_id?: number } = {
+        word,
+        definition: definition?.trim() || undefined,
+      };
+      if (vocabularyId != null) {
+        body.vocabulary_id = vocabularyId;
+      }
       const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/get-image-url`, 
-        { word }, 
+        body,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -98,15 +109,18 @@ const FlashcardComponent: React.FC = () => {
   useEffect(() => {
     if (flashcards.length > 0) {
       console.log(flashcards);    
-      const currentWord = flashcards[currentCardIndex]?.sentence[0]?.word;
+      const card = flashcards[currentCardIndex]?.sentence[0];
+      const currentWord = card?.word;
       console.log(currentWord);
       if (currentWord) {
         setShowTranslation(getIncludeTranslation()); // Reset visibility según config al cambiar de tarjeta
         setGeneratedSentence(null);
         setTranslatedSentence(null);
         generateSentence(currentWord); // Automatically generate sentence
-        // Fetch the image for the current word
-        fetchImageUrl(currentWord).then((imageUrl) => setCurrentImageUrl(imageUrl)); // Fetch and set the image URL for the current word
+        // vocabulary_id distingue la misma palabra con distinta definición (imagen por fila)
+        fetchImageUrl(currentWord, card?.definition, card?.vocabulary_id).then((imageUrl) =>
+          setCurrentImageUrl(imageUrl)
+        );
       }
     }
   }, [currentCardIndex, flashcards]);
@@ -226,9 +240,14 @@ const handleCloseModal = () => {
 
   
   const highlightWordInSentence = (sentence: string, word: string, definition: string) => {
-    const regex = new RegExp(`(${word})`, 'gi');
+    if (!word) {
+      return sentence;
+    }
+    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`(${escaped})`, "gi");
+    const wLower = word.toLowerCase();
     return sentence.split(regex).map((part, index) =>
-      regex.test(part) ? (
+      part.toLowerCase() === wLower ? (
         <Tooltip key={index}>
           <TooltipTrigger>
             <strong className="text-blue-600 cursor-pointer">{part}</strong>
@@ -237,7 +256,9 @@ const handleCloseModal = () => {
             <p>{definition}</p>
           </TooltipContent>
         </Tooltip>
-      ) : part
+      ) : (
+        part
+      )
     );
   };
 
