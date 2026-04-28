@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocale } from '@/contexts/locale-context';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from 'next/navigation';
 import { CollectionCategoryCard } from "@/components/collection-category-card";
@@ -205,9 +205,12 @@ export function FlashcardCenter() {
               {recentSets.slice(recentIndex, recentIndex + setsToShow).map((set) => (
                 <Card
                   key={set.id}
-                  className="h-48 cursor-pointer transition-shadow hover:shadow-md"
+                  className="relative h-48 cursor-pointer transition-shadow hover:shadow-md"
                   onClick={() => handleRecentCardClick(set)}
                 >
+                  <span className="absolute right-4 top-4 inline-flex h-6 w-6 items-center justify-center rounded-full border border-primary/40 bg-background text-primary">
+                    <Sparkles className="h-3.5 w-3.5" />
+                  </span>
                   <CardHeader>
                     <CardTitle>{"titleKey" in set && set.titleKey ? t(set.titleKey) : "title" in set ? set.title : ""}</CardTitle>
                   </CardHeader>
