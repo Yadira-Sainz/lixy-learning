@@ -282,7 +282,8 @@
     "hideHighlights": "Masquer les surlignages",
     "showHighlights": "Afficher les surlignages",
     "playAudio": "Lire l'audio",
-    "nextPage": "Page suivante"
+    "nextPage": "Page suivante",
+    "goToQuiz": "Aller au questionnaire"
   },
   "modal": {
     "congrats": "Félicitations !",

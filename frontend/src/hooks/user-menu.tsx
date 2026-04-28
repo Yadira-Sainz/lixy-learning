@@ -72,8 +72,8 @@ export default function UserMenu() {
       <img
         src={profileImageUrl}
         alt=""
-        className="rounded-full object-cover w-full h-full"
-        style={{ width: size, height: size }}
+        className="rounded-full object-cover w-full h-full filter-none"
+        style={{ width: size, height: size, filter: "none" }}
         onError={() => setImgError(true)}
       />
     ) : (
@@ -86,13 +86,13 @@ export default function UserMenu() {
     );
 
   const userAvatar = (
-    <span className="inline-flex shrink-0 overflow-hidden rounded-full" style={{ width: 36, height: 36 }} aria-hidden>
+    <span className="inline-flex shrink-0 overflow-hidden rounded-full bg-white" style={{ width: 36, height: 36 }} aria-hidden>
       {avatarContent(36, 'text-sm')}
     </span>
   );
 
   const userAvatarLarge = (
-    <span className="inline-flex shrink-0 overflow-hidden rounded-full" style={{ width: 48, height: 48 }} aria-hidden>
+    <span className="inline-flex shrink-0 overflow-hidden rounded-full bg-white" style={{ width: 48, height: 48 }} aria-hidden>
       {avatarContent(48, 'text-base')}
     </span>
   );

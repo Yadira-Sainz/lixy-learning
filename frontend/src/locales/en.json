@@ -282,7 +282,8 @@
     "hideHighlights": "Hide Highlights",
     "showHighlights": "Show Highlights",
     "playAudio": "Play Audio",
-    "nextPage": "Next Page"
+    "nextPage": "Next Page",
+    "goToQuiz": "Go to quiz"
   },
   "modal": {
     "congrats": "Congratulations!",
