@@ -1508,6 +1508,26 @@ async def get_dashboard_weak_words(
     return [{"word": r["word"], "translation": r["definition"] or r["word"]} for r in rows]
 
 
+@app.get("/api/dashboard/weak-category")
+async def get_dashboard_weak_category(
+    user: dict = Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    """Returns the category with weakest overall user performance."""
+    row = _execute_query_one(
+        conn,
+        """SELECT v.category_id
+           FROM vocabulary v
+           JOIN familiarity f ON v.vocabulary_id = f.word_id
+           WHERE f.user_id = %s
+           GROUP BY v.category_id
+           ORDER BY SUM(f.incorrect_answers) DESC, AVG(f.familiarity_level_id) ASC, v.category_id ASC
+           LIMIT 1""",
+        (user["userId"],),
+    )
+    return {"categoryId": int(row["category_id"]) if row else None}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=5000, reload=True)
