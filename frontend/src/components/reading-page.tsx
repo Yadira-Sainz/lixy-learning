@@ -49,6 +49,14 @@ export default function ReadingPage() {
     
     console.log('Received params:', { categoryId: catId, readingIndex: readingIdx })
     
+    // Reset previous generated data when opening a different reading.
+    setGeneratedStory(null)
+    setQuizQuestions([])
+    setQuizAnswers({})
+    setQuizSubmitted(false)
+    setError(null)
+    setIsLoading(true)
+
     setCategoryId(catId)
     setReadingIndex(readingIdx ? parseInt(readingIdx) : 0)
     setReadingMode(mode === "weak" ? "weak" : "default")
@@ -64,12 +72,12 @@ export default function ReadingPage() {
   }, [searchParams])
 
   useEffect(() => {
-    if (vocabulary.length > 0 && token && categoryId) {
+    if (vocabulary.length > 0 && token && categoryId && !generatedStory) {
       generateStory()
     } else if (!isLoading && vocabulary.length === 0) {
       setError('No vocabulary found for this category')
     }
-  }, [vocabulary, token, categoryId, isLoading])
+  }, [vocabulary, token, categoryId, generatedStory, readingIndex, readingMode])
 
   const fetchVocabulary = async (categoryId: string, token: string) => {
     try {
