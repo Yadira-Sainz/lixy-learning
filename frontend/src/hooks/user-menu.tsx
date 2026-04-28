@@ -103,6 +103,7 @@ export default function UserMenu() {
         <Button
           variant="ghost"
           size="icon"
+          data-tour="user-menu-trigger"
           className="relative shrink-0 rounded-full p-0 ring-2 ring-primary/30 hover:ring-primary/60 hover:bg-accent transition-all focus-visible:ring-primary"
           style={{ width: 36, height: 36, minWidth: 36, minHeight: 36 }}
           aria-label={t('userMenu.profile')}

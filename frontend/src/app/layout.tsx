@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import NavbarComponent from '@/components/navbar';
+import { UnifiedOnboardingTour } from '@/components/unified-onboarding-tour';
 import FooterComponent from "@/components/footer";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LocaleProvider } from "@/contexts/locale-context";
@@ -28,6 +29,7 @@ export default function RootLayout({
           <LocaleProvider>
             <InactivityLogout />
             <NavbarComponent />
+            <UnifiedOnboardingTour />
             <main className="flex-grow pt-safe">{children}</main>
             <FooterComponent />
           </LocaleProvider>

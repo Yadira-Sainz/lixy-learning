@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { CollectionCategoryCard } from "@/components/collection-category-card"
-
 const recentSets = [
   { id: 1, titleKey: "readingCenter.reinforceWeak" },
   { id: 2, titleKey: null, readingNum: 1 },
@@ -54,6 +53,9 @@ export function ReadingCenterComponent() {
       setError(err instanceof Error ? err.message : 'An error occurred while fetching categories');
     } finally {
       setIsLoading(false);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('lixy-tour-resync-anchor'))
+      }
     }
   };
 
@@ -78,7 +80,7 @@ export function ReadingCenterComponent() {
   return (
     <section id="centro-de-lectura">
       <div className="container mx-auto p-4 space-y-8">
-        <section>
+        <section data-tour="rc-recent">
           <h2 className="text-3xl font-bold mb-4">{t('readingCenter.recent')}</h2>
           <div className="relative">
             <div className="flex items-center">
@@ -128,7 +130,7 @@ export function ReadingCenterComponent() {
           </div>
         </section>
         
-        <section>
+        <section data-tour="rc-categories">
           <h2 className="text-3xl font-bold mb-4">{t('readingCenter.collection')}</h2>
           {isLoading ? (
             <p>{t('readingCenter.loadingCategories')}</p>

@@ -22,6 +22,7 @@ import {
   signUp as cognitoSignUp,
   confirmSignUp,
 } from "@/lib/cognito"
+import { applyLearningDefaultsForNewAccount } from '@/lib/config'
 
 interface Language {
   language_id: number
@@ -199,6 +200,7 @@ export default function AuthPageComponent() {
           learning_language: learningLanguage,
         })
         localStorage.setItem('token', response.data.token)
+        applyLearningDefaultsForNewAccount()
         window.dispatchEvent(new CustomEvent('auth-change', { detail: { loggedIn: true } }))
         router.push('/tablero')
       }
@@ -220,7 +222,7 @@ export default function AuthPageComponent() {
     try {
       await confirmSignUp(email, verificationCode.trim())
       const idToken = await cognitoSignIn(email, password)
-      await axios.post(
+      const syncRes = await axios.post(
         process.env.NEXT_PUBLIC_BACKEND_URL + '/api/cognito/sync-profile',
         {
           username: pendingSignupData.username,
@@ -234,6 +236,9 @@ export default function AuthPageComponent() {
         },
         { headers: { Authorization: `Bearer ${idToken}` } }
       )
+      if (syncRes.data?.isNewUser === true) {
+        applyLearningDefaultsForNewAccount()
+      }
       localStorage.setItem('token', idToken)
       window.dispatchEvent(new CustomEvent('auth-change', { detail: { loggedIn: true } }))
       router.push('/tablero')

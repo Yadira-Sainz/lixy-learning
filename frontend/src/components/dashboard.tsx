@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress"
 import { Trophy, Flame, Star, Award, Zap, BookOpen } from 'lucide-react'
 import { getDailyGoal } from '@/lib/config'
 import { Skeleton } from "@/components/ui/skeleton"
+import { PlacementQuizModal } from '@/components/placement-quiz-modal'
 
 const DifficultyChart = dynamic(
   () => import('./dashboard-charts').then((m) => m.DifficultyChart),
@@ -77,6 +78,8 @@ export function DashboardComponent() {
     sun: number;
   } | null>(null);
   const [weakWords, setWeakWords] = useState<{ word: string; translation: string }[]>([]);
+  const [dashboardVersion, setDashboardVersion] = useState(0);
+  const [placementOpen, setPlacementOpen] = useState(false);
 
   const fetchStreakDates = async () => {
     const token = localStorage.getItem('token');
@@ -141,6 +144,21 @@ export function DashboardComponent() {
       return;
     }
     setIsLoading(true);
+    const base = process.env.NEXT_PUBLIC_BACKEND_URL ?? '';
+    (async () => {
+      try {
+        const statusRes = await fetch(`${base}/api/placement/status`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (statusRes.ok) {
+          const statusJson = (await statusRes.json()) as { needsPlacement?: boolean };
+          setPlacementOpen(!!statusJson.needsPlacement);
+        }
+      } catch {
+        setPlacementOpen(false);
+      }
+    })();
+
     Promise.all([
       fetchStreakDates().catch(err => { console.error("Error fetching streaks:", err); return []; }),
       fetchGamification().catch(() => null),
@@ -156,10 +174,18 @@ export function DashboardComponent() {
       setProgress(prog);
       setWeakWords(weak);
     }).finally(() => setIsLoading(false));
-  }, []);
+  }, [dashboardVersion]);
   
-  if (isLoading) {
-    return (
+  return (
+    <>
+    <PlacementQuizModal
+      open={placementOpen}
+      onCompleted={() => {
+        setPlacementOpen(false);
+        setDashboardVersion((v) => v + 1);
+      }}
+    />
+    {isLoading ? (
       <section id="tablero">
         <div className="p-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -177,10 +203,7 @@ export function DashboardComponent() {
           </div>
         </div>
       </section>
-    );
-  }
-
-  return (
+    ) : (
     <section id="tablero">
       <div className="p-4">
       {/* Gamificación: puntos y medallas */}
@@ -416,6 +439,8 @@ export function DashboardComponent() {
       </div>
     </div>
     </section>
+    )}
+    </>
   )
 }
 
