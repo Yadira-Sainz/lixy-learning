@@ -2,6 +2,7 @@ const CONFIG_STORAGE_KEY = 'lixy-config'
 
 export const DEFAULT_DAILY_GOAL = 10
 export const DEFAULT_CARDS_PER_SESSION = 20
+export const DEFAULT_INCLUDE_TRANSLATION = false
 
 export interface StoredConfig {
   dailyGoal?: string
@@ -16,6 +17,24 @@ export function getStoredConfig(): StoredConfig | null {
     return stored ? JSON.parse(stored) : null
   } catch {
     return null
+  }
+}
+
+/** Old saves omitted includeTranslation; persist explicit default so UI and flashcards stay aligned. */
+export function normalizeStoredConfigIncludeTranslation(): void {
+  if (typeof window === 'undefined') return
+  try {
+    const raw = localStorage.getItem(CONFIG_STORAGE_KEY)
+    if (!raw) return
+    const parsed = JSON.parse(raw) as StoredConfig
+    if (typeof parsed.includeTranslation === 'boolean') return
+    const next: StoredConfig = {
+      ...parsed,
+      includeTranslation: DEFAULT_INCLUDE_TRANSLATION,
+    }
+    localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(next))
+  } catch {
+    /* ignore */
   }
 }
 
@@ -41,30 +60,49 @@ export function getCardsPerSession(): number {
 
 export function getIncludeTranslation(): boolean {
   const config = getStoredConfig()
-  return config?.includeTranslation ?? true
+  return config?.includeTranslation ?? DEFAULT_INCLUDE_TRANSLATION
 }
 
-/** Writes default daily streak goal and cards per session; keeps includeTranslation if already set. */
+/**
+ * Initializes learning-related localStorage for a newly created account.
+ * Always uses app defaults (including translation off); does not reuse any
+ * previous `lixy-config` from the same browser (e.g. another user or session).
+ */
 export function applyLearningDefaultsForNewAccount(): void {
   if (typeof window === 'undefined') return
-  let includeTranslation = true
-  try {
-    const stored = localStorage.getItem(CONFIG_STORAGE_KEY)
-    if (stored) {
-      const parsed = JSON.parse(stored) as StoredConfig
-      if (typeof parsed?.includeTranslation === 'boolean') {
-        includeTranslation = parsed.includeTranslation
-      }
-    }
-  } catch {
-    /* ignore */
-  }
   localStorage.setItem(
     CONFIG_STORAGE_KEY,
     JSON.stringify({
       dailyGoal: String(DEFAULT_DAILY_GOAL),
       cardsPerSession: String(DEFAULT_CARDS_PER_SESSION),
-      includeTranslation,
+      includeTranslation: DEFAULT_INCLUDE_TRANSLATION,
     })
   )
+}
+
+/**
+ * Runs when the placement quiz finishes and the unified tour is queued.
+ * DB-only resets (SQL) never clear browser `lixy-config`, so we persist
+ * “include translation” off here so it matches a fresh learner UX.
+ * Preserves daily goal / cards if already stored.
+ */
+export function ensureIncludeTranslationDefaultAfterPlacement(): void {
+  if (typeof window === 'undefined') return
+  try {
+    const existing = getStoredConfig()
+    const next: StoredConfig = {
+      dailyGoal:
+        existing?.dailyGoal != null && String(existing.dailyGoal).trim() !== ''
+          ? String(existing.dailyGoal)
+          : String(DEFAULT_DAILY_GOAL),
+      cardsPerSession:
+        existing?.cardsPerSession != null && String(existing.cardsPerSession).trim() !== ''
+          ? String(existing.cardsPerSession)
+          : String(DEFAULT_CARDS_PER_SESSION),
+      includeTranslation: DEFAULT_INCLUDE_TRANSLATION,
+    }
+    localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(next))
+  } catch {
+    /* ignore */
+  }
 }

@@ -1010,6 +1010,27 @@ def _apply_single_progress_update(
     return points_earned
 
 
+def _apply_placement_incorrect_dispersed(
+    conn,
+    user_id: int,
+    word_id: int,
+    placement_order_index: int,
+    last_reviewed_at: datetime,
+) -> None:
+    """
+    Placement exam only: wrong first answer seeds familiarity in levels 3–5 (medium/hard on
+    the dashboard chart), rotating by question index so incorrects are not all bucketed as easy.
+    """
+    fid = 3 + (placement_order_index % 3)
+    next_date = _calculate_next_review_date(fid, base=last_reviewed_at)
+    _execute_query(
+        conn,
+        """INSERT INTO familiarity (user_id, word_id, familiarity_level_id, correct_answers, incorrect_answers, last_reviewed, next_review_date)
+           VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+        (user_id, word_id, fid, 0, 1, last_reviewed_at, next_date),
+    )
+
+
 def _award_points(conn, user_id: int, points: int):
     try:
         _execute_query(
@@ -1173,10 +1194,12 @@ async def placement_submit(
             raise HTTPException(400, "Invalid vocabulary_id")
         actual = (row["definition"] or "").strip()
         ok = _norm_def(ans.selected_option) == _norm_def(actual)
+        ref = datetime.utcnow() - timedelta(days=(i % 8))
         if ok:
             correct_total += 1
-        ref = datetime.utcnow() - timedelta(days=(i % 8))
-        _apply_single_progress_update(conn, user["userId"], ans.vocabulary_id, ok, last_reviewed_at=ref)
+            _apply_single_progress_update(conn, user["userId"], ans.vocabulary_id, True, last_reviewed_at=ref)
+        else:
+            _apply_placement_incorrect_dispersed(conn, user["userId"], ans.vocabulary_id, i, ref)
 
     return {
         "message": "Placement recorded",

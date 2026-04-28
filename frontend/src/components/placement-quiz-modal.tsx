@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { markUnifiedOnboardingAfterPlacement } from '@/lib/unified-onboarding-storage'
 
 export type PlacementQuestion = {
   vocabularyId: number
@@ -84,7 +85,11 @@ export function PlacementQuizModal({ open, onCompleted }: Props) {
           { answers: next },
           { headers: { Authorization: `Bearer ${token}` } }
         )
+        markUnifiedOnboardingAfterPlacement()
         onCompleted()
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('lixy-unified-onboarding'))
+        }
       } catch (e: unknown) {
         setError(
           axios.isAxiosError(e)

@@ -8,7 +8,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { DEFAULT_DAILY_GOAL, DEFAULT_CARDS_PER_SESSION } from '@/lib/config'
+import {
+  DEFAULT_CARDS_PER_SESSION,
+  DEFAULT_DAILY_GOAL,
+  DEFAULT_INCLUDE_TRANSLATION,
+  normalizeStoredConfigIncludeTranslation,
+} from '@/lib/config'
 
 const sections = [
   { id: 'general', titleKey: 'config.general' },
@@ -44,7 +49,9 @@ export default function ConfigurationPageComponent() {
   const [pendingLocale, setPendingLocale] = useState<string>('es')
   const [pendingDailyGoal, setPendingDailyGoal] = useState(String(DEFAULT_DAILY_GOAL))
   const [pendingCardsPerSession, setPendingCardsPerSession] = useState(String(DEFAULT_CARDS_PER_SESSION))
-  const [pendingIncludeTranslation, setPendingIncludeTranslation] = useState(true)
+  const [pendingIncludeTranslation, setPendingIncludeTranslation] = useState(
+    DEFAULT_INCLUDE_TRANSLATION
+  )
   const [saveFeedback, setSaveFeedback] = useState(false)
 
   useEffect(() => {
@@ -56,11 +63,16 @@ export default function ConfigurationPageComponent() {
     if (!mounted) return
     setPendingTheme(theme ?? 'system')
     setPendingLocale(locale)
+    normalizeStoredConfigIncludeTranslation()
     const stored = loadStoredConfig()
     if (stored) {
       if (stored.dailyGoal != null) setPendingDailyGoal(String(stored.dailyGoal))
       if (stored.cardsPerSession != null) setPendingCardsPerSession(String(stored.cardsPerSession))
-      if (stored.includeTranslation != null) setPendingIncludeTranslation(stored.includeTranslation)
+      setPendingIncludeTranslation(
+        typeof stored.includeTranslation === 'boolean'
+          ? stored.includeTranslation
+          : DEFAULT_INCLUDE_TRANSLATION
+      )
     }
   }, [mounted, theme, locale])
 
@@ -93,7 +105,7 @@ export default function ConfigurationPageComponent() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6 flex">
+    <div className="min-h-screen bg-background p-6 flex" data-tour="settings-content">
       {/* Navigation sidebar */}
       <nav className="w-64 pr-6 hidden md:block">
         <ul className="space-y-2 fixed">
