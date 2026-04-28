@@ -219,8 +219,13 @@ export default function ProfileSectionComponent() {
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-col md:flex-row gap-8">
             <div className="w-full md:w-1/3 mb-6 md:mb-0">
-              <div className="aspect-square bg-gray-200 rounded-lg overflow-hidden mb-4 max-w-[300px] mx-auto">
-                <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+              <div className="aspect-square bg-white rounded-lg overflow-hidden mb-4 max-w-[300px] mx-auto">
+                <img
+                  src={profileImage}
+                  alt="Profile"
+                  className="w-full h-full object-cover filter-none"
+                  style={{ filter: "none" }}
+                />
               </div>
               <Label htmlFor="profile-image" className="cursor-pointer block text-center">
                 <div className="bg-background text-foreground border rounded-full py-2 px-4 inline-block">
