@@ -267,7 +267,7 @@ export default function ReadingPage() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <span 
-                  className="cursor-pointer px-1 rounded bg-yellow-200"
+                  className="cursor-pointer rounded px-1 font-medium bg-yellow-200 text-yellow-900 hover:bg-yellow-300 dark:bg-yellow-300 dark:text-yellow-950 dark:hover:bg-yellow-400"
                   onClick={() => handleWordClick(highlightInfo)}
                 >
                   {word}
