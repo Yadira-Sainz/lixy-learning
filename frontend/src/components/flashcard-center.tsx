@@ -8,7 +8,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from 'next/navigation';
 import { CollectionCategoryCard } from "@/components/collection-category-card";
-
 const recentSets = [
   { id: 1, titleKey: "flashcardCenter.reinforceWeak" },
   { id: 2, title: "Set 1" },
@@ -85,6 +84,9 @@ export function FlashcardCenter() {
       }
     } finally {
       setIsLoading(false);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('lixy-tour-resync-anchor'));
+      }
     }
   };
 
@@ -135,7 +137,7 @@ export function FlashcardCenter() {
     <section id="centro-de-flashcards">
       <div className="container mx-auto p-4 space-y-8">
         
-      <section>
+      <section data-tour="fc-recent">
         <h2 className="text-3xl font-bold mb-4">{t('flashcardCenter.recent')}</h2>
         <div className="relative">
           <div className="flex items-center">
@@ -183,7 +185,7 @@ export function FlashcardCenter() {
         </div>
       </section>
 
-        <section>
+        <section data-tour="fc-categories">
           <h2 className="text-3xl font-bold mb-4">{t('flashcardCenter.collection')}</h2>
           {isLoading ? (
             <div className="grid md:grid-cols-3 gap-4">
@@ -192,17 +194,17 @@ export function FlashcardCenter() {
               ))}
             </div>
           ) : (
-          <div className="grid md:grid-cols-3 gap-4">
-            {categories.map((category) => (
-              <CollectionCategoryCard
-                key={category.category_id}
-                categoryId={category.category_id}
-                categoryName={category.category_name}
-                hint={t('flashcardCenter.clickToViewCategory')}
-                onClick={() => handleCategoryClick(category.category_id)}
-              />
-            ))}
-          </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              {categories.map((category) => (
+                <CollectionCategoryCard
+                  key={category.category_id}
+                  categoryId={category.category_id}
+                  categoryName={category.category_name}
+                  hint={t('flashcardCenter.clickToViewCategory')}
+                  onClick={() => handleCategoryClick(category.category_id)}
+                />
+              ))}
+            </div>
           )}
         </section>
 

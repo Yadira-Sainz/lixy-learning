@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import axios from "axios";
 import { decodeIdTokenPayload } from "@/lib/cognito";
 import { useLocale } from "@/contexts/locale-context";
+import { applyLearningDefaultsForNewAccount } from "@/lib/config";
 
 function generateUsername(email: string) {
   const base = email.split("@")[0] || "user";
@@ -148,7 +149,7 @@ export default function CallbackContent() {
         const learningLanguage = languages[1]?.language_id ?? nativeLanguage;
 
         try {
-          await axios.post(
+          const syncRes = await axios.post(
             `${backend}/api/cognito/sync-profile`,
             {
               username,
@@ -159,6 +160,9 @@ export default function CallbackContent() {
             },
             { headers: { Authorization: `Bearer ${idToken}` } }
           );
+          if (syncRes.data?.isNewUser === true) {
+            applyLearningDefaultsForNewAccount();
+          }
         } catch (e: unknown) {
           if (axios.isAxiosError(e)) {
             throw new Error(formatOAuthError(e, t("auth.oauthFailed")));

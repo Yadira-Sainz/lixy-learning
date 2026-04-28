@@ -55,7 +55,31 @@ const config: Config = {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
-  		}
+  		},
+  		keyframes: {
+  			tourCardIn: {
+  				'0%': { opacity: '0', transform: 'translateY(14px) scale(0.96)' },
+  				'100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+  			},
+  			tourIntroIn: {
+  				'0%': { opacity: '0', transform: 'scale(0.94)' },
+  				'100%': { opacity: '1', transform: 'scale(1)' },
+  			},
+  			tourHotspotBob: {
+  				'0%, 100%': { transform: 'translate(-50%, 0)' },
+  				'50%': { transform: 'translate(-50%, -8px)' },
+  			},
+  			tourBackdropPulse: {
+  				'0%, 100%': { opacity: '1' },
+  				'50%': { opacity: '0.88' },
+  			},
+  		},
+  		animation: {
+  			'tour-card-in': 'tourCardIn 0.48s cubic-bezier(0.22, 1, 0.36, 1) both',
+  			'tour-intro-in': 'tourIntroIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both',
+  			'tour-hotspot-bob': 'tourHotspotBob 1.65s ease-in-out infinite',
+  			'tour-backdrop-pulse': 'tourBackdropPulse 2.4s ease-in-out infinite',
+  		},
   	}
   },
   plugins: [require("tailwindcss-animate")],
