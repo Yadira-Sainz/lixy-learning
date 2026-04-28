@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useLocale } from '@/contexts/locale-context'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, BookOpen } from "lucide-react"
 import { CollectionCategoryCard } from "@/components/collection-category-card"
 const recentSets = [
   { id: 1, titleKey: "readingCenter.reinforceWeak", mode: "weak" as const },
@@ -155,9 +155,12 @@ export function ReadingCenterComponent() {
                 {recentSets.slice(currentIndex, currentIndex + setsToShow).map((set) => (
                   <Card
                     key={set.id}
-                    className="h-48 cursor-pointer transition-shadow hover:shadow-md"
+                    className="relative h-48 cursor-pointer transition-shadow hover:shadow-md"
                     onClick={() => handleRecentCardClick(set)}
                   >
+                    <span className="absolute right-4 top-4 inline-flex h-6 w-6 items-center justify-center rounded-full border border-primary/40 bg-background text-primary">
+                      <BookOpen className="h-3.5 w-3.5" />
+                    </span>
                     <CardHeader>
                       <CardTitle>
                         {set.titleKey ? t(set.titleKey) : `${t('readingCenter.reading')} ${(set as { readingNum: number }).readingNum}`}
