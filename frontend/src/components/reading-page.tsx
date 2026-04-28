@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { PlayIcon, EyeOffIcon, ChevronRightIcon } from 'lucide-react'
+import { PlayIcon, EyeOffIcon, ClipboardList } from 'lucide-react'
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 
@@ -26,6 +26,7 @@ export default function ReadingPage() {
   const searchParams = useSearchParams()
   const [categoryId, setCategoryId] = useState<string | null>(null)
   const [readingIndex, setReadingIndex] = useState<number>(0)
+  const [readingMode, setReadingMode] = useState<"default" | "weak">("default")
   const [vocabulary, setVocabulary] = useState<Word[]>([])
   const [generatedStory, setGeneratedStory] = useState<{ title: string; content: string } | null>(null)
   const [highlightsVisible, setHighlightsVisible] = useState(true)
@@ -36,7 +37,9 @@ export default function ReadingPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [sideTab, setSideTab] = useState<'words' | 'quiz'>('words')
   const audioRef = useRef<HTMLAudioElement>(null)
+  const sidePanelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const storedToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -44,13 +47,26 @@ export default function ReadingPage() {
 
     const catId = searchParams.get('categoryId')
     const readingIdx = searchParams.get('readingIndex')
+    const mode = searchParams.get('mode')
     
     console.log('Received params:', { categoryId: catId, readingIndex: readingIdx })
     
+    // Reset previous generated data when opening a different reading.
+    setGeneratedStory(null)
+    setQuizQuestions([])
+    setQuizAnswers({})
+    setQuizSubmitted(false)
+    setError(null)
+    setIsLoading(true)
+    setSideTab('words')
+
     setCategoryId(catId)
     setReadingIndex(readingIdx ? parseInt(readingIdx) : 0)
+    setReadingMode(mode === "weak" ? "weak" : "default")
 
-    if (catId && storedToken) {
+    if (storedToken && mode === "weak") {
+      fetchWeakVocabulary(storedToken, catId)
+    } else if (catId && storedToken) {
       fetchVocabulary(catId, storedToken)
     } else {
       setError('Missing categoryId or token')
@@ -59,12 +75,12 @@ export default function ReadingPage() {
   }, [searchParams])
 
   useEffect(() => {
-    if (vocabulary.length > 0 && token && categoryId) {
+    if (vocabulary.length > 0 && token && categoryId && !generatedStory) {
       generateStory()
     } else if (!isLoading && vocabulary.length === 0) {
       setError('No vocabulary found for this category')
     }
-  }, [vocabulary, token, categoryId, isLoading])
+  }, [vocabulary, token, categoryId, generatedStory, readingIndex, readingMode])
 
   const fetchVocabulary = async (categoryId: string, token: string) => {
     try {
@@ -97,6 +113,53 @@ export default function ReadingPage() {
     }
   }
 
+  const fetchWeakVocabulary = async (token: string, fallbackCategoryId: string | null) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/weak-words`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      if (response.ok) {
+        const data: Array<{ word: string; translation: string }> = await response.json()
+        if (Array.isArray(data) && data.length > 0) {
+          setVocabulary(
+            data.map((item, index) => ({
+              id: index + 1,
+              word: item.word,
+              definition: item.translation,
+            }))
+          )
+          return
+        }
+        setError('No weak words found yet. Practice flashcards first.')
+      } else {
+        setError('Failed to fetch weak words')
+      }
+    } catch (err) {
+      setError(`Error fetching weak words: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    } finally {
+      if (!fallbackCategoryId) {
+        setIsLoading(false)
+      }
+    }
+  }
+
+  const selectWordsForReading = (words: Word[], index: number): Word[] => {
+    if (!words.length) {
+      return []
+    }
+    const count = Math.min(5, words.length)
+    const start = ((index % words.length) + words.length) % words.length
+    const selected: Word[] = []
+    for (let i = 0; i < count; i++) {
+      selected.push(words[(start + i) % words.length])
+    }
+    return selected
+  }
+
   const generateStory = async () => {
     if (!token || !categoryId) {
       console.error('Missing token or categoryId')
@@ -104,7 +167,7 @@ export default function ReadingPage() {
       setIsLoading(false)
       return;
     }
-    const selectedWords = vocabulary.sort(() => 0.5 - Math.random()).slice(0, 5)
+    const selectedWords = selectWordsForReading(vocabulary, readingIndex)
     const words = selectedWords.map(w => w.word).join(',')
     try {
       console.log('Generating story with words:', words)
@@ -215,7 +278,7 @@ export default function ReadingPage() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <span 
-                  className="cursor-pointer px-1 rounded bg-yellow-200"
+                  className="cursor-pointer rounded px-1 font-medium bg-yellow-200 text-yellow-900 hover:bg-yellow-300 dark:bg-yellow-300 dark:text-yellow-950 dark:hover:bg-yellow-400"
                   onClick={() => handleWordClick(highlightInfo)}
                 >
                   {word}
@@ -301,19 +364,28 @@ export default function ReadingPage() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button aria-label="Next Page">
-                    <ChevronRightIcon className="h-4 w-4" />
+                  <Button
+                    type="button"
+                    aria-label={t('readingPage.goToQuiz')}
+                    onClick={() => {
+                      setSideTab('quiz')
+                      requestAnimationFrame(() => {
+                        sidePanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+                      })
+                    }}
+                  >
+                    <ClipboardList className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{t('readingPage.nextPage')}</p>
+                  <p>{t('readingPage.goToQuiz')}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
         </Card>
-        <Card className="w-full lg:w-1/3 p-4">
-          <Tabs defaultValue="words" className="w-full">
+        <Card ref={sidePanelRef} className="w-full lg:w-1/3 p-4">
+          <Tabs value={sideTab} onValueChange={(v) => setSideTab(v as 'words' | 'quiz')} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger 
                 value="words"

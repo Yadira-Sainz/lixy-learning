@@ -4,17 +4,17 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocale } from '@/contexts/locale-context';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from 'next/navigation';
 import { CollectionCategoryCard } from "@/components/collection-category-card";
 const recentSets = [
-  { id: 1, titleKey: "flashcardCenter.reinforceWeak" },
-  { id: 2, title: "Set 1" },
-  { id: 3, title: "Set 2" },
-  { id: 4, title: "Set 3" },
-  { id: 5, title: "Set 4" },
-  { id: 6, title: "Set 5" },
+  { id: 1, titleKey: "flashcardCenter.reinforceWeak", mode: "weak" as const },
+  { id: 2, title: "Set 1", setNumber: 1, mode: "set" as const },
+  { id: 3, title: "Set 2", setNumber: 2, mode: "set" as const },
+  { id: 4, title: "Set 3", setNumber: 3, mode: "set" as const },
+  { id: 5, title: "Set 4", setNumber: 4, mode: "set" as const },
+  { id: 6, title: "Set 5", setNumber: 5, mode: "set" as const },
 ]
 
 const collectionSets = [
@@ -44,6 +44,7 @@ interface Vocabulary {
 export function FlashcardCenter() {
   const { t } = useLocale();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [weakCategoryId, setWeakCategoryId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [vocabularySets, setVocabularySets] = useState<Record<number, Vocabulary[]>>({});
   const [currentCategory, setCurrentCategory] = useState<number | null>(null);
@@ -57,7 +58,57 @@ export function FlashcardCenter() {
 
   useEffect(() => {
     fetchCategories();
+    fetchWeakCategory();
   }, []);
+  const fetchWeakCategory = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return;
+    }
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/weak-category`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data: { categoryId?: number | null } = await response.json();
+        setWeakCategoryId(data.categoryId ?? null);
+      }
+    } catch (error) {
+      console.error("Failed to fetch weak category", error);
+    }
+  };
+
+  const getCategoryIdBySetNumber = (setNumber: number): number | null => {
+    if (!categories.length) {
+      return null;
+    }
+    const ordered = [...categories].sort((a, b) => a.category_id - b.category_id);
+    const byOrder = ordered[setNumber - 1]?.category_id;
+    if (byOrder != null) {
+      return byOrder;
+    }
+    const byExactId = ordered.find((c) => c.category_id === setNumber)?.category_id;
+    return byExactId ?? null;
+  };
+
+  const handleRecentCardClick = (set: (typeof recentSets)[number]) => {
+    if (set.mode === "weak") {
+      const fallbackCategoryId = categories[0]?.category_id ?? null;
+      const targetCategoryId = weakCategoryId ?? fallbackCategoryId;
+      if (targetCategoryId != null) {
+        router.push(`/flashcard/${targetCategoryId}`);
+      }
+      return;
+    }
+    const categoryId = getCategoryIdBySetNumber(set.setNumber);
+    if (categoryId != null) {
+      router.push(`/flashcard/${categoryId}`);
+    }
+  };
+
 
 
   const handleCategoryClick = (categoryId: number) => {
@@ -152,7 +203,14 @@ export function FlashcardCenter() {
             </Button>
             <div className="grid md:grid-cols-2 gap-4 w-full px-12">
               {recentSets.slice(recentIndex, recentIndex + setsToShow).map((set) => (
-                <Card key={set.id} className="h-48">
+                <Card
+                  key={set.id}
+                  className="relative h-48 cursor-pointer transition-shadow hover:shadow-md"
+                  onClick={() => handleRecentCardClick(set)}
+                >
+                  <span className="absolute right-4 top-4 inline-flex h-6 w-6 items-center justify-center rounded-full border border-primary/40 bg-background text-primary">
+                    <Sparkles className="h-3.5 w-3.5" />
+                  </span>
                   <CardHeader>
                     <CardTitle>{"titleKey" in set && set.titleKey ? t(set.titleKey) : "title" in set ? set.title : ""}</CardTitle>
                   </CardHeader>
