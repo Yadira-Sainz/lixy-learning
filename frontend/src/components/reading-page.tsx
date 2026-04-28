@@ -26,6 +26,7 @@ export default function ReadingPage() {
   const searchParams = useSearchParams()
   const [categoryId, setCategoryId] = useState<string | null>(null)
   const [readingIndex, setReadingIndex] = useState<number>(0)
+  const [readingMode, setReadingMode] = useState<"default" | "weak">("default")
   const [vocabulary, setVocabulary] = useState<Word[]>([])
   const [generatedStory, setGeneratedStory] = useState<{ title: string; content: string } | null>(null)
   const [highlightsVisible, setHighlightsVisible] = useState(true)
@@ -44,13 +45,17 @@ export default function ReadingPage() {
 
     const catId = searchParams.get('categoryId')
     const readingIdx = searchParams.get('readingIndex')
+    const mode = searchParams.get('mode')
     
     console.log('Received params:', { categoryId: catId, readingIndex: readingIdx })
     
     setCategoryId(catId)
     setReadingIndex(readingIdx ? parseInt(readingIdx) : 0)
+    setReadingMode(mode === "weak" ? "weak" : "default")
 
-    if (catId && storedToken) {
+    if (storedToken && mode === "weak") {
+      fetchWeakVocabulary(storedToken, catId)
+    } else if (catId && storedToken) {
       fetchVocabulary(catId, storedToken)
     } else {
       setError('Missing categoryId or token')
@@ -97,6 +102,53 @@ export default function ReadingPage() {
     }
   }
 
+  const fetchWeakVocabulary = async (token: string, fallbackCategoryId: string | null) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/weak-words`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      if (response.ok) {
+        const data: Array<{ word: string; translation: string }> = await response.json()
+        if (Array.isArray(data) && data.length > 0) {
+          setVocabulary(
+            data.map((item, index) => ({
+              id: index + 1,
+              word: item.word,
+              definition: item.translation,
+            }))
+          )
+          return
+        }
+        setError('No weak words found yet. Practice flashcards first.')
+      } else {
+        setError('Failed to fetch weak words')
+      }
+    } catch (err) {
+      setError(`Error fetching weak words: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    } finally {
+      if (!fallbackCategoryId) {
+        setIsLoading(false)
+      }
+    }
+  }
+
+  const selectWordsForReading = (words: Word[], index: number): Word[] => {
+    if (!words.length) {
+      return []
+    }
+    const count = Math.min(5, words.length)
+    const start = ((index % words.length) + words.length) % words.length
+    const selected: Word[] = []
+    for (let i = 0; i < count; i++) {
+      selected.push(words[(start + i) % words.length])
+    }
+    return selected
+  }
+
   const generateStory = async () => {
     if (!token || !categoryId) {
       console.error('Missing token or categoryId')
@@ -104,7 +156,7 @@ export default function ReadingPage() {
       setIsLoading(false)
       return;
     }
-    const selectedWords = vocabulary.sort(() => 0.5 - Math.random()).slice(0, 5)
+    const selectedWords = selectWordsForReading(vocabulary, readingIndex)
     const words = selectedWords.map(w => w.word).join(',')
     try {
       console.log('Generating story with words:', words)
