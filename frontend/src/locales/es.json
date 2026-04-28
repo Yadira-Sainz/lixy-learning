@@ -282,7 +282,8 @@
     "hideHighlights": "Ocultar resaltados",
     "showHighlights": "Mostrar resaltados",
     "playAudio": "Reproducir audio",
-    "nextPage": "Siguiente página"
+    "nextPage": "Siguiente página",
+    "goToQuiz": "Ir al cuestionario"
   },
   "modal": {
     "congrats": "¡Felicidades!",

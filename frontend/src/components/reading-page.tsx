@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { PlayIcon, EyeOffIcon, ChevronRightIcon } from 'lucide-react'
+import { PlayIcon, EyeOffIcon, ClipboardList } from 'lucide-react'
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 
@@ -37,7 +37,9 @@ export default function ReadingPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [sideTab, setSideTab] = useState<'words' | 'quiz'>('words')
   const audioRef = useRef<HTMLAudioElement>(null)
+  const sidePanelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const storedToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -56,6 +58,7 @@ export default function ReadingPage() {
     setQuizSubmitted(false)
     setError(null)
     setIsLoading(true)
+    setSideTab('words')
 
     setCategoryId(catId)
     setReadingIndex(readingIdx ? parseInt(readingIdx) : 0)
@@ -361,19 +364,28 @@ export default function ReadingPage() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button aria-label="Next Page">
-                    <ChevronRightIcon className="h-4 w-4" />
+                  <Button
+                    type="button"
+                    aria-label={t('readingPage.goToQuiz')}
+                    onClick={() => {
+                      setSideTab('quiz')
+                      requestAnimationFrame(() => {
+                        sidePanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+                      })
+                    }}
+                  >
+                    <ClipboardList className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{t('readingPage.nextPage')}</p>
+                  <p>{t('readingPage.goToQuiz')}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
         </Card>
-        <Card className="w-full lg:w-1/3 p-4">
-          <Tabs defaultValue="words" className="w-full">
+        <Card ref={sidePanelRef} className="w-full lg:w-1/3 p-4">
+          <Tabs value={sideTab} onValueChange={(v) => setSideTab(v as 'words' | 'quiz')} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger 
                 value="words"
