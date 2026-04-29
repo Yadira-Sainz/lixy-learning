@@ -223,17 +223,17 @@ export function DashboardComponent() {
       {/* Gamificación: puntos y medallas */}
       {gamification && (
         <TooltipProvider>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 md:items-stretch gap-4 mb-4">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200/50 cursor-help">
+              <Card className="h-full flex flex-col bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200/50 cursor-help">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Zap className="h-5 w-5 text-amber-500" />
                     {t('dashboard.gamification.points')}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1">
                   <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">{gamification.points}</p>
                   <p className="text-xs text-muted-foreground mt-1">{t('dashboard.gamification.pointsDesc')}</p>
                 </CardContent>
@@ -245,14 +245,14 @@ export function DashboardComponent() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-emerald-200/50 cursor-help">
+              <Card className="h-full flex flex-col bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-emerald-200/50 cursor-help">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
                     <BookOpen className="h-5 w-5 text-emerald-500" />
                     {t('dashboard.gamification.readingsCompleted')}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1">
                   <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{gamification.readingsCompleted ?? 0}</p>
                   <p className="text-xs text-muted-foreground mt-1">{t('dashboard.gamification.readingsCompletedDesc')}</p>
                 </CardContent>
@@ -264,53 +264,61 @@ export function DashboardComponent() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Card className="bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border-violet-200/50 cursor-help">
-                <CardHeader className="pb-2">
+              <Card className="h-full flex flex-col bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border-violet-200/50 cursor-help">
+                <CardHeader className="flex flex-col space-y-1.5 pb-2 pl-6 pr-0 pt-6">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Trophy className="h-5 w-5 text-violet-500" />
                     {t('dashboard.gamification.medals')}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex flex-col sm:flex-row sm:items-stretch gap-3">
-                    <div className="flex flex-1 flex-wrap gap-2 items-center min-w-0">
-                      {gamification.badges.length > 0 ? (
-                        gamification.badges.map((b) => {
+                <CardContent className="flex min-h-0 flex-1 flex-col px-6 pb-6 pl-6 pr-0 pt-0">
+                  {gamification.badges.length === 0 ? (
+                    <p className="pr-6 text-sm text-muted-foreground">{t('dashboard.gamification.medalsEmpty')}</p>
+                  ) : (
+                    <div
+                      className={`flex min-h-0 flex-1 flex-col gap-3 sm:relative sm:gap-0 ${
+                        latestEarnedBadge ? 'sm:min-h-[9.5rem]' : ''
+                      }`}
+                    >
+                      <div
+                        className={`medals-scroll flex min-h-0 flex-col gap-2 overflow-y-auto overscroll-y-contain max-h-36 sm:max-h-[9.5rem] ${
+                          latestEarnedBadge ? 'sm:pr-[11.25rem]' : ''
+                        }`}
+                      >
+                        {gamification.badges.map((b) => {
                           const Icon = BADGE_ICONS[b.icon_name] || Trophy;
                           return (
                             <div
                               key={b.badge_id}
-                              className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/60 dark:bg-black/20"
+                              className="flex w-fit max-w-full shrink-0 items-center gap-1 rounded-full bg-white/60 px-2 py-1 dark:bg-black/20"
                               title={b.description_es}
                             >
-                              <Icon className="h-4 w-4 text-violet-600 shrink-0" />
+                              <Icon className="h-4 w-4 shrink-0 text-violet-600" />
                               <span className="text-xs font-medium">{b.name_es}</span>
                             </div>
                           );
-                        })
-                      ) : (
-                        <p className="text-sm text-muted-foreground">{t('dashboard.gamification.medalsEmpty')}</p>
+                        })}
+                      </div>
+                      {latestEarnedBadge && (
+                        <div className="flex shrink-0 flex-col items-center justify-center gap-1.5 self-center rounded-xl border border-violet-200/60 bg-white/90 px-4 py-2.5 shadow-sm backdrop-blur-sm dark:bg-black/40 sm:absolute sm:right-4 sm:top-1/2 sm:w-[min(9.25rem,calc(100%-1.75rem))] sm:-translate-y-1/2 sm:px-4">
+                          <span className="text-center text-[10px] font-medium uppercase leading-tight tracking-wide text-muted-foreground">
+                            {t('dashboard.gamification.latestMedal')}
+                          </span>
+                          <img
+                            key={`${latestEarnedBadge.badge_id}-${latestEarnedBadge.earned_at}`}
+                            src={badgeCelebrationGifUrl(latestEarnedBadge.badge_key)}
+                            alt={latestEarnedBadge.name_es}
+                            className="h-[5rem] w-[5rem] object-contain sm:h-[5.25rem] sm:w-[5.25rem]"
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                          />
+                          <span className="max-w-[10rem] text-center text-xs font-medium leading-snug text-foreground">
+                            {latestEarnedBadge.name_es}
+                          </span>
+                        </div>
                       )}
                     </div>
-                    {latestEarnedBadge && (
-                      <div className="flex flex-col items-center gap-1 shrink-0 rounded-xl border border-violet-200/60 bg-white/50 dark:bg-black/25 px-3 py-2 sm:min-w-[6.5rem]">
-                        <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground text-center leading-tight">
-                          {t('dashboard.gamification.latestMedal')}
-                        </span>
-                        <img
-                          key={`${latestEarnedBadge.badge_id}-${latestEarnedBadge.earned_at}`}
-                          src={badgeCelebrationGifUrl(latestEarnedBadge.badge_key)}
-                          alt={latestEarnedBadge.name_es}
-                          className="h-[4.5rem] w-[4.5rem] object-contain"
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                        />
-                        <span className="text-xs font-medium text-center text-foreground max-w-[8rem] leading-snug">
-                          {latestEarnedBadge.name_es}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </CardContent>
           </Card>
             </TooltipTrigger>

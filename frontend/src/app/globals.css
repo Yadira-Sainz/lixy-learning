@@ -21,6 +21,22 @@ h1, h2, h3, h4, h5, h6 {
   .pt-safe {
     padding-top: calc(var(--navbar-height) + 1rem); 
   }
+
+  /* Medallas: barra fina a la derecha del área de scroll (WebKit + Firefox) */
+  .medals-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.28) transparent;
+  }
+  .medals-scroll::-webkit-scrollbar {
+    width: 5px;
+  }
+  .medals-scroll::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--primary) / 0.32);
+    border-radius: 9999px;
+  }
+  .medals-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
 @layer base {
