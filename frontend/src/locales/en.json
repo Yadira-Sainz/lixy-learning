@@ -165,7 +165,10 @@
       "medals": "Medals",
       "medalsEmpty": "Complete streaks to unlock medals",
       "medalsHowTo": "Earn medals by completing your daily session on consecutive days: 3, 7, 14, 30, 60 or 100 days.",
-      "latestMedal": "Latest earned"
+      "latestMedal": "Latest earned",
+      "pickedMedal": "Selected medal",
+      "medalClickHint": "Click to show the medal on the right",
+      "backToLatestMedal": "Back to latest"
     }
   },
   "admin": {

@@ -165,7 +165,10 @@
       "medals": "Medallas",
       "medalsEmpty": "Completa rachas para desbloquear medallas",
       "medalsHowTo": "Obtén medallas completando tu sesión diaria en días consecutivos: 3, 7, 14, 30, 60 o 100 días.",
-      "latestMedal": "Última conseguida"
+      "latestMedal": "Última conseguida",
+      "pickedMedal": "Medalla elegida",
+      "medalClickHint": "Clic para ver la medalla a la derecha",
+      "backToLatestMedal": "Volver a la última"
     }
   },
   "admin": {

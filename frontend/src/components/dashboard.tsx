@@ -81,6 +81,8 @@ export function DashboardComponent() {
   const [weakWords, setWeakWords] = useState<{ word: string; translation: string }[]>([]);
   const [dashboardVersion, setDashboardVersion] = useState(0);
   const [placementOpen, setPlacementOpen] = useState(false);
+  /** null = muestra la última por fecha; id = medalla elegida en la lista */
+  const [medalPreviewId, setMedalPreviewId] = useState<number | null>(null);
 
   const fetchStreakDates = async () => {
     const token = localStorage.getItem('token');
@@ -190,6 +192,17 @@ export function DashboardComponent() {
     })[0];
   }, [gamification?.badges]);
 
+  const shownMedalBadge = useMemo(() => {
+    const list = gamification?.badges;
+    if (!list?.length || !latestEarnedBadge) return null;
+    if (medalPreviewId == null) return latestEarnedBadge;
+    return list.find((b) => b.badge_id === medalPreviewId) ?? latestEarnedBadge;
+  }, [gamification?.badges, latestEarnedBadge, medalPreviewId]);
+
+  useEffect(() => {
+    setMedalPreviewId(null);
+  }, [gamification?.badges]);
+
   return (
     <>
     <PlacementQuizModal
@@ -287,34 +300,68 @@ export function DashboardComponent() {
                       >
                         {gamification.badges.map((b) => {
                           const Icon = BADGE_ICONS[b.icon_name] || Trophy;
+                          const isLatest = b.badge_id === latestEarnedBadge?.badge_id;
+                          const isPicked =
+                            medalPreviewId != null
+                              ? medalPreviewId === b.badge_id
+                              : isLatest;
                           return (
-                            <div
+                            <button
                               key={b.badge_id}
-                              className="flex w-fit max-w-full shrink-0 items-center gap-1 rounded-full bg-white/60 px-2 py-1 dark:bg-black/20"
-                              title={b.description_es}
+                              type="button"
+                              onClick={() => {
+                                setMedalPreviewId((prev) => {
+                                  if (isLatest) return null;
+                                  if (prev === b.badge_id) return null;
+                                  return b.badge_id;
+                                });
+                              }}
+                              className={`flex w-fit max-w-full shrink-0 cursor-pointer items-center gap-1 rounded-full border px-2 py-1 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:ring-offset-violet-50 dark:focus-visible:ring-offset-violet-950 ${
+                                isPicked
+                                  ? 'border-violet-400 bg-white ring-1 ring-violet-300 dark:border-violet-600 dark:bg-violet-950/40 dark:ring-violet-600'
+                                  : 'border-transparent bg-white/60 hover:bg-white/90 dark:bg-black/20 dark:hover:bg-black/30'
+                              }`}
+                              title={
+                                gamification.badges.length > 1
+                                  ? `${b.description_es} · ${t('dashboard.gamification.medalClickHint')}`
+                                  : b.description_es
+                              }
                             >
-                              <Icon className="h-4 w-4 shrink-0 text-violet-600" />
+                              <Icon className="h-4 w-4 shrink-0 text-violet-600" aria-hidden />
                               <span className="text-xs font-medium">{b.name_es}</span>
-                            </div>
+                            </button>
                           );
                         })}
                       </div>
-                      {latestEarnedBadge && (
+                      {shownMedalBadge && latestEarnedBadge && (
                         <div className="flex shrink-0 flex-col items-center justify-center gap-1.5 self-center rounded-xl border border-violet-200/60 bg-white/90 px-4 py-2.5 shadow-sm backdrop-blur-sm dark:bg-black/40 sm:absolute sm:right-4 sm:top-1/2 sm:w-[min(9.25rem,calc(100%-1.75rem))] sm:-translate-y-1/2 sm:px-4">
                           <span className="text-center text-[10px] font-medium uppercase leading-tight tracking-wide text-muted-foreground">
-                            {t('dashboard.gamification.latestMedal')}
+                            {medalPreviewId != null &&
+                            shownMedalBadge.badge_id !== latestEarnedBadge.badge_id
+                              ? t('dashboard.gamification.pickedMedal')
+                              : t('dashboard.gamification.latestMedal')}
                           </span>
                           <img
-                            key={`${latestEarnedBadge.badge_id}-${latestEarnedBadge.earned_at}`}
-                            src={badgeCelebrationGifUrl(latestEarnedBadge.badge_key)}
-                            alt={latestEarnedBadge.name_es}
+                            key={`${shownMedalBadge.badge_id}-${shownMedalBadge.badge_key}-${shownMedalBadge.earned_at}`}
+                            src={badgeCelebrationGifUrl(shownMedalBadge.badge_key)}
+                            alt={shownMedalBadge.name_es}
                             className="h-[5rem] w-[5rem] object-contain sm:h-[5.25rem] sm:w-[5.25rem]"
                             loading="lazy"
                             referrerPolicy="no-referrer"
                           />
                           <span className="max-w-[10rem] text-center text-xs font-medium leading-snug text-foreground">
-                            {latestEarnedBadge.name_es}
+                            {shownMedalBadge.name_es}
                           </span>
+                          {medalPreviewId != null &&
+                            shownMedalBadge.badge_id !== latestEarnedBadge.badge_id && (
+                              <button
+                                type="button"
+                                onClick={() => setMedalPreviewId(null)}
+                                className="text-[10px] font-medium text-violet-600 underline-offset-2 hover:underline dark:text-violet-400"
+                              >
+                                {t('dashboard.gamification.backToLatestMedal')}
+                              </button>
+                            )}
                         </div>
                       )}
                     </div>

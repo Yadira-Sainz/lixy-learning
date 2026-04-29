@@ -165,7 +165,10 @@
       "medals": "Médailles",
       "medalsEmpty": "Complétez des séries pour débloquer des médailles",
       "medalsHowTo": "Gagnez des médailles en complétant votre session quotidienne des jours consécutifs : 3, 7, 14, 30, 60 ou 100 jours.",
-      "latestMedal": "Dernière obtenue"
+      "latestMedal": "Dernière obtenue",
+      "pickedMedal": "Médaille choisie",
+      "medalClickHint": "Cliquez pour voir la médaille à droite",
+      "backToLatestMedal": "Revenir à la dernière"
     }
   },
   "admin": {
