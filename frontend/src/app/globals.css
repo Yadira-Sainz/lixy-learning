@@ -22,17 +22,23 @@ h1, h2, h3, h4, h5, h6 {
     padding-top: calc(var(--navbar-height) + 1rem); 
   }
 
-  /* Medallas: barra fina a la derecha del área de scroll (WebKit + Firefox) */
+  /* Medallas: barra casi invisible; un poco más visible al hover (WebKit + Firefox) */
   .medals-scroll {
     scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.14) transparent;
+  }
+  .medals-scroll:hover {
     scrollbar-color: hsl(var(--primary) / 0.28) transparent;
   }
   .medals-scroll::-webkit-scrollbar {
-    width: 5px;
+    width: 3px;
   }
   .medals-scroll::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--primary) / 0.32);
+    background-color: hsl(var(--primary) / 0.12);
     border-radius: 9999px;
+  }
+  .medals-scroll:hover::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--primary) / 0.3);
   }
   .medals-scroll::-webkit-scrollbar-track {
     background: transparent;
