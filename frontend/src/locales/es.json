@@ -164,7 +164,8 @@
       "readingsCompletedHowTo": "Completa una lectura y envía el cuestionario en el Centro de Lectura. 15 puntos por lectura.",
       "medals": "Medallas",
       "medalsEmpty": "Completa rachas para desbloquear medallas",
-      "medalsHowTo": "Obtén medallas completando tu sesión diaria en días consecutivos: 3, 7, 14, 30, 60 o 100 días."
+      "medalsHowTo": "Obtén medallas completando tu sesión diaria en días consecutivos: 3, 7, 14, 30, 60 o 100 días.",
+      "latestMedal": "Última conseguida"
     }
   },
   "admin": {

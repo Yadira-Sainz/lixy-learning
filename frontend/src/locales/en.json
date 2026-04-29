@@ -164,7 +164,8 @@
       "readingsCompletedHowTo": "Complete a reading and submit the quiz in the Reading Center. 15 points per reading.",
       "medals": "Medals",
       "medalsEmpty": "Complete streaks to unlock medals",
-      "medalsHowTo": "Earn medals by completing your daily session on consecutive days: 3, 7, 14, 30, 60 or 100 days."
+      "medalsHowTo": "Earn medals by completing your daily session on consecutive days: 3, 7, 14, 30, 60 or 100 days.",
+      "latestMedal": "Latest earned"
     }
   },
   "admin": {

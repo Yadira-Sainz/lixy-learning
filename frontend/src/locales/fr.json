@@ -164,7 +164,8 @@
       "readingsCompletedHowTo": "Terminez une lecture et soumettez le quiz dans le Centre de lecture. 15 points par lecture.",
       "medals": "Médailles",
       "medalsEmpty": "Complétez des séries pour débloquer des médailles",
-      "medalsHowTo": "Gagnez des médailles en complétant votre session quotidienne des jours consécutifs : 3, 7, 14, 30, 60 ou 100 jours."
+      "medalsHowTo": "Gagnez des médailles en complétant votre session quotidienne des jours consécutifs : 3, 7, 14, 30, 60 ou 100 jours.",
+      "latestMedal": "Dernière obtenue"
     }
   },
   "admin": {

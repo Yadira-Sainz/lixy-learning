@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
+import { badgeCelebrationGifUrl } from '@/lib/badge-media';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Trophy, Flame, Star, Award, Zap } from 'lucide-react';
@@ -36,9 +37,14 @@ const BADGE_ICONS: Record<string, React.ElementType> = {
 export default function StreakCompletionModal({ isOpen, onClose, currentStreak, longestStreak, completedCount, newBadges = [] }: Props) {
   const { t } = useLocale();
 
+  const heroNewBadge = useMemo(() => {
+    if (!newBadges.length) return null;
+    return [...newBadges].sort((a, b) => b.required_streak - a.required_streak)[0];
+  }, [newBadges]);
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center flex items-center justify-center gap-2">
             <Trophy className="h-6 w-6 text-yellow-400" />
@@ -59,8 +65,22 @@ export default function StreakCompletionModal({ isOpen, onClose, currentStreak, 
           </div>
         </div>
         {newBadges.length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <p className="text-sm font-medium text-center">{t('modal.newBadgesUnlocked')}</p>
+            {heroNewBadge && (
+              <div className="flex flex-col items-center gap-2 py-1">
+                <img
+                  src={badgeCelebrationGifUrl(heroNewBadge.badge_key)}
+                  alt={heroNewBadge.name_es}
+                  className="h-28 w-28 object-contain drop-shadow-md"
+                  referrerPolicy="no-referrer"
+                />
+                <p className="text-sm font-semibold text-center">{heroNewBadge.name_es}</p>
+                <p className="text-xs text-muted-foreground text-center max-w-sm">
+                  {heroNewBadge.description_es}
+                </p>
+              </div>
+            )}
             <div className="flex flex-wrap justify-center gap-2">
               {newBadges.map((b) => {
                 const Icon = BADGE_ICONS[b.icon_name] || Trophy;
@@ -70,7 +90,7 @@ export default function StreakCompletionModal({ isOpen, onClose, currentStreak, 
                     className="flex items-center gap-1 px-3 py-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 border border-amber-200"
                     title={b.description_es}
                   >
-                    <Icon className="h-5 w-5 text-amber-600" />
+                    <Icon className="h-5 w-5 text-amber-600 shrink-0" />
                     <span className="text-sm font-medium">{b.name_es}</span>
                   </div>
                 );

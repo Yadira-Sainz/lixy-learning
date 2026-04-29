@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocale } from '@/contexts/locale-context'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Trophy, Flame, Star, Award, Zap, BookOpen } from 'lucide-react'
 import { getDailyGoal } from '@/lib/config'
+import { badgeCelebrationGifUrl } from '@/lib/badge-media'
 import { Skeleton } from "@/components/ui/skeleton"
 import { PlacementQuizModal } from '@/components/placement-quiz-modal'
 
@@ -175,7 +176,20 @@ export function DashboardComponent() {
       setWeakWords(weak);
     }).finally(() => setIsLoading(false));
   }, [dashboardVersion]);
-  
+
+  const latestEarnedBadge = useMemo(() => {
+    const list = gamification?.badges;
+    if (!list?.length) return null;
+    return [...list].sort((a, b) => {
+      const ta = new Date(a.earned_at).getTime();
+      const tb = new Date(b.earned_at).getTime();
+      if (Number.isNaN(ta) && Number.isNaN(tb)) return 0;
+      if (Number.isNaN(ta)) return 1;
+      if (Number.isNaN(tb)) return -1;
+      return tb - ta;
+    })[0];
+  }, [gamification?.badges]);
+
   return (
     <>
     <PlacementQuizModal
@@ -257,27 +271,47 @@ export function DashboardComponent() {
                     {t('dashboard.gamification.medals')}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-              <div className="flex flex-wrap gap-2 items-center">
-                {gamification.badges.length > 0 ? (
-                  gamification.badges.map((b) => {
-                    const Icon = BADGE_ICONS[b.icon_name] || Trophy;
-                    return (
-                      <div
-                        key={b.badge_id}
-                        className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/60 dark:bg-black/20"
-                        title={b.description_es}
-                      >
-                        <Icon className="h-4 w-4 text-violet-600" />
-                        <span className="text-xs font-medium">{b.name_es}</span>
+                <CardContent className="pt-0">
+                  <div className="flex flex-col sm:flex-row sm:items-stretch gap-3">
+                    <div className="flex flex-1 flex-wrap gap-2 items-center min-w-0">
+                      {gamification.badges.length > 0 ? (
+                        gamification.badges.map((b) => {
+                          const Icon = BADGE_ICONS[b.icon_name] || Trophy;
+                          return (
+                            <div
+                              key={b.badge_id}
+                              className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/60 dark:bg-black/20"
+                              title={b.description_es}
+                            >
+                              <Icon className="h-4 w-4 text-violet-600 shrink-0" />
+                              <span className="text-xs font-medium">{b.name_es}</span>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <p className="text-sm text-muted-foreground">{t('dashboard.gamification.medalsEmpty')}</p>
+                      )}
+                    </div>
+                    {latestEarnedBadge && (
+                      <div className="flex flex-col items-center gap-1 shrink-0 rounded-xl border border-violet-200/60 bg-white/50 dark:bg-black/25 px-3 py-2 sm:min-w-[6.5rem]">
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground text-center leading-tight">
+                          {t('dashboard.gamification.latestMedal')}
+                        </span>
+                        <img
+                          key={`${latestEarnedBadge.badge_id}-${latestEarnedBadge.earned_at}`}
+                          src={badgeCelebrationGifUrl(latestEarnedBadge.badge_key)}
+                          alt={latestEarnedBadge.name_es}
+                          className="h-[4.5rem] w-[4.5rem] object-contain"
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                        />
+                        <span className="text-xs font-medium text-center text-foreground max-w-[8rem] leading-snug">
+                          {latestEarnedBadge.name_es}
+                        </span>
                       </div>
-                    );
-                  })
-                ) : (
-                  <p className="text-sm text-muted-foreground">{t('dashboard.gamification.medalsEmpty')}</p>
-                )}
-              </div>
-            </CardContent>
+                    )}
+                  </div>
+                </CardContent>
           </Card>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-xs">
