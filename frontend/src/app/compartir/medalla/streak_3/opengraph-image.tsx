@@ -8,9 +8,8 @@ export const size = { width: 1200, height: 630 };
 
 export const contentType = 'image/png';
 
-export default async function Image({ params }: { params: { badgeKey: string } }) {
-  const raw = decodeURIComponent(params.badgeKey);
-  const src = badgeCelebrationGifUrl(raw);
+export default function Image() {
+  const src = badgeCelebrationGifUrl('streak_3');
 
   return new ImageResponse(
     (
