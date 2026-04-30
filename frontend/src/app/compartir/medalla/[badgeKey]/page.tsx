@@ -8,7 +8,6 @@ type Props = { params: { badgeKey: string } };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const raw = decodeURIComponent(params.badgeKey);
   const meta = badgeShareMeta(raw);
-  const imageUrl = badgeCelebrationGifUrl(raw);
 
   const base =
     process.env.NEXT_PUBLIC_FRONTEND_URL?.replace(/\/$/, '') ||
@@ -20,29 +19,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: meta.title,
-    description: meta.description,
+    description: meta.ogDescription,
     openGraph: {
       title: meta.title,
-      description: meta.description,
+      description: meta.ogDescription,
       url: canonical,
       siteName: 'LixyLearning',
       locale: 'es_ES',
       type: 'website',
-      images: [
-        {
-          url: imageUrl,
-          width: 512,
-          height: 512,
-          alt: meta.title,
-          type: 'image/gif',
-        },
-      ],
     },
     twitter: {
       card: 'summary_large_image',
       title: meta.title,
-      description: meta.description,
-      images: [imageUrl],
+      description: meta.ogDescription,
     },
   };
 }
