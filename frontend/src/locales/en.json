@@ -168,7 +168,8 @@
       "latestMedal": "Latest earned",
       "pickedMedal": "Selected medal",
       "medalClickHint": "Click to show the medal on the right",
-      "backToLatestMedal": "Back to latest"
+      "backToLatestMedal": "Back to latest",
+      "shareLinkedIn": "Share on LinkedIn"
     }
   },
   "admin": {

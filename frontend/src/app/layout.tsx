@@ -7,7 +7,10 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { LocaleProvider } from "@/contexts/locale-context";
 import InactivityLogout from "@/components/inactivity-logout";
 
+const siteUrl = process.env.NEXT_PUBLIC_FRONTEND_URL;
+
 export const metadata: Metadata = {
+  metadataBase: siteUrl ? new URL(siteUrl) : undefined,
   title: "LixyLearning",
   description: "Learn languages with LixyLearning",
 };

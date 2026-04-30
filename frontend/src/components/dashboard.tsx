@@ -8,11 +8,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Trophy, Flame, Star, Award, Zap, BookOpen } from 'lucide-react'
+import { Trophy, Flame, Star, Award, Zap, BookOpen, Linkedin } from 'lucide-react'
 import { getDailyGoal } from '@/lib/config'
 import { badgeCelebrationGifUrl } from '@/lib/badge-media'
 import { Skeleton } from "@/components/ui/skeleton"
 import { PlacementQuizModal } from '@/components/placement-quiz-modal'
+import { useRequireAuth } from '@/hooks/use-require-auth'
 
 const DifficultyChart = dynamic(
   () => import('./dashboard-charts').then((m) => m.DifficultyChart),
@@ -58,6 +59,7 @@ const BADGE_ICONS: Record<string, React.ElementType> = {
 
 export function DashboardComponent() {
   const { t, locale } = useLocale()
+  const { isChecking, isAuthorized } = useRequireAuth();
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [currentWordIndex, setCurrentWordIndex] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
@@ -141,6 +143,9 @@ export function DashboardComponent() {
   };
 
   useEffect(() => {
+    if (!isAuthorized) {
+      return;
+    }
     const token = localStorage.getItem('token');
     if (!token) {
       setIsLoading(false);
@@ -177,7 +182,7 @@ export function DashboardComponent() {
       setProgress(prog);
       setWeakWords(weak);
     }).finally(() => setIsLoading(false));
-  }, [dashboardVersion]);
+  }, [dashboardVersion, isAuthorized]);
 
   const latestEarnedBadge = useMemo(() => {
     const list = gamification?.badges;
@@ -203,7 +208,31 @@ export function DashboardComponent() {
     setMedalPreviewId(null);
   }, [gamification?.badges]);
 
+  const handleShareMedalOnLinkedIn = (badge: Badge) => {
+    if (typeof window === 'undefined') return;
+    const shareTargetUrl = `${window.location.origin}/compartir/medalla/${encodeURIComponent(badge.badge_key)}`;
+    const linkedInShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareTargetUrl)}`;
+    window.open(linkedInShareUrl, '_blank', 'noopener,noreferrer');
+  };
+
   return (
+    <>
+    {isChecking ? (
+      <section id="tablero">
+        <div className="p-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Skeleton className="h-[280px]" />
+            <Skeleton className="h-[280px]" />
+            <Skeleton className="h-[280px]" />
+          </div>
+        </div>
+      </section>
+    ) : !isAuthorized ? null : (
     <>
     <PlacementQuizModal
       open={placementOpen}
@@ -236,17 +265,17 @@ export function DashboardComponent() {
       {/* Gamificación: puntos y medallas */}
       {gamification && (
         <TooltipProvider>
-        <div className="grid grid-cols-1 md:grid-cols-3 md:items-stretch gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Card className="h-full flex flex-col bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200/50 cursor-help">
+              <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200/50 cursor-help">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Zap className="h-5 w-5 text-amber-500" />
                     {t('dashboard.gamification.points')}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1">
+                <CardContent>
                   <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">{gamification.points}</p>
                   <p className="text-xs text-muted-foreground mt-1">{t('dashboard.gamification.pointsDesc')}</p>
                 </CardContent>
@@ -258,14 +287,14 @@ export function DashboardComponent() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Card className="h-full flex flex-col bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-emerald-200/50 cursor-help">
+              <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-emerald-200/50 cursor-help">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
                     <BookOpen className="h-5 w-5 text-emerald-500" />
                     {t('dashboard.gamification.readingsCompleted')}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1">
+                <CardContent>
                   <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{gamification.readingsCompleted ?? 0}</p>
                   <p className="text-xs text-muted-foreground mt-1">{t('dashboard.gamification.readingsCompletedDesc')}</p>
                 </CardContent>
@@ -277,7 +306,7 @@ export function DashboardComponent() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Card className="h-full flex flex-col bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border-violet-200/50 cursor-help">
+              <Card className="flex flex-col bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border-violet-200/50 cursor-help">
                 <CardHeader className="flex flex-col space-y-1.5 pb-2 pl-6 pr-0 pt-6">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Trophy className="h-5 w-5 text-violet-500" />
@@ -352,6 +381,16 @@ export function DashboardComponent() {
                           <span className="max-w-[10rem] text-center text-xs font-medium leading-snug text-foreground">
                             {shownMedalBadge.name_es}
                           </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 gap-1 rounded-full border-violet-300 px-2 text-[10px] text-violet-700 hover:bg-violet-100 dark:border-violet-700 dark:text-violet-300 dark:hover:bg-violet-950/40"
+                            onClick={() => handleShareMedalOnLinkedIn(shownMedalBadge)}
+                          >
+                            <Linkedin className="h-3.5 w-3.5" aria-hidden />
+                            {t('dashboard.gamification.shareLinkedIn')}
+                          </Button>
                           {medalPreviewId != null &&
                             shownMedalBadge.badge_id !== latestEarnedBadge.badge_id && (
                               <button
@@ -528,6 +567,8 @@ export function DashboardComponent() {
       </div>
     </div>
     </section>
+    )}
+    </>
     )}
     </>
   )

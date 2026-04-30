@@ -168,7 +168,8 @@
       "latestMedal": "Dernière obtenue",
       "pickedMedal": "Médaille choisie",
       "medalClickHint": "Cliquez pour voir la médaille à droite",
-      "backToLatestMedal": "Revenir à la dernière"
+      "backToLatestMedal": "Revenir à la dernière",
+      "shareLinkedIn": "Partager sur LinkedIn"
     }
   },
   "admin": {

@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from 'next/navigation';
 import { CollectionCategoryCard } from "@/components/collection-category-card";
+import { useRequireAuth } from "@/hooks/use-require-auth";
 const recentSets = [
   { id: 1, titleKey: "flashcardCenter.reinforceWeak", mode: "weak" as const },
   { id: 2, title: "Set 1", setNumber: 1, mode: "set" as const },
@@ -43,6 +44,7 @@ interface Vocabulary {
 
 export function FlashcardCenter() {
   const { t } = useLocale();
+  const { isChecking, isAuthorized } = useRequireAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [weakCategoryId, setWeakCategoryId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,9 +59,12 @@ export function FlashcardCenter() {
   const recentCurrentPage = Math.floor(recentIndex / setsToShow);
 
   useEffect(() => {
+    if (!isAuthorized) {
+      return;
+    }
     fetchCategories();
     fetchWeakCategory();
-  }, []);
+  }, [isAuthorized]);
   const fetchWeakCategory = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -187,6 +192,13 @@ export function FlashcardCenter() {
   return (
     <section id="centro-de-flashcards">
       <div className="container mx-auto p-4 space-y-8">
+        {isChecking ? (
+          <div className="grid md:grid-cols-2 gap-4">
+            <Skeleton className="h-48 rounded-xl" />
+            <Skeleton className="h-48 rounded-xl" />
+          </div>
+        ) : !isAuthorized ? null : (
+          <>
         
       <section data-tour="fc-recent">
         <h2 className="text-3xl font-bold mb-4">{t('flashcardCenter.recent')}</h2>
@@ -314,6 +326,8 @@ export function FlashcardCenter() {
               ))}
             </div>
           </section>
+        )}
+          </>
         )}
       </div>
     </section>
