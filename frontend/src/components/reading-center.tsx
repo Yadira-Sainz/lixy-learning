@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, BookOpen } from "lucide-react"
 import { CollectionCategoryCard } from "@/components/collection-category-card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useRequireAuth } from "@/hooks/use-require-auth"
+import { authFetch, getValidToken } from "@/lib/auth-client"
 const recentSets = [
   { id: 1, titleKey: "readingCenter.reinforceWeak", mode: "weak" as const },
   { id: 2, titleKey: null, readingNum: 1, mode: "set" as const },
@@ -39,12 +40,8 @@ export function ReadingCenterComponent() {
     setIsLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/categories`, {
+      const response = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/categories`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
       });
 
       if (response.ok) {
@@ -72,16 +69,13 @@ export function ReadingCenterComponent() {
   }, [isAuthorized]);
 
   const fetchWeakCategory = async () => {
-    const token = localStorage.getItem('token');
+    const token = getValidToken();
     if (!token) {
       return;
     }
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/weak-category`, {
+      const response = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/weak-category`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
       });
       if (response.ok) {
         const data: { categoryId?: number | null } = await response.json();

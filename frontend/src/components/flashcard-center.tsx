@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from 'next/navigation';
 import { CollectionCategoryCard } from "@/components/collection-category-card";
 import { useRequireAuth } from "@/hooks/use-require-auth";
+import { authFetch, getValidToken } from "@/lib/auth-client";
 const recentSets = [
   { id: 1, titleKey: "flashcardCenter.reinforceWeak", mode: "weak" as const },
   { id: 2, title: "Set 1", setNumber: 1, mode: "set" as const },
@@ -66,16 +67,13 @@ export function FlashcardCenter() {
     fetchWeakCategory();
   }, [isAuthorized]);
   const fetchWeakCategory = async () => {
-    const token = localStorage.getItem('token');
+    const token = getValidToken();
     if (!token) {
       return;
     }
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/weak-category`, {
+      const response = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/weak-category`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
       });
       if (response.ok) {
         const data: { categoryId?: number | null } = await response.json();
@@ -123,13 +121,9 @@ export function FlashcardCenter() {
 
   const fetchCategories = async () => {
     setIsLoading(true);
-    const token = localStorage.getItem('token');
     try {
-      const response = await fetch(process.env.NEXT_PUBLIC_BACKEND_URL + '/api/categories', {
+      const response = await authFetch(process.env.NEXT_PUBLIC_BACKEND_URL + '/api/categories', {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
       });
 
       if (response.ok) {
@@ -147,12 +141,8 @@ export function FlashcardCenter() {
   };
 
   const fetchVocabularyByCategory = async (categoryId: number) => {
-    const token = localStorage.getItem('token'); // Obtener el token almacenado
-    const response = await fetch(process.env.NEXT_PUBLIC_BACKEND_URL + `/api/vocabulary/${categoryId}`, {
+    const response = await authFetch(process.env.NEXT_PUBLIC_BACKEND_URL + `/api/vocabulary/${categoryId}`, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`, // Incluir el token en el encabezado
-      },
     });
 
     if (response.ok) {

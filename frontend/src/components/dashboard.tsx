@@ -14,6 +14,7 @@ import { badgeCelebrationGifUrl } from '@/lib/badge-media'
 import { Skeleton } from "@/components/ui/skeleton"
 import { PlacementQuizModal } from '@/components/placement-quiz-modal'
 import { useRequireAuth } from '@/hooks/use-require-auth'
+import { authFetch, getValidToken } from '@/lib/auth-client'
 
 const DifficultyChart = dynamic(
   () => import('./dashboard-charts').then((m) => m.DifficultyChart),
@@ -87,10 +88,8 @@ export function DashboardComponent() {
   const [medalPreviewId, setMedalPreviewId] = useState<number | null>(null);
 
   const fetchStreakDates = async () => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/streaks/`, {
+    const response = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/streaks/`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
     });
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const data = await response.json();
@@ -98,46 +97,31 @@ export function DashboardComponent() {
   };
 
   const fetchGamification = async () => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/gamification`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const response = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/gamification`);
     if (!response.ok) return null;
     return response.json();
   };
 
   const fetchDifficulty = async () => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/difficulty`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const response = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/difficulty`);
     if (!response.ok) return null;
     return response.json();
   };
 
   const fetchUpcomingReviews = async () => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/upcoming-reviews`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const response = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/upcoming-reviews`);
     if (!response.ok) return null;
     return response.json();
   };
 
   const fetchProgress = async () => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/progress`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const response = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/progress`);
     if (!response.ok) return null;
     return response.json();
   };
 
   const fetchWeakWords = async () => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/weak-words`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const response = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/weak-words`);
     if (!response.ok) return [];
     return response.json();
   };
@@ -146,7 +130,7 @@ export function DashboardComponent() {
     if (!isAuthorized) {
       return;
     }
-    const token = localStorage.getItem('token');
+    const token = getValidToken();
     if (!token) {
       setIsLoading(false);
       return;
@@ -155,9 +139,7 @@ export function DashboardComponent() {
     const base = process.env.NEXT_PUBLIC_BACKEND_URL ?? '';
     (async () => {
       try {
-        const statusRes = await fetch(`${base}/api/placement/status`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const statusRes = await authFetch(`${base}/api/placement/status`);
         if (statusRes.ok) {
           const statusJson = (await statusRes.json()) as { needsPlacement?: boolean };
           setPlacementOpen(!!statusJson.needsPlacement);

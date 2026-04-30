@@ -4,9 +4,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Settings, User, LogOut, Zap, LayoutDashboard } from "lucide-react";
 import axios from "axios";
-import { useRouter } from 'next/navigation';
 import { useLocale } from '@/contexts/locale-context';
 import { useAdminAccess } from '@/hooks/use-admin-access';
+import { clearAuthSession, getValidToken } from '@/lib/auth-client';
 
 export default function UserMenu() {
   const { t } = useLocale();
@@ -14,11 +14,12 @@ export default function UserMenu() {
   const [userDetails, setUserDetails] = React.useState({ username: '', email: '', points: 0, profile_image_url: '' as string | null });
   const [imgError, setImgError] = React.useState(false);
   const [imgCacheBuster, setImgCacheBuster] = React.useState(0);
-  const router = useRouter();
-
   const fetchUserDetails = React.useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getValidToken();
+      if (!token) {
+        return;
+      }
       const response = await axios.get(process.env.NEXT_PUBLIC_BACKEND_URL + '/user-details', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -29,6 +30,10 @@ export default function UserMenu() {
       });
       setImgCacheBuster((v) => v + 1);
     } catch (error) {
+      if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
+        clearAuthSession();
+        return;
+      }
       console.error('Error fetching user details:', error);
     }
   }, []);
@@ -48,9 +53,7 @@ export default function UserMenu() {
   }, [fetchUserDetails]);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    window.dispatchEvent(new CustomEvent('auth-change', { detail: { loggedIn: false } }));
-    router.push('/auth?tab=login');
+    clearAuthSession();
   };
 
   const initial = userDetails.username ? userDetails.username.charAt(0).toUpperCase() : '?';

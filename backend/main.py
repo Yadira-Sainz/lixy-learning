@@ -54,6 +54,15 @@ class NoCacheMiddleware(BaseHTTPMiddleware):
 app.add_middleware(NoCacheMiddleware)
 
 openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+LEGACY_TOKEN_TTL_HOURS = 1
+
+
+def _issue_legacy_token(user_id: int) -> str:
+    return jwt.encode(
+        {"userId": user_id, "exp": datetime.utcnow() + timedelta(hours=LEGACY_TOKEN_TTL_HOURS)},
+        os.environ.get("JWT_SECRET", ""),
+        algorithm="HS256",
+    )
 
 
 def _hash_password(password: str) -> str:
@@ -383,11 +392,7 @@ async def register(req: RegisterRequest, conn=Depends(get_db)):
         user_id = rows[0]["user_id"] if rows else None
         if not user_id:
             raise HTTPException(500, "Failed to create user")
-        token = jwt.encode(
-            {"userId": user_id, "exp": datetime.utcnow() + timedelta(hours=1)},
-            os.environ.get("JWT_SECRET", ""),
-            algorithm="HS256",
-        )
+        token = _issue_legacy_token(user_id)
         return {"token": token}
     except Exception as e:
         raise HTTPException(500, str(e))
@@ -562,11 +567,15 @@ async def login(req: LoginRequest, conn=Depends(get_db)):
     row = _execute_query_one(conn, "SELECT * FROM users WHERE email = %s", (req.email,))
     if not row or not row.get("password_hash") or not _verify_password(req.password, row["password_hash"]):
         raise HTTPException(401, "Invalid email or password")
-    token = jwt.encode(
-        {"userId": row["user_id"], "exp": datetime.utcnow() + timedelta(hours=1)},
-        os.environ.get("JWT_SECRET", ""),
-        algorithm="HS256",
-    )
+    token = _issue_legacy_token(row["user_id"])
+    return {"token": token}
+
+
+@app.post("/auth/refresh")
+async def refresh_legacy_token(user: dict = Depends(get_current_user)):
+    if user.get("auth_type") != "legacy":
+        raise HTTPException(400, "Token refresh is not available for this login method")
+    token = _issue_legacy_token(int(user["userId"]))
     return {"token": token}
 
 

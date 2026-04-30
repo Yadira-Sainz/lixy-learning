@@ -6,6 +6,7 @@ import FooterComponent from "@/components/footer";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LocaleProvider } from "@/contexts/locale-context";
 import InactivityLogout from "@/components/inactivity-logout";
+import SessionKeepAlive from "@/components/session-keepalive";
 
 const siteUrl = process.env.NEXT_PUBLIC_FRONTEND_URL;
 
@@ -31,6 +32,7 @@ export default function RootLayout({
         >
           <LocaleProvider>
             <InactivityLogout />
+            <SessionKeepAlive />
             <NavbarComponent />
             <UnifiedOnboardingTour />
             <main className="flex-grow pt-safe">{children}</main>

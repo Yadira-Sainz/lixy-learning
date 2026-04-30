@@ -9,6 +9,7 @@ import { Menu } from 'lucide-react';
 import Logo from '@/assets/Logo.png';
 import UserMenu from '@/hooks/user-menu';
 import { useLocale } from '@/contexts/locale-context';
+import { getValidToken } from '@/lib/auth-client';
 
 type NavbarProps = {
   isLandingPage?: boolean;
@@ -109,7 +110,7 @@ export default function NavbarComponent({ isLandingPage: isLandingPageProp = fal
       }
     }
 
-    const token = localStorage.getItem('token');
+    const token = getValidToken();
     setIsLoggedIn(!!token);
 
     const handleAuthChange = (e: CustomEvent<{ loggedIn: boolean }>) => {
