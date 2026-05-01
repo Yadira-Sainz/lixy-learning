@@ -287,10 +287,7 @@ const handleCloseModal = () => {
             <div className="flex flex-col md:flex-row md:space-x-6 space-y-6 md:space-y-0">
               <div className="w-full md:w-1/3 flex flex-col items-center md:items-start">
                 {currentImageUrl ? (
-                  <>
-                    <img src={currentImageUrl} alt="Flashcard image" className="w-full max-w-[200px] h-auto object-cover rounded-lg mb-1" />
-                    <a href="https://pixabay.com" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:underline mb-4 block">Image from Pixabay</a>
-                  </>
+                  <img src={currentImageUrl} alt="Flashcard image" className="w-full max-w-[200px] h-auto object-cover rounded-lg mb-4" />
                 ) : (
                   <div className="w-full max-w-[200px] h-[150px] bg-muted rounded-lg flex items-center justify-center mb-4 text-muted-foreground text-sm">{t('flashcard.loadingImage')}</div>
                 )}

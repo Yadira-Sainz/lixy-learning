@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { clearAuthSession, getValidToken } from '@/lib/auth-client';
 
 const INACTIVITY_MS = 30 * 60 * 1000; // 30 minutes
 const THROTTLE_MS = 1000; // Only count activity at most once per second (mousemove fires constantly)
@@ -14,8 +15,7 @@ export default function InactivityLogout() {
   const lastActivityRef = useRef<number>(Date.now());
 
   const logout = useCallback(() => {
-    localStorage.removeItem('token');
-    window.dispatchEvent(new CustomEvent('auth-change', { detail: { loggedIn: false } }));
+    clearAuthSession(false);
     if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth')) {
       router.push('/auth?tab=login');
     }
@@ -34,7 +34,7 @@ export default function InactivityLogout() {
 
   useEffect(() => {
     const setupTimer = () => {
-      const token = localStorage.getItem('token');
+      const token = getValidToken();
       if (!token) {
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
@@ -50,6 +50,14 @@ export default function InactivityLogout() {
 
     const handleActivity = () => resetTimer();
     const handleAuthChange = () => setupTimer();
+    const handleVisibilityOrFocus = () => {
+      const token = getValidToken();
+      if (!token && typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth')) {
+        router.push('/auth?tab=login');
+        return;
+      }
+      setupTimer();
+    };
 
     setupTimer();
 
@@ -57,6 +65,8 @@ export default function InactivityLogout() {
       document.addEventListener(ev, handleActivity);
     });
     window.addEventListener('auth-change', handleAuthChange);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
 
     return () => {
       if (timeoutRef.current) {
@@ -66,8 +76,10 @@ export default function InactivityLogout() {
         document.removeEventListener(ev, handleActivity);
       });
       window.removeEventListener('auth-change', handleAuthChange);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
     };
-  }, [resetTimer, logout]);
+  }, [resetTimer, logout, router]);
 
   return null;
 }

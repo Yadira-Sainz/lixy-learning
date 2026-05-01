@@ -9,6 +9,7 @@ import { Menu } from 'lucide-react';
 import Logo from '@/assets/Logo.png';
 import UserMenu from '@/hooks/user-menu';
 import { useLocale } from '@/contexts/locale-context';
+import { getValidToken } from '@/lib/auth-client';
 
 type NavbarProps = {
   isLandingPage?: boolean;
@@ -42,15 +43,21 @@ export default function NavbarComponent({ isLandingPage: isLandingPageProp = fal
 
   const isAuthPage = pathname.startsWith('/auth');
   const isProfileOrSettings = pathname === '/perfil' || pathname === '/ajustes';
-  const isLandingPage = pathname === '/' || isLandingPageProp;
+  const isHomeLanding = pathname === '/' || isLandingPageProp;
+  const isShareMedalPage = pathname.startsWith('/compartir/medalla/');
+  const useLandingNav = isHomeLanding || isShareMedalPage;
 
-  const navItems = isLandingPage ? LANDING_NAV : isProfileOrSettings ? PROFILE_NAV : MAIN_NAV;
+  const navItems = useLandingNav ? LANDING_NAV : isProfileOrSettings ? PROFILE_NAV : MAIN_NAV;
 
   const scrollToSection = (itemId: string) => {
-    if (isLandingPage) {
+    if (isHomeLanding) {
       const section = document.getElementById(itemId);
       if (section) {
         section.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else if (isShareMedalPage && LANDING_NAV.some((item) => item.id === itemId)) {
+      if (typeof window !== 'undefined') {
+        window.location.assign(`/#${itemId}`);
       }
     } else {
       router.push(`/${itemId}`);
@@ -76,7 +83,7 @@ export default function NavbarComponent({ isLandingPage: isLandingPageProp = fal
     };
     window.addEventListener('scroll', handleScroll);
 
-    if (isLandingPage) {
+    if (isHomeLanding) {
       observerRef.current = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
@@ -94,7 +101,7 @@ export default function NavbarComponent({ isLandingPage: isLandingPageProp = fal
           observerRef.current?.observe(section);
         }
       });
-    } else {
+    } else if (!isShareMedalPage) {
       // Set active item based on current pathname
       const currentPath = pathname.slice(1); // Remove leading slash
       const matchingItem = navItems.find(item => item.id === currentPath);
@@ -103,7 +110,7 @@ export default function NavbarComponent({ isLandingPage: isLandingPageProp = fal
       }
     }
 
-    const token = localStorage.getItem('token');
+    const token = getValidToken();
     setIsLoggedIn(!!token);
 
     const handleAuthChange = (e: CustomEvent<{ loggedIn: boolean }>) => {
@@ -115,11 +122,11 @@ export default function NavbarComponent({ isLandingPage: isLandingPageProp = fal
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('auth-change', handleAuthChange as EventListener);
-      if (isLandingPage) {
+      if (isHomeLanding) {
         observerRef.current?.disconnect();
       }
     };
-  }, [navItems, isLandingPage, pathname]);
+  }, [navItems, isHomeLanding, isShareMedalPage, pathname]);
 
   return (
     <nav
@@ -162,7 +169,7 @@ export default function NavbarComponent({ isLandingPage: isLandingPageProp = fal
               </div>
               {isLoggedIn ? (
                 <>
-                  {isLandingPage && (
+                  {useLandingNav && (
                     <button
                       onClick={() => router.push('/tablero')}
                       className={`hidden md:inline-flex px-3 py-2 mx-2 rounded-md text-sm font-medium transition-all duration-300 text-foreground hover:bg-accent ${isScrolled ? 'text-xs' : 'text-sm'}`}
@@ -198,9 +205,9 @@ export default function NavbarComponent({ isLandingPage: isLandingPageProp = fal
               {t(item.key)}
             </button>
           ))}
-          {isLoggedIn && (
+              {isLoggedIn && (
             <>
-              {isLandingPage && (
+              {useLandingNav && (
                 <button
                   onClick={() => { router.push('/tablero'); setIsMenuOpen(false); }}
                   className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent"

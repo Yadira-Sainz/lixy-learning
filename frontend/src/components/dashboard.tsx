@@ -1,17 +1,20 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocale } from '@/contexts/locale-context'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Trophy, Flame, Star, Award, Zap, BookOpen } from 'lucide-react'
+import { Trophy, Flame, Star, Award, Zap, BookOpen, Linkedin } from 'lucide-react'
 import { getDailyGoal } from '@/lib/config'
+import { badgeCelebrationGifUrl } from '@/lib/badge-media'
 import { Skeleton } from "@/components/ui/skeleton"
 import { PlacementQuizModal } from '@/components/placement-quiz-modal'
+import { useRequireAuth } from '@/hooks/use-require-auth'
+import { authFetch, getValidToken } from '@/lib/auth-client'
 
 const DifficultyChart = dynamic(
   () => import('./dashboard-charts').then((m) => m.DifficultyChart),
@@ -57,6 +60,7 @@ const BADGE_ICONS: Record<string, React.ElementType> = {
 
 export function DashboardComponent() {
   const { t, locale } = useLocale()
+  const { isChecking, isAuthorized } = useRequireAuth();
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [currentWordIndex, setCurrentWordIndex] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
@@ -80,12 +84,12 @@ export function DashboardComponent() {
   const [weakWords, setWeakWords] = useState<{ word: string; translation: string }[]>([]);
   const [dashboardVersion, setDashboardVersion] = useState(0);
   const [placementOpen, setPlacementOpen] = useState(false);
+  /** null = muestra la última por fecha; id = medalla elegida en la lista */
+  const [medalPreviewId, setMedalPreviewId] = useState<number | null>(null);
 
   const fetchStreakDates = async () => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/streaks/`, {
+    const response = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/streaks/`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
     });
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const data = await response.json();
@@ -93,52 +97,40 @@ export function DashboardComponent() {
   };
 
   const fetchGamification = async () => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/gamification`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const response = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/gamification`);
     if (!response.ok) return null;
     return response.json();
   };
 
   const fetchDifficulty = async () => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/difficulty`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const response = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/difficulty`);
     if (!response.ok) return null;
     return response.json();
   };
 
   const fetchUpcomingReviews = async () => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/upcoming-reviews`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const response = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/upcoming-reviews`);
     if (!response.ok) return null;
     return response.json();
   };
 
   const fetchProgress = async () => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/progress`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const response = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/progress`);
     if (!response.ok) return null;
     return response.json();
   };
 
   const fetchWeakWords = async () => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/weak-words`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const response = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/weak-words`);
     if (!response.ok) return [];
     return response.json();
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    if (!isAuthorized) {
+      return;
+    }
+    const token = getValidToken();
     if (!token) {
       setIsLoading(false);
       return;
@@ -147,9 +139,7 @@ export function DashboardComponent() {
     const base = process.env.NEXT_PUBLIC_BACKEND_URL ?? '';
     (async () => {
       try {
-        const statusRes = await fetch(`${base}/api/placement/status`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const statusRes = await authFetch(`${base}/api/placement/status`);
         if (statusRes.ok) {
           const statusJson = (await statusRes.json()) as { needsPlacement?: boolean };
           setPlacementOpen(!!statusJson.needsPlacement);
@@ -174,9 +164,57 @@ export function DashboardComponent() {
       setProgress(prog);
       setWeakWords(weak);
     }).finally(() => setIsLoading(false));
-  }, [dashboardVersion]);
-  
+  }, [dashboardVersion, isAuthorized]);
+
+  const latestEarnedBadge = useMemo(() => {
+    const list = gamification?.badges;
+    if (!list?.length) return null;
+    return [...list].sort((a, b) => {
+      const ta = new Date(a.earned_at).getTime();
+      const tb = new Date(b.earned_at).getTime();
+      if (Number.isNaN(ta) && Number.isNaN(tb)) return 0;
+      if (Number.isNaN(ta)) return 1;
+      if (Number.isNaN(tb)) return -1;
+      return tb - ta;
+    })[0];
+  }, [gamification?.badges]);
+
+  const shownMedalBadge = useMemo(() => {
+    const list = gamification?.badges;
+    if (!list?.length || !latestEarnedBadge) return null;
+    if (medalPreviewId == null) return latestEarnedBadge;
+    return list.find((b) => b.badge_id === medalPreviewId) ?? latestEarnedBadge;
+  }, [gamification?.badges, latestEarnedBadge, medalPreviewId]);
+
+  useEffect(() => {
+    setMedalPreviewId(null);
+  }, [gamification?.badges]);
+
+  const handleShareMedalOnLinkedIn = (badge: Badge) => {
+    if (typeof window === 'undefined') return;
+    const shareTargetUrl = `${window.location.origin}/compartir/medalla/${encodeURIComponent(badge.badge_key)}`;
+    const linkedInShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareTargetUrl)}`;
+    window.open(linkedInShareUrl, '_blank', 'noopener,noreferrer');
+  };
+
   return (
+    <>
+    {isChecking ? (
+      <section id="tablero">
+        <div className="p-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Skeleton className="h-[280px]" />
+            <Skeleton className="h-[280px]" />
+            <Skeleton className="h-[280px]" />
+          </div>
+        </div>
+      </section>
+    ) : !isAuthorized ? null : (
     <>
     <PlacementQuizModal
       open={placementOpen}
@@ -250,34 +288,106 @@ export function DashboardComponent() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Card className="bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border-violet-200/50 cursor-help">
-                <CardHeader className="pb-2">
+              <Card className="flex flex-col bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border-violet-200/50 cursor-help">
+                <CardHeader className="flex flex-col space-y-1.5 pb-2 pl-6 pr-0 pt-6">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Trophy className="h-5 w-5 text-violet-500" />
                     {t('dashboard.gamification.medals')}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-              <div className="flex flex-wrap gap-2 items-center">
-                {gamification.badges.length > 0 ? (
-                  gamification.badges.map((b) => {
-                    const Icon = BADGE_ICONS[b.icon_name] || Trophy;
-                    return (
+                <CardContent className="flex min-h-0 flex-1 flex-col px-6 pb-6 pl-6 pr-0 pt-0">
+                  {gamification.badges.length === 0 ? (
+                    <p className="pr-6 text-sm text-muted-foreground">{t('dashboard.gamification.medalsEmpty')}</p>
+                  ) : (
+                    <div
+                      className={`flex min-h-0 flex-1 flex-col gap-3 sm:relative sm:gap-0 ${
+                        latestEarnedBadge ? 'sm:min-h-[9.5rem]' : ''
+                      }`}
+                    >
                       <div
-                        key={b.badge_id}
-                        className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/60 dark:bg-black/20"
-                        title={b.description_es}
+                        className={`medals-scroll flex min-h-0 flex-col gap-2 overflow-y-auto overscroll-y-contain max-h-36 sm:max-h-[9.5rem] ${
+                          latestEarnedBadge ? 'sm:pr-[11.25rem]' : ''
+                        }`}
                       >
-                        <Icon className="h-4 w-4 text-violet-600" />
-                        <span className="text-xs font-medium">{b.name_es}</span>
+                        {gamification.badges.map((b) => {
+                          const Icon = BADGE_ICONS[b.icon_name] || Trophy;
+                          const isLatest = b.badge_id === latestEarnedBadge?.badge_id;
+                          const isPicked =
+                            medalPreviewId != null
+                              ? medalPreviewId === b.badge_id
+                              : isLatest;
+                          return (
+                            <button
+                              key={b.badge_id}
+                              type="button"
+                              onClick={() => {
+                                setMedalPreviewId((prev) => {
+                                  if (isLatest) return null;
+                                  if (prev === b.badge_id) return null;
+                                  return b.badge_id;
+                                });
+                              }}
+                              className={`flex w-fit max-w-full shrink-0 cursor-pointer items-center gap-1 rounded-full border px-2 py-1 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:ring-offset-violet-50 dark:focus-visible:ring-offset-violet-950 ${
+                                isPicked
+                                  ? 'border-violet-400 bg-white ring-1 ring-violet-300 dark:border-violet-600 dark:bg-violet-950/40 dark:ring-violet-600'
+                                  : 'border-transparent bg-white/60 hover:bg-white/90 dark:bg-black/20 dark:hover:bg-black/30'
+                              }`}
+                              title={
+                                gamification.badges.length > 1
+                                  ? `${b.description_es} · ${t('dashboard.gamification.medalClickHint')}`
+                                  : b.description_es
+                              }
+                            >
+                              <Icon className="h-4 w-4 shrink-0 text-violet-600" aria-hidden />
+                              <span className="text-xs font-medium">{b.name_es}</span>
+                            </button>
+                          );
+                        })}
                       </div>
-                    );
-                  })
-                ) : (
-                  <p className="text-sm text-muted-foreground">{t('dashboard.gamification.medalsEmpty')}</p>
-                )}
-              </div>
-            </CardContent>
+                      {shownMedalBadge && latestEarnedBadge && (
+                        <div className="flex shrink-0 flex-col items-center justify-center gap-1.5 self-center rounded-xl border border-violet-200/60 bg-white/90 px-4 py-2.5 shadow-sm backdrop-blur-sm dark:bg-black/40 sm:absolute sm:right-4 sm:top-1/2 sm:w-[min(9.25rem,calc(100%-1.75rem))] sm:-translate-y-1/2 sm:px-4">
+                          <span className="text-center text-[10px] font-medium uppercase leading-tight tracking-wide text-muted-foreground">
+                            {medalPreviewId != null &&
+                            shownMedalBadge.badge_id !== latestEarnedBadge.badge_id
+                              ? t('dashboard.gamification.pickedMedal')
+                              : t('dashboard.gamification.latestMedal')}
+                          </span>
+                          <img
+                            key={`${shownMedalBadge.badge_id}-${shownMedalBadge.badge_key}-${shownMedalBadge.earned_at}`}
+                            src={badgeCelebrationGifUrl(shownMedalBadge.badge_key)}
+                            alt={shownMedalBadge.name_es}
+                            className="h-[5rem] w-[5rem] object-contain sm:h-[5.25rem] sm:w-[5.25rem]"
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                          />
+                          <span className="max-w-[10rem] text-center text-xs font-medium leading-snug text-foreground">
+                            {shownMedalBadge.name_es}
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 gap-1 rounded-full border-violet-300 px-2 text-[10px] text-violet-700 hover:bg-violet-100 dark:border-violet-700 dark:text-violet-300 dark:hover:bg-violet-950/40"
+                            onClick={() => handleShareMedalOnLinkedIn(shownMedalBadge)}
+                          >
+                            <Linkedin className="h-3.5 w-3.5" aria-hidden />
+                            {t('dashboard.gamification.shareLinkedIn')}
+                          </Button>
+                          {medalPreviewId != null &&
+                            shownMedalBadge.badge_id !== latestEarnedBadge.badge_id && (
+                              <button
+                                type="button"
+                                onClick={() => setMedalPreviewId(null)}
+                                className="text-[10px] font-medium text-violet-600 underline-offset-2 hover:underline dark:text-violet-400"
+                              >
+                                {t('dashboard.gamification.backToLatestMedal')}
+                              </button>
+                            )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
           </Card>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-xs">
@@ -439,6 +549,8 @@ export function DashboardComponent() {
       </div>
     </div>
     </section>
+    )}
+    </>
     )}
     </>
   )

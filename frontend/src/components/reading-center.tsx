@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChevronLeft, ChevronRight, BookOpen } from "lucide-react"
 import { CollectionCategoryCard } from "@/components/collection-category-card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useRequireAuth } from "@/hooks/use-require-auth"
+import { authFetch, getValidToken } from "@/lib/auth-client"
 const recentSets = [
   { id: 1, titleKey: "readingCenter.reinforceWeak", mode: "weak" as const },
   { id: 2, titleKey: null, readingNum: 1, mode: "set" as const },
@@ -24,6 +27,7 @@ interface Category {
 export function ReadingCenterComponent() {
   const { t } = useLocale()
   const router = useRouter()
+  const { isChecking, isAuthorized } = useRequireAuth()
   const [categories, setCategories] = useState<Category[]>([]);
   const [weakCategoryId, setWeakCategoryId] = useState<number | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -36,12 +40,8 @@ export function ReadingCenterComponent() {
     setIsLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/categories`, {
+      const response = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/categories`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
       });
 
       if (response.ok) {
@@ -61,21 +61,21 @@ export function ReadingCenterComponent() {
   };
 
   useEffect(() => {
+    if (!isAuthorized) {
+      return;
+    }
     fetchCategories();
     fetchWeakCategory();
-  }, []);
+  }, [isAuthorized]);
 
   const fetchWeakCategory = async () => {
-    const token = localStorage.getItem('token');
+    const token = getValidToken();
     if (!token) {
       return;
     }
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/weak-category`, {
+      const response = await authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard/weak-category`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
       });
       if (response.ok) {
         const data: { categoryId?: number | null } = await response.json();
@@ -138,6 +138,13 @@ export function ReadingCenterComponent() {
   return (
     <section id="centro-de-lectura">
       <div className="container mx-auto p-4 space-y-8">
+        {isChecking ? (
+          <div className="grid md:grid-cols-2 gap-4">
+            <Skeleton className="h-48 rounded-xl" />
+            <Skeleton className="h-48 rounded-xl" />
+          </div>
+        ) : !isAuthorized ? null : (
+          <>
         <section data-tour="rc-recent">
           <h2 className="text-3xl font-bold mb-4">{t('readingCenter.recent')}</h2>
           <div className="relative">
@@ -215,6 +222,8 @@ export function ReadingCenterComponent() {
             </div>
           )}
         </section>
+          </>
+        )}
       </div>
     </section>
   )
