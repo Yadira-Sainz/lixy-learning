@@ -6,7 +6,6 @@ import { useLocale } from '@/contexts/locale-context'
 import { Card, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getReadingCollectionTheme } from '@/lib/category-reading-theme'
-import { cn } from '@/lib/utils'
 
 type Word = { id: number; word: string; definition: string; };
 
@@ -91,27 +90,19 @@ export default function OneReadingCollection() {
         {lecturas.map((lectura, index) => (
           <Card
             key={index}
-            className={cn(
-              "cursor-pointer overflow-hidden border-l-4 transition-shadow duration-300 hover:shadow-lg",
-              theme.borderL
-            )}
+            className="cursor-pointer overflow-hidden border-l-4 border-l-border transition-shadow duration-300 hover:shadow-lg"
             onClick={() => handleReadingClick(index)}
           >
             <div className="flex gap-4 p-5 sm:p-6">
               <div className="relative shrink-0">
-                <div
-                  className={cn(
-                    "flex h-16 w-16 items-center justify-center rounded-2xl shadow-inner",
-                    theme.iconBg
-                  )}
-                >
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-transparent">
                   <CategoryIcon
-                    className={cn("h-8 w-8", theme.iconFg)}
+                    className="h-8 w-8 stroke-[1.75] text-foreground"
                     aria-hidden
                   />
                 </div>
                 <span
-                  className="absolute -bottom-1 -right-1 flex h-7 min-w-[1.75rem] items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground shadow-sm"
+                  className="absolute -bottom-1 -right-1 flex h-7 min-w-[1.75rem] items-center justify-center rounded-full border border-border bg-background px-1.5 text-xs font-semibold text-foreground shadow-sm"
                   aria-hidden
                 >
                   {index + 1}
