@@ -6,6 +6,9 @@
 const FALLBACK =
   "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&w=800&q=80";
 
+/** Marcador: la tarjeta Memes renderiza SVG inline (standalone a veces no sirve /public). */
+export const CATEGORY_CARD_INLINE_MEMES = "__inline_memes_cover__";
+
 const BY_ID: Record<number, string> = {
   1: "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=800&q=80",
   2: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80",
@@ -17,7 +20,7 @@ const BY_ID: Record<number, string> = {
   8: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=80",
   9: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80",
   10: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=800&q=80",
-  11: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=800&q=80",
+  11: CATEGORY_CARD_INLINE_MEMES,
 };
 
 const BY_NAME_KEY: Record<string, string> = {
