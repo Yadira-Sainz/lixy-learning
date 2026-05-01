@@ -12,7 +12,78 @@ import { PlayIcon, EyeOffIcon, ClipboardList } from 'lucide-react'
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 
-type Word = { id: number; word: string; definition: string; };
+type Word = { id: number; word: string; definition: string };
+
+/** API devuelve vocabulary_id; unificamos a Word para tooltips y panel. */
+function normalizeVocabularyRows(rows: unknown[]): Word[] {
+  return rows.map((row) => {
+    const r = row as Record<string, unknown>
+    return {
+      id: Number(r.vocabulary_id ?? r.id ?? 0),
+      word: String(r.word ?? "").trim(),
+      definition: String(r.definition ?? "").trim(),
+    }
+  })
+}
+
+type TextMatch = { start: number; end: number; word: Word };
+
+/** Coincidencias no solapadas; prioriza frases largas (p. ej. "touch grass" antes que "no"). */
+function findHighlightMatches(content: string, vocabulary: Word[]): TextMatch[] {
+  const sorted = [...vocabulary]
+    .filter((v) => v.word.length > 0)
+    .sort((a, b) => b.word.length - a.word.length)
+  const lowerContent = content.toLowerCase()
+  const candidates: TextMatch[] = []
+
+  for (const word of sorted) {
+    const needle = word.word.toLowerCase()
+    let from = 0
+    while (from < lowerContent.length) {
+      const idx = lowerContent.indexOf(needle, from)
+      if (idx === -1) break
+      const end = idx + needle.length
+      const before = idx > 0 ? content[idx - 1] : ""
+      const after = end < content.length ? content[end] : ""
+      const beforeOk = idx === 0 || !/[A-Za-z0-9]/.test(before)
+      const afterOk = end >= content.length || !/[A-Za-z0-9]/.test(after)
+      if (beforeOk && afterOk) {
+        candidates.push({ start: idx, end, word })
+      }
+      from = idx + 1
+    }
+  }
+
+  candidates.sort((a, b) => {
+    if (a.start !== b.start) return a.start - b.start
+    return b.end - b.end - (a.end - a.start)
+  })
+
+  const chosen: TextMatch[] = []
+  for (const c of candidates) {
+    const overlaps = chosen.some((ch) => c.start < ch.end && c.end > ch.start)
+    if (!overlaps) chosen.push(c)
+  }
+  chosen.sort((a, b) => a.start - b.start)
+  return chosen
+}
+
+function buildHighlightedSegments(content: string, vocabulary: Word[]): Array<{ text: string; word?: Word }> {
+  const matches = findHighlightMatches(content, vocabulary)
+  const segments: Array<{ text: string; word?: Word }> = []
+  let cursor = 0
+  for (const m of matches) {
+    if (m.start > cursor) {
+      segments.push({ text: content.slice(cursor, m.start) })
+    }
+    segments.push({ text: content.slice(m.start, m.end), word: m.word })
+    cursor = m.end
+  }
+  if (cursor < content.length) {
+    segments.push({ text: content.slice(cursor) })
+  }
+  return segments
+}
 
 type QuizQuestion = {
   question: string;
@@ -96,7 +167,7 @@ export default function ReadingPage() {
         const data = await response.json()
         console.log('Fetched vocabulary:', data)
         if (Array.isArray(data) && data.length > 0) {
-          setVocabulary(data)
+          setVocabulary(normalizeVocabularyRows(data))
         } else {
           setError('No vocabulary found for this category')
         }
@@ -151,7 +222,8 @@ export default function ReadingPage() {
     if (!words.length) {
       return []
     }
-    const count = Math.min(5, words.length)
+    // Más términos por lectura cuando hay mucho vocabulario (p. ej. Memes con frases).
+    const count = Math.min(words.length >= 40 ? 10 : 6, words.length)
     const start = ((index % words.length) + words.length) % words.length
     const selected: Word[] = []
     for (let i = 0; i < count; i++) {
@@ -269,29 +341,28 @@ export default function ReadingPage() {
 
   const renderContent = () => {
     if (!generatedStory) return <p>{t('readingPage.loading')}</p>
-    return generatedStory.content.split(' ').map((word, index) => {
-      const cleanWord = word.replace(/[^a-zA-Z]/g, '').toLowerCase()
-      const highlightInfo = vocabulary.find(v => v.word.toLowerCase() === cleanWord)
-      if (highlightInfo && highlightsVisible) {
+    const segments = buildHighlightedSegments(generatedStory.content, vocabulary)
+    return segments.map((seg, index) => {
+      if (seg.word && highlightsVisible) {
         return (
           <TooltipProvider key={index}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span 
-                  className="cursor-pointer rounded px-1 font-medium bg-yellow-200 text-yellow-900 hover:bg-yellow-300 dark:bg-yellow-300 dark:text-yellow-950 dark:hover:bg-yellow-400"
-                  onClick={() => handleWordClick(highlightInfo)}
+                <span
+                  className="cursor-pointer rounded px-0.5 font-medium bg-yellow-200 text-yellow-900 hover:bg-yellow-300 dark:bg-yellow-300 dark:text-yellow-950 dark:hover:bg-yellow-400"
+                  onClick={() => handleWordClick(seg.word!)}
                 >
-                  {word}
+                  {seg.text}
                 </span>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{highlightInfo.definition}</p>
+                <p>{seg.word.definition}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         )
       }
-      return <span key={index}>{word} </span>
+      return <span key={index}>{seg.text}</span>
     })
   }
 

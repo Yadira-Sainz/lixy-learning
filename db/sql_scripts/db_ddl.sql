@@ -52,7 +52,8 @@ VALUES
 ('Hobbies/Leisure'),
 ('Nature/Environment'),
 ('Technology'),
-('Grammar/Function Word');
+('Grammar/Function Word'),
+('Memes');
 
 -- Create the categories table first
 CREATE TABLE IF NOT EXISTS categories (
