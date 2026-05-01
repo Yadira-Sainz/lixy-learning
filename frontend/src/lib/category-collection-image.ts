@@ -1,6 +1,6 @@
 /**
  * Imágenes representativas por colección (categoría de vocabulario).
- * IDs alineados con el orden típico en db_ddl.sql; el nombre sirve como respaldo.
+ * IDs alineados con el orden típico en db_ddl.sql (incl. Memes); el nombre sirve como respaldo.
  */
 
 const FALLBACK =
@@ -17,6 +17,7 @@ const BY_ID: Record<number, string> = {
   8: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=800&q=80",
   9: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80",
   10: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=800&q=80",
+  11: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=800&q=80",
 };
 
 const BY_NAME_KEY: Record<string, string> = {
@@ -39,6 +40,7 @@ const BY_NAME_KEY: Record<string, string> = {
   technology: BY_ID[9]!,
   "grammar/function word": BY_ID[10]!,
   grammar: BY_ID[10]!,
+  memes: BY_ID[11]!,
 };
 
 /** Nombre normalizado → id canónico (mismas claves que BY_NAME_KEY). */
@@ -62,6 +64,7 @@ const NAME_TO_ID: Record<string, number> = {
   technology: 9,
   "grammar/function word": 10,
   grammar: 10,
+  memes: 11,
 };
 
 function normalizeName(name: string): string {
@@ -73,7 +76,7 @@ function normalizeName(name: string): string {
 }
 
 /**
- * Resuelve el id de categoría conocido (1–10) a partir del id numérico o del nombre.
+ * Resuelve el id de categoría conocido (1–11) a partir del id numérico o del nombre.
  * Útil para temas/iconos alineados con las colecciones del seed SQL.
  */
 export function resolveCategoryId(
