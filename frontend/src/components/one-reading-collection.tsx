@@ -95,14 +95,14 @@ export default function OneReadingCollection() {
           >
             <div className="flex gap-4 p-5 sm:p-6">
               <div className="relative shrink-0">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-transparent">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-transparent">
                   <CategoryIcon
                     className="h-8 w-8 stroke-[1.75] text-foreground"
                     aria-hidden
                   />
                 </div>
                 <span
-                  className="absolute -bottom-1 -right-1 flex h-7 min-w-[1.75rem] items-center justify-center rounded-full border border-border bg-background px-1.5 text-xs font-semibold text-foreground shadow-sm"
+                  className="absolute -bottom-1 -right-1 flex h-7 min-w-[1.75rem] items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground shadow-sm"
                   aria-hidden
                 >
                   {index + 1}
