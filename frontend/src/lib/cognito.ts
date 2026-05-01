@@ -283,3 +283,49 @@ export function decodeIdTokenPayload(idToken: string): Record<string, unknown> {
   const json = new TextDecoder("utf-8").decode(bytes);
   return JSON.parse(json) as Record<string, unknown>;
 }
+
+/**
+ * Attempts to obtain a fresh Cognito Id token from the current browser session.
+ * Returns null when no refresh path is available.
+ */
+export function refreshCognitoSessionToken(): Promise<string | null> {
+  return new Promise((resolve) => {
+    const pool = getUserPool();
+    if (!pool) {
+      resolve(null);
+      return;
+    }
+
+    const user = pool.getCurrentUser();
+    if (!user) {
+      resolve(null);
+      return;
+    }
+
+    user.getSession((err: Error | null, session: any) => {
+      if (err || !session) {
+        resolve(null);
+        return;
+      }
+
+      if (session.isValid()) {
+        resolve(session.getIdToken().getJwtToken());
+        return;
+      }
+
+      const refreshToken = session.getRefreshToken();
+      if (!refreshToken) {
+        resolve(null);
+        return;
+      }
+
+      user.refreshSession(refreshToken, (refreshErr: Error | null, refreshedSession: any) => {
+        if (refreshErr || !refreshedSession) {
+          resolve(null);
+          return;
+        }
+        resolve(refreshedSession.getIdToken().getJwtToken());
+      });
+    });
+  });
+}
