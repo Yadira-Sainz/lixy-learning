@@ -2,7 +2,11 @@
 
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCategoryCollectionImageSrc } from "@/lib/category-collection-image";
+import {
+  CATEGORY_CARD_INLINE_MEMES,
+  getCategoryCollectionImageSrc,
+} from "@/lib/category-collection-image";
+import { MemesCategoryCoverArt } from "@/components/memes-category-cover-art";
 
 type CollectionCategoryCardProps = {
   categoryId: number;
@@ -25,15 +29,29 @@ export function CollectionCategoryCard({
       onClick={onClick}
     >
       <div className="relative aspect-[16/9] w-full bg-muted">
-        <Image
-          src={src}
-          alt={categoryName}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, 33vw"
-          priority={false}
-          unoptimized
-        />
+        {src === CATEGORY_CARD_INLINE_MEMES ? (
+          <div className="absolute inset-0 overflow-hidden bg-[#fafafa]">
+            <MemesCategoryCoverArt className="object-cover" />
+          </div>
+        ) : src.endsWith(".svg") ? (
+          <img
+            src={src}
+            alt={categoryName}
+            className="absolute inset-0 h-full w-full object-cover object-center"
+            loading="lazy"
+            decoding="async"
+          />
+        ) : (
+          <Image
+            src={src}
+            alt={categoryName}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 33vw"
+            priority={false}
+            unoptimized
+          />
+        )}
       </div>
       <CardHeader className="pb-2 pt-3">
         <CardTitle className="text-lg leading-tight line-clamp-2">

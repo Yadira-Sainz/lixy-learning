@@ -1,19 +1,42 @@
 'use client';
 
-import { Button } from "@/components/ui/button"
-import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import homepageImage from '@/assets/homepage.png'
-import { useLocale } from '@/contexts/locale-context'
-
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import homepageImage from "@/assets/homepage.png";
+import { useLocale } from "@/contexts/locale-context";
+import { getValidToken } from "@/lib/auth-client";
 
 export function LandingPageComponent() {
-  const router = useRouter()
-  const { t } = useLocale()
+  const router = useRouter();
+  const { t } = useLocale();
+  const [isLoggedIn, setIsLoggedIn] = useState(
+    () => typeof window !== "undefined" && !!getValidToken()
+  );
 
-  const handleRegisterClick = () => {
-    router.push('/auth?tab=signup')
-  }
+  useEffect(() => {
+    const sync = () => setIsLoggedIn(!!getValidToken());
+    sync();
+    const onAuthChange = (e: Event) => {
+      const ce = e as CustomEvent<{ loggedIn?: boolean }>;
+      if (typeof ce.detail?.loggedIn === "boolean") {
+        setIsLoggedIn(ce.detail.loggedIn);
+      } else {
+        sync();
+      }
+    };
+    window.addEventListener("auth-change", onAuthChange as EventListener);
+    return () => window.removeEventListener("auth-change", onAuthChange as EventListener);
+  }, []);
+
+  const handlePrimaryCta = () => {
+    if (isLoggedIn) {
+      router.push("/tablero");
+      return;
+    }
+    router.push("/auth?tab=signup");
+  };
 
   return (
     <section id="sobre-nosotros">
@@ -28,11 +51,11 @@ export function LandingPageComponent() {
               <p className="text-xl text-muted-foreground mb-6">
                 {t('landing.subtitle')}
               </p>
-              <Button 
+              <Button
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-6 text-lg"
-                onClick={handleRegisterClick}
+                onClick={handlePrimaryCta}
               >
-                {t('landing.signup')}
+                {isLoggedIn ? t("nav.dashboard") : t("landing.signup")}
               </Button>
             </div>
 
