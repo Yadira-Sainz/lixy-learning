@@ -9,6 +9,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, ConfigDict, Field
+from psycopg2 import errors as pg_errors
 
 from auth import get_current_user, is_user_admin, require_admin
 from db import get_db
@@ -67,6 +68,33 @@ def _optional_text(s: str | None) -> str | None:
     return t if t else None
 
 
+def _sync_vocabulary_id_sequence(conn) -> None:
+    """
+    Align the SERIAL sequence with MAX(vocabulary_id). Required when rows were loaded
+    with explicit ids (e.g. SQL dumps); otherwise nextval() can reuse an existing id.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT setval(
+                pg_get_serial_sequence('vocabulary', 'vocabulary_id'),
+                COALESCE((SELECT MAX(vocabulary_id) FROM vocabulary), 1)
+            )
+            """
+        )
+    conn.commit()
+
+
+def _is_vocab_pkey_unique_violation(exc: BaseException) -> bool:
+    if not isinstance(exc, pg_errors.UniqueViolation):
+        return False
+    diag = getattr(exc, "diag", None)
+    cname = getattr(diag, "constraint_name", None) if diag is not None else None
+    if cname == "vocabulary_pkey":
+        return True
+    return "vocabulary_pkey" in str(exc).lower()
+
+
 def _append_vocab_row(
     conn,
     category_id: int,
@@ -81,33 +109,42 @@ def _append_vocab_row(
     Insert one vocabulary row unless it duplicates (same category, word, definition).
     Returns ('inserted', vocabulary_id) or ('skipped_duplicate', None).
     """
-    with conn.cursor() as cur:
-        cur.execute(
-            """SELECT 1 AS x FROM vocabulary
-               WHERE category_id = %s AND word = %s
-                 AND definition IS NOT DISTINCT FROM %s
-               LIMIT 1""",
-            (category_id, word, definition),
-        )
-        if cur.fetchone():
-            return ("skipped_duplicate", None)
-        try:
+    for attempt in range(2):
+        with conn.cursor() as cur:
             cur.execute(
-                """INSERT INTO vocabulary (word, type, cefr, definition, example, category_id, image_url)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s)
-                   RETURNING vocabulary_id""",
-                (word, type_, cefr, definition, example, category_id, image_url),
+                """SELECT 1 AS x FROM vocabulary
+                   WHERE category_id = %s AND word = %s
+                     AND definition IS NOT DISTINCT FROM %s
+                   LIMIT 1""",
+                (category_id, word, definition),
             )
-            row = cur.fetchone()
-            if not row:
+            if cur.fetchone():
                 conn.rollback()
-                raise RuntimeError("Insert returned no row")
-            vid = int(row["vocabulary_id"])
-        except Exception:
-            conn.rollback()
-            raise
-    conn.commit()
-    return ("inserted", vid)
+                return ("skipped_duplicate", None)
+            try:
+                cur.execute(
+                    """INSERT INTO vocabulary (word, type, cefr, definition, example, category_id, image_url)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s)
+                       RETURNING vocabulary_id""",
+                    (word, type_, cefr, definition, example, category_id, image_url),
+                )
+                row = cur.fetchone()
+                if not row:
+                    conn.rollback()
+                    raise RuntimeError("Insert returned no row")
+                vid = int(row["vocabulary_id"])
+            except pg_errors.UniqueViolation as exc:
+                conn.rollback()
+                if attempt == 0 and _is_vocab_pkey_unique_violation(exc):
+                    _sync_vocabulary_id_sequence(conn)
+                    continue
+                raise
+            except Exception:
+                conn.rollback()
+                raise
+        conn.commit()
+        return ("inserted", vid)
+    raise RuntimeError("vocabulary insert retry exhausted")
 
 
 class AdminVocabEntryBody(BaseModel):
