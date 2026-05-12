@@ -94,27 +94,34 @@ export function AdminVocabularyImport() {
     void loadCategories();
   }, [adminLoading, isAdmin, loadCategories, router]);
 
+  const manualFormComplete =
+    Boolean(categoryId) &&
+    Boolean(manualWord.trim()) &&
+    Boolean(manualType.trim()) &&
+    Boolean(manualCefr.trim()) &&
+    Boolean(manualDefinition.trim()) &&
+    Boolean(manualExample.trim());
+
   const onSubmitManual = async (e: React.FormEvent) => {
     e.preventDefault();
     const base = backendUrl();
-    if (!base || !categoryId) return;
+    if (!base || !manualFormComplete) return;
     const word = manualWord.trim();
-    if (!word) return;
+    const ty = manualType.trim();
+    const ce = manualCefr.trim();
+    const def = manualDefinition.trim();
+    const ex = manualExample.trim();
     setManualSubmitting(true);
     clearManualStatus();
     try {
-      const payload: Record<string, unknown> = {
+      const payload = {
         category_id: Number(categoryId),
         word,
+        type: ty,
+        cefr: ce,
+        definition: def,
+        example: ex,
       };
-      const ty = manualType.trim();
-      if (ty) payload.type = ty;
-      const ce = manualCefr.trim();
-      if (ce) payload.cefr = ce;
-      const def = manualDefinition.trim();
-      if (def) payload.definition = def;
-      const ex = manualExample.trim();
-      if (ex) payload.example = ex;
 
       const res = await authFetch(`${base}/api/admin/vocabulary/entry`, {
         method: 'POST',
@@ -130,7 +137,12 @@ export function AdminVocabularyImport() {
         let msg = `HTTP ${res.status}`;
         try {
           const body = (await res.json()) as { detail?: unknown };
-          if (typeof body.detail === 'string') msg = body.detail;
+          if (typeof body.detail === 'string') {
+            msg = body.detail;
+          } else if (Array.isArray(body.detail) && body.detail.length > 0) {
+            const first = body.detail[0] as { msg?: string };
+            if (typeof first?.msg === 'string') msg = first.msg;
+          }
         } catch {
           /* ignore */
         }
@@ -323,6 +335,7 @@ export function AdminVocabularyImport() {
                       maxLength={255}
                       disabled={manualSubmitting}
                       placeholder={t('admin.vocabManualTypePh')}
+                      required
                     />
                   </div>
                   <div className="space-y-2">
@@ -337,6 +350,7 @@ export function AdminVocabularyImport() {
                       maxLength={10}
                       disabled={manualSubmitting}
                       placeholder={t('admin.vocabManualCefrPh')}
+                      required
                     />
                   </div>
                 </div>
@@ -352,6 +366,7 @@ export function AdminVocabularyImport() {
                     disabled={manualSubmitting}
                     placeholder={t('admin.vocabManualDefinitionPh')}
                     rows={3}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -366,10 +381,11 @@ export function AdminVocabularyImport() {
                     disabled={manualSubmitting}
                     placeholder={t('admin.vocabManualExamplePh')}
                     rows={2}
+                    required
                   />
                 </div>
 
-                <Button type="submit" disabled={manualSubmitting || !categoryId || !manualWord.trim()}>
+                <Button type="submit" disabled={manualSubmitting || !manualFormComplete}>
                   {manualSubmitting ? t('admin.vocabManualSaving') : t('admin.vocabManualSubmit')}
                 </Button>
 

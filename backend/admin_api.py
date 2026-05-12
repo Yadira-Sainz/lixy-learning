@@ -148,15 +148,15 @@ def _append_vocab_row(
 
 
 class AdminVocabEntryBody(BaseModel):
-    """Single vocabulary row from the admin UI (no image: filled later by app / AI)."""
+    """Single vocabulary row from the admin UI; all lexical fields required (image filled later by app)."""
 
     model_config = ConfigDict(str_strip_whitespace=True)
     category_id: int
     word: str = Field(..., min_length=1, max_length=255)
-    speech_type: str | None = Field(None, max_length=255, alias="type")
-    cefr: str | None = Field(None, max_length=10)
-    definition: str | None = None
-    example: str | None = None
+    speech_type: str = Field(..., min_length=1, max_length=255, alias="type", description="Grammatical type, e.g. noun, verb")
+    cefr: str = Field(..., min_length=1, max_length=10)
+    definition: str = Field(..., min_length=1, max_length=32000)
+    example: str = Field(..., min_length=1, max_length=32000)
 
 
 def _fetch_all(conn, query: str, params: tuple = ()):
@@ -440,30 +440,15 @@ async def admin_vocab_entry(
     if not cat:
         raise HTTPException(404, "Category not found")
 
-    word = body.word.strip()
-    if not word:
-        raise HTTPException(400, "Word required")
-
-    type_ = _optional_text(body.speech_type)
-    if type_ and len(type_) > 255:
-        raise HTTPException(400, "type exceeds 255 characters")
-
-    cefr = _optional_text(body.cefr)
-    if cefr and len(cefr) > 10:
-        raise HTTPException(400, "cefr exceeds 10 characters")
-
-    definition = _optional_text(body.definition)
-    example = _optional_text(body.example)
-
     try:
         status, vocabulary_id = _append_vocab_row(
             conn,
             body.category_id,
-            word,
-            type_,
-            cefr,
-            definition,
-            example,
+            body.word,
+            body.speech_type,
+            body.cefr,
+            body.definition,
+            body.example,
             None,
         )
     except Exception as exc:  # noqa: BLE001
@@ -484,8 +469,8 @@ async def admin_import_vocabulary_csv(
     conn=Depends(get_db),
 ):
     """
-    Append vocabulary rows for an existing category. Does not delete or replace existing rows.
-    Duplicate rows (same category, word, and definition, including both empty/null) are skipped.
+    Append vocabulary rows for an existing category. Each row must include word, type,
+    cefr, definition, and example (image_url optional). Duplicate logical rows are skipped.
     """
     cat = _fetch_one(conn, "SELECT category_id FROM categories WHERE category_id = %s", (category_id,))
     if not cat:
@@ -510,6 +495,17 @@ async def admin_import_vocabulary_csv(
             400,
             "CSV must include a word column (e.g. word, palabra, termino).",
         )
+    for logical, label in (
+        ("type", "type / tipo (grammatical category, e.g. noun, verb)"),
+        ("cefr", "cefr / nivel"),
+        ("definition", "definition / definicion"),
+        ("example", "example / ejemplo"),
+    ):
+        if not col.get(logical):
+            raise HTTPException(
+                400,
+                f"CSV must include a {label} column.",
+            )
 
     inserted = 0
     skipped_duplicates = 0
@@ -530,17 +526,31 @@ async def admin_import_vocabulary_csv(
             continue
 
         type_ = _optional_text(_cell(row, col["type"]))
-        if type_ and len(type_) > 255:
+        if not type_:
+            errors.append({"line": line_no, "message": "Missing type (grammatical category)"})
+            continue
+        if len(type_) > 255:
             errors.append({"line": line_no, "message": "type exceeds 255 characters"})
             continue
 
         cefr = _optional_text(_cell(row, col["cefr"]))
-        if cefr and len(cefr) > 10:
+        if not cefr:
+            errors.append({"line": line_no, "message": "Missing cefr"})
+            continue
+        if len(cefr) > 10:
             errors.append({"line": line_no, "message": "cefr exceeds 10 characters"})
             continue
 
         definition = _optional_text(_cell(row, col["definition"]))
+        if not definition:
+            errors.append({"line": line_no, "message": "Missing definition"})
+            continue
+
         example = _optional_text(_cell(row, col["example"]))
+        if not example:
+            errors.append({"line": line_no, "message": "Missing example"})
+            continue
+
         image_url = _optional_text(_cell(row, col["image_url"]))
 
         try:

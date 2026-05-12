@@ -168,6 +168,10 @@ export function AdminDashboard() {
           <p className="text-sm text-muted-foreground mt-1">{t('admin.subtitle')}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => void refreshAdmin()} disabled={adminLoading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${adminLoading ? 'animate-spin' : ''}`} />
+            {t('admin.recheckAdminAccess')}
+          </Button>
           {isAdmin === true && (
             <Button variant="secondary" size="sm" asChild>
               <Link href="/admin/vocabulario" target="_blank" rel="noopener noreferrer">
@@ -176,10 +180,6 @@ export function AdminDashboard() {
               </Link>
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => void refreshAdmin()} disabled={adminLoading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${adminLoading ? 'animate-spin' : ''}`} />
-            {t('admin.recheckAdminAccess')}
-          </Button>
           <Button variant="default" size="sm" onClick={() => void loadData()} disabled={loading || !isAdmin}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             {t('admin.reloadData')}
