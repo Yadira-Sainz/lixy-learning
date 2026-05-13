@@ -17,15 +17,30 @@ export function FooterComponent() {
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-3">{t('footer.social')}</h3>
             <div className="flex space-x-4">
-              <a href="#" className="text-muted-foreground hover:text-foreground">
-                <span className="sr-only">Facebook</span>
+              <a
+                href="https://www.instagram.com/lixylearning/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <span className="sr-only">Instagram @lixylearning</span>
                 <Facebook className="h-6 w-6" />
               </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground">
+              <a
+                href="https://x.com/lixylearning"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <span className="sr-only">Twitter</span>
                 <Twitter className="h-6 w-6" />
               </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground">
+              <a
+                href="https://www.instagram.com/lixylearning/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <span className="sr-only">Instagram</span>
                 <Instagram className="h-6 w-6" />
               </a>

@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Users, Activity, BookOpen, ShieldAlert, RefreshCw, ArrowLeft, Clock, MousePointerClick } from 'lucide-react';
+import { Users, Activity, BookOpen, ShieldAlert, RefreshCw, ArrowLeft, Clock, MousePointerClick, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import type { DayCount } from './admin-charts';
 
@@ -167,11 +167,19 @@ export function AdminDashboard() {
           <h1 className="text-2xl font-bold tracking-tight">{t('admin.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">{t('admin.subtitle')}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={() => void refreshAdmin()} disabled={adminLoading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${adminLoading ? 'animate-spin' : ''}`} />
             {t('admin.recheckAdminAccess')}
           </Button>
+          {isAdmin === true && (
+            <Button variant="secondary" size="sm" asChild>
+              <Link href="/admin/vocabulario" target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                {t('admin.vocabImportOpenTool')}
+              </Link>
+            </Button>
+          )}
           <Button variant="default" size="sm" onClick={() => void loadData()} disabled={loading || !isAdmin}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             {t('admin.reloadData')}
