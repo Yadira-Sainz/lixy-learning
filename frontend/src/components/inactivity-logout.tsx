@@ -51,11 +51,8 @@ export default function InactivityLogout() {
     const handleActivity = () => resetTimer();
     const handleAuthChange = () => setupTimer();
     const handleVisibilityOrFocus = () => {
-      const token = getValidToken();
-      if (!token && typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth')) {
-        router.push('/auth?tab=login');
-        return;
-      }
+      // Do not redirect when there is no token: guests on public pages (e.g. /) must
+      // stay on the site. Redirecting here treated every visitor like a logged-out session.
       setupTimer();
     };
 

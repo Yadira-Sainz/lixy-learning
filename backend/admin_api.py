@@ -3,14 +3,160 @@ Aggregated read-only endpoints for the administrative dashboard.
 Protected by require_admin (see auth.py).
 """
 
+import csv
+import io
 from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from pydantic import BaseModel, ConfigDict, Field
+from psycopg2 import errors as pg_errors
 
 from auth import get_current_user, is_user_admin, require_admin
 from db import get_db
 
 router = APIRouter()
+
+_MAX_CSV_BYTES = 5 * 1024 * 1024
+_MAX_CSV_ROWS = 5000
+
+_VOCAB_HEADER_ALIASES: dict[str, tuple[str, ...]] = {
+    "word": ("word", "palabra", "término", "termino", "term", "w"),
+    "type": ("type", "tipo", "pos", "part_of_speech"),
+    "cefr": ("cefr", "level", "nivel"),
+    "definition": ("definition", "definición", "definicion", "meaning", "significado"),
+    "example": ("example", "ejemplo", "sample"),
+    "image_url": ("image_url", "imageurl", "url_imagen", "imagen", "image", "url"),
+}
+
+
+def _norm_header(s: str) -> str:
+    return (s or "").strip().lower().replace("\ufeff", "")
+
+
+def _resolve_vocab_columns(fieldnames: list[str] | None) -> dict[str, str | None]:
+    """Maps logical column name -> CSV header string present in file (or None)."""
+    if not fieldnames:
+        return {k: None for k in _VOCAB_HEADER_ALIASES}
+    inv: dict[str, str] = {}
+    for fn in fieldnames:
+        inv[_norm_header(fn)] = fn
+    out: dict[str, str | None] = {}
+    for logical, aliases in _VOCAB_HEADER_ALIASES.items():
+        found = None
+        for a in aliases:
+            key = _norm_header(a)
+            if key in inv:
+                found = inv[key]
+                break
+        out[logical] = found
+    return out
+
+
+def _cell(row: dict, header_key: str | None) -> str | None:
+    if not header_key:
+        return None
+    v = row.get(header_key)
+    if v is None:
+        return None
+    return str(v)
+
+
+def _optional_text(s: str | None) -> str | None:
+    if s is None:
+        return None
+    t = s.strip()
+    return t if t else None
+
+
+def _sync_vocabulary_id_sequence(conn) -> None:
+    """
+    Align the SERIAL sequence with MAX(vocabulary_id). Required when rows were loaded
+    with explicit ids (e.g. SQL dumps); otherwise nextval() can reuse an existing id.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT setval(
+                pg_get_serial_sequence('vocabulary', 'vocabulary_id'),
+                COALESCE((SELECT MAX(vocabulary_id) FROM vocabulary), 1)
+            )
+            """
+        )
+    conn.commit()
+
+
+def _is_vocab_pkey_unique_violation(exc: BaseException) -> bool:
+    if not isinstance(exc, pg_errors.UniqueViolation):
+        return False
+    diag = getattr(exc, "diag", None)
+    cname = getattr(diag, "constraint_name", None) if diag is not None else None
+    if cname == "vocabulary_pkey":
+        return True
+    return "vocabulary_pkey" in str(exc).lower()
+
+
+def _append_vocab_row(
+    conn,
+    category_id: int,
+    word: str,
+    type_: str | None,
+    cefr: str | None,
+    definition: str | None,
+    example: str | None,
+    image_url: str | None,
+) -> tuple[str, int | None]:
+    """
+    Insert one vocabulary row unless it duplicates (same category, word, definition).
+    Returns ('inserted', vocabulary_id) or ('skipped_duplicate', None).
+    """
+    for attempt in range(2):
+        with conn.cursor() as cur:
+            cur.execute(
+                """SELECT 1 AS x FROM vocabulary
+                   WHERE category_id = %s AND word = %s
+                     AND definition IS NOT DISTINCT FROM %s
+                   LIMIT 1""",
+                (category_id, word, definition),
+            )
+            if cur.fetchone():
+                conn.rollback()
+                return ("skipped_duplicate", None)
+            try:
+                cur.execute(
+                    """INSERT INTO vocabulary (word, type, cefr, definition, example, category_id, image_url)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s)
+                       RETURNING vocabulary_id""",
+                    (word, type_, cefr, definition, example, category_id, image_url),
+                )
+                row = cur.fetchone()
+                if not row:
+                    conn.rollback()
+                    raise RuntimeError("Insert returned no row")
+                vid = int(row["vocabulary_id"])
+            except pg_errors.UniqueViolation as exc:
+                conn.rollback()
+                if attempt == 0 and _is_vocab_pkey_unique_violation(exc):
+                    _sync_vocabulary_id_sequence(conn)
+                    continue
+                raise
+            except Exception:
+                conn.rollback()
+                raise
+        conn.commit()
+        return ("inserted", vid)
+    raise RuntimeError("vocabulary insert retry exhausted")
+
+
+class AdminVocabEntryBody(BaseModel):
+    """Single vocabulary row from the admin UI; all lexical fields required (image filled later by app)."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+    category_id: int
+    word: str = Field(..., min_length=1, max_length=255)
+    speech_type: str = Field(..., min_length=1, max_length=255, alias="type", description="Grammatical type, e.g. noun, verb")
+    cefr: str = Field(..., min_length=1, max_length=10)
+    definition: str = Field(..., min_length=1, max_length=32000)
+    example: str = Field(..., min_length=1, max_length=32000)
 
 
 def _fetch_all(conn, query: str, params: tuple = ()):
@@ -279,5 +425,156 @@ async def admin_engagement(_: dict = Depends(require_admin), conn=Depends(get_db
         "avgUserPoints": float(points["avg_points"]) if points and points.get("avg_points") is not None else 0.0,
         "badgesEarnedByType": badges,
         "totalReadingsCompleted": int(total_readings["c"]) if total_readings else 0,
+        "generatedAt": datetime.utcnow().isoformat() + "Z",
+    }
+
+
+@router.post("/vocabulary/entry")
+async def admin_vocab_entry(
+    body: AdminVocabEntryBody,
+    _: dict = Depends(require_admin),
+    conn=Depends(get_db),
+):
+    """Add a single vocabulary row. Image URL is left empty for the app to fill (e.g. via AI)."""
+    cat = _fetch_one(conn, "SELECT category_id FROM categories WHERE category_id = %s", (body.category_id,))
+    if not cat:
+        raise HTTPException(404, "Category not found")
+
+    try:
+        status, vocabulary_id = _append_vocab_row(
+            conn,
+            body.category_id,
+            body.word,
+            body.speech_type,
+            body.cefr,
+            body.definition,
+            body.example,
+            None,
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"Could not save vocabulary: {exc}") from exc
+
+    return {
+        "status": status,
+        "vocabularyId": vocabulary_id,
+        "generatedAt": datetime.utcnow().isoformat() + "Z",
+    }
+
+
+@router.post("/vocabulary/import-csv")
+async def admin_import_vocabulary_csv(
+    category_id: int = Form(...),
+    file: UploadFile = File(...),
+    _: dict = Depends(require_admin),
+    conn=Depends(get_db),
+):
+    """
+    Append vocabulary rows for an existing category. Each row must include word, type,
+    cefr, definition, and example (image_url optional). Duplicate logical rows are skipped.
+    """
+    cat = _fetch_one(conn, "SELECT category_id FROM categories WHERE category_id = %s", (category_id,))
+    if not cat:
+        raise HTTPException(404, "Category not found")
+
+    raw = await file.read()
+    if len(raw) > _MAX_CSV_BYTES:
+        raise HTTPException(413, "CSV file too large (max 5 MB)")
+
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError as e:
+        raise HTTPException(400, "File must be UTF-8 encoded") from e
+
+    reader = csv.DictReader(io.StringIO(text))
+    if not reader.fieldnames:
+        raise HTTPException(400, "CSV has no header row")
+
+    col = _resolve_vocab_columns(list(reader.fieldnames))
+    if not col.get("word"):
+        raise HTTPException(
+            400,
+            "CSV must include a word column (e.g. word, palabra, termino).",
+        )
+    for logical, label in (
+        ("type", "type / tipo (grammatical category, e.g. noun, verb)"),
+        ("cefr", "cefr / nivel"),
+        ("definition", "definition / definicion"),
+        ("example", "example / ejemplo"),
+    ):
+        if not col.get(logical):
+            raise HTTPException(
+                400,
+                f"CSV must include a {label} column.",
+            )
+
+    inserted = 0
+    skipped_duplicates = 0
+    errors: list[dict[str, str | int]] = []
+
+    for line_no, row in enumerate(reader, start=2):
+        if line_no > _MAX_CSV_ROWS + 1:
+            errors.append({"line": line_no, "message": f"Stopped after {_MAX_CSV_ROWS} data rows"})
+            break
+
+        word_raw = _cell(row, col["word"])
+        word = (word_raw or "").strip()
+        if not word:
+            errors.append({"line": line_no, "message": "Missing word"})
+            continue
+        if len(word) > 255:
+            errors.append({"line": line_no, "message": "Word exceeds 255 characters"})
+            continue
+
+        type_ = _optional_text(_cell(row, col["type"]))
+        if not type_:
+            errors.append({"line": line_no, "message": "Missing type (grammatical category)"})
+            continue
+        if len(type_) > 255:
+            errors.append({"line": line_no, "message": "type exceeds 255 characters"})
+            continue
+
+        cefr = _optional_text(_cell(row, col["cefr"]))
+        if not cefr:
+            errors.append({"line": line_no, "message": "Missing cefr"})
+            continue
+        if len(cefr) > 10:
+            errors.append({"line": line_no, "message": "cefr exceeds 10 characters"})
+            continue
+
+        definition = _optional_text(_cell(row, col["definition"]))
+        if not definition:
+            errors.append({"line": line_no, "message": "Missing definition"})
+            continue
+
+        example = _optional_text(_cell(row, col["example"]))
+        if not example:
+            errors.append({"line": line_no, "message": "Missing example"})
+            continue
+
+        image_url = _optional_text(_cell(row, col["image_url"]))
+
+        try:
+            status, _vid = _append_vocab_row(
+                conn,
+                category_id,
+                word,
+                type_,
+                cefr,
+                definition,
+                example,
+                image_url,
+            )
+            if status == "inserted":
+                inserted += 1
+            else:
+                skipped_duplicates += 1
+        except Exception as exc:  # noqa: BLE001
+            errors.append({"line": line_no, "message": str(exc)})
+
+    return {
+        "categoryId": category_id,
+        "inserted": inserted,
+        "skippedDuplicates": skipped_duplicates,
+        "errors": errors,
         "generatedAt": datetime.utcnow().isoformat() + "Z",
     }
